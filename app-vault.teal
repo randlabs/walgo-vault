@@ -1,0 +1,329 @@
+#pragma version 2
+// check if the app is being created
+// if so save creator
+int 0
+txn ApplicationID
+==
+bz not_creation
+
+// Create Application -> Save Creator
+txn NumAppArgs
+int 0
+==
+bz failed
+
+byte "Creator"
+txn Sender
+app_global_put
+//0 args must be used on creation
+
+int 1
+return
+
+not_creation:
+// is it an admin action
+byte "Creator"
+app_global_get
+txn Sender
+==
+bz no_admin
+
+// check if this is deletion ---
+int DeleteApplication
+txn OnCompletion
+==
+bnz execute_action
+
+//---
+// check if this is update ---
+int UpdateApplication
+txn OnCompletion
+==
+bnz execute_action
+
+// All admin actions require at least one arg
+txn NumAppArgs
+int 1
+>=
+bz no_admin
+
+txna ApplicationArgs 0
+byte "status"
+==
+bz admin_no_status
+
+txn NumAppArgs
+int 2
+==
+bz failed
+
+txn NumAccounts
+int 1
+==
+bz failed
+
+txna ApplicationArgs 1
+btoi
+
+dup
+store 0
+
+// status can be 0 or 1
+int 0
+==
+load 0
+int 1
+==
+||
+bz failed
+
+// SetVaultStatus(Vault Address, status)
+// Vault address = Account1, Vault address: 'status' -> status
+int 1
+byte "status"
+load 0
+app_local_put
+
+int 1
+return
+
+admin_no_status:
+
+// Unknown action
+//int 0
+//return
+
+
+no_admin:
+// OptIn
+int OptIn
+txn OnCompletion
+==
+bnz opt_in
+
+// CloseOut
+int CloseOut
+txn OnCompletion
+==
+bnz close_out
+
+txn NumAppArgs
+int 1
+>=
+bz failed
+
+txna ApplicationArgs 0
+byte "register"
+==
+bz no_admin_no_register
+
+txn NumAppArgs
+int 2
+==
+bz failed
+
+// Register(Account owner, Vault address)
+byte "Program"
+byte base64 ASYBIA==
+concat
+txn Sender
+//addr 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
+concat
+byte base64 MQAoEg==
+concat
+
+//byte base64 ASYBICFkn8x6bwiE3yb+ZFRuEiYT8zVRwtOSDIqxn92F2FaCMwEAKBI=
+//concat
+sha512_256
+txna ApplicationArgs 1
+//addr TXT6BQNYL2MVDDUSDKLNPSU6WRYNBI2RSLTCKMU7EUAZSI4XFG5T7TYJV4
+==
+bz failed
+
+int 0
+txn ApplicationID
+byte "vault"
+app_local_get_ex
+// already registered?
+bnz failed
+
+// assign the Vault address to the account. It is possible to calculate this address from the account but we may need it. 
+int 0
+byte "vault"
+txna ApplicationArgs 1
+app_local_put
+
+int 1
+return
+
+
+no_admin_no_register:
+txna ApplicationArgs 0
+byte "deposit"
+==
+bz no_admin_no_deposit
+
+txn NumAppArgs
+int 2
+==
+bz failed
+
+// Deposit(Account owner, Vault address)
+int 0
+txn ApplicationID
+byte "vault"
+app_local_get_ex
+// registered?
+bz failed
+
+// is the same Vault that corresponds to the account
+txna ApplicationArgs 1
+==
+bz failed
+
+int 0
+byte "deposits"
+app_local_get
+
+int 10
++
+store 0
+
+int 0
+byte "deposits"
+load 0
+app_local_put
+
+
+int 1
+return
+
+
+no_admin_no_deposit:
+// unknown call
+int 0
+return
+
+
+
+// add-vault
+byte "Creator"
+app_global_get
+
+
+// Check that the account has opted in
+// account offset (0 == sender, 
+// 1 == txn.accounts[0], 2 == txn.accounts[1], etc..)
+int 0 
+txn ApplicationID
+app_opted_in
+bz failed
+
+// check if they have the vote token
+// assuming assetid 2. This should
+// be changed to appropriate asset id
+// sender
+int 0
+// hard-coded assetid
+int 2658497
+// returns frozen an asset balance
+// pop frozen
+asset_holding_get AssetBalance
+pop
+// does voter have at least 1 vote token
+int 1
+>=
+bz failed
+// two transactions
+global GroupSize
+int 2
+==
+bz failed
+// second tx is an asset xfer
+gtxn 1 TypeEnum
+int 4
+==
+bz failed
+// creator receiving the vote token
+byte "Creator"
+app_global_get
+gtxn 1 AssetReceiver
+==
+bz failed
+// verify the proper token is being spent
+gtxn 1 XferAsset
+// hard coded and should be changed
+int 2658497
+==
+bz failed
+// spent 1 vote token
+gtxn 1 AssetAmount
+//
+int 1
+==
+bz failed
+//check local to see if they have voted
+int 0 //sender
+txn ApplicationID
+byte "voted"
+app_local_get_ex 
+// if voted skip incrementing count
+bnz voted
+pop
+// can only vote for candidatea
+// or candidateb
+txna ApplicationArgs 1
+byte "candidatea" 
+==
+txna ApplicationArgs 1
+byte "candidateb" 
+==
+||
+bz failed
+// read existing vote candiate
+// in global state and increment vote
+int 0
+txna ApplicationArgs 1
+app_global_get_ex
+bnz increment_existing
+pop
+int 0
+increment_existing:
+int 1
++
+store 1
+txna ApplicationArgs 1
+load 1
+app_global_put
+// store the voters choice in local state
+int 0 //sender
+byte "voted"
+txna ApplicationArgs 1
+app_local_put
+int 1
+return
+voted:
+pop
+int 1
+return
+
+
+
+
+
+
+
+int 1
+return
+
+
+
+failed:
+int 0
+return
+opt_in:
+close_out:
+finished:
+execute_action:
+int 1
+return

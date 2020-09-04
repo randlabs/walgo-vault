@@ -1,0 +1,7 @@
+// Vault Teal
+// Allows users to deposit their Algos and withdraw wAlgos
+// TMPL_USER_ADDRESS:	public key of the user
+
+txn Sender 
+addr TMPL_USER_ADDRESS
+==
