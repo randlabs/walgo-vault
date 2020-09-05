@@ -9,18 +9,25 @@ Local variables are used to track all user information:
 
 ## Transaction Types
 
-### Vault Creation
+### Admin SetVaultStatus
 
-Pre-signed LogicSig allowing any account to add the Vault. We will generate a large number of pre-signed txs adding this Vaults. Users creating a new Vault will use one of these pre-created txs to assign the Vault to their addresses.
-* Tx1: from Admin to App. Assign Vault to user address.
+The administrator can enable or disable any vault at any time.
+* Tx1: 
+Sender: admin
+acc0: User Address
+arg0: new status
 
 ### User Optin
 
 * Tx1: from Vault owner account. Parameter: Vault address
 
+### User Closeout
+
+
 ### User Register
 
-* Tx1: Register vault address using the user account. It verifies that the Vault address corresponds to the TEAL generated for the user account.
+* Tx1: Register vault address using the user account. It verifies that the Vault address corresponds to the TEAL generated for the user account. 
+If the vault was already registered it throws an error.
 Sender: user registering Vault 
 arg0: str:register
 arg1 = addr:vault address
@@ -44,15 +51,9 @@ Closeout: ensures that the user can't call it if there are deposits
 
 ### User Withdraw ALGOs
 
+### User Mint wALGOs
 
-### User Withdraw wALGO
-
-
-### User Deposits wALGO
-
-
-### User Deposits wALGO
-
+### User Burn wALGOs
 
 User creates a vault
 User deposits the Algos 
