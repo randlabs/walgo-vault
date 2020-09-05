@@ -17,6 +17,9 @@ Sender: admin
 acc0: User Address
 arg0: new status
 
+
+
+
 ### User Optin
 
 * Tx1: from Vault owner account. Parameter: Vault address
