@@ -38,6 +38,10 @@ arg1 = addr:vault address
 To: Vault address
 Amount: deposit amount
 
+
+TODO:
+Closeout: ensures that the user can't call it if there are deposits
+
 ### User Withdraw ALGOs
 
 

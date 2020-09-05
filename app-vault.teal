@@ -181,11 +181,28 @@ txna ApplicationArgs 1
 ==
 bz failed
 
+// tx1: Deposit
+// tx2: ALGO transfer
+global GroupSize
+int 2
+==
+// ApplicationCall
+gtxn 0 TypeEnum
+int 6
+==
+&&
+// Payment
+gtxn 1 TypeEnum
+int 1
+==
+&&
+
 int 0
 byte "deposits"
 app_local_get
 
-int 10
+//int 67
+gtxn 1 Amount
 +
 store 0
 
@@ -193,7 +210,6 @@ int 0
 byte "deposits"
 load 0
 app_local_put
-
 
 int 1
 return
