@@ -118,7 +118,7 @@ bz failed
 // SetMintAccount(account)
 // 'MintAccount' -> account
 byte "MintAccount"
-txn Accounts 0
+txn Accounts 1
 app_global_put
 
 int 1
@@ -159,7 +159,7 @@ int 1
 ||
 bz failed
 
-// SetVaultStatus(Vault Address, status)
+// SetAccountStatus(Vault Address, status)
 // Vault address = Account1, Vault address: 'status' -> status
 int 1
 byte "status"
@@ -219,7 +219,7 @@ concat
 //byte base64 ASYBICFkn8x6bwiE3yb+ZFRuEiYT8zVRwtOSDIqxn92F2FaCMwEAKBI=
 //concat
 sha512_256
-txna ApplicationArgs 1
+txn Accounts 1
 //addr TXT6BQNYL2MVDDUSDKLNPSU6WRYNBI2RSLTCKMU7EUAZSI4XFG5T7TYJV4
 ==
 bz failed
@@ -247,8 +247,8 @@ byte "deposit-algos"
 ==
 bz no_admin_no_deposit
 
-txn NumAppArgs
-int 2
+txn NumAccounts
+int 1
 ==
 bz failed
 
@@ -261,7 +261,7 @@ app_local_get_ex
 bz failed
 
 // is the same Vault that corresponds to the account
-txna ApplicationArgs 1
+txn Accounts 1
 ==
 bz failed
 
@@ -300,6 +300,95 @@ return
 
 
 no_admin_no_deposit:
+//* Tx1: 
+
+//Sender: Vault owner
+//arg0 = str:mint
+//arg1 = int:amount
+//acc0 = vault address
+//txn TypeEnum 6
+
+//* Tx2: 
+//txn TypeEnum 4
+//AssetSender: Mint Account
+//AssetReceiver: Vault owner 
+//Fee: MinimumFee
+//AssetAmount: mint amount
+//AssetCloseTo: ZeroAddress
+
+
+txna ApplicationArgs 0
+byte "mint-walgos"
+==
+bz no_admin_no_mint
+
+txn NumAppArgs
+int 2
+==
+bz failed
+
+txn NumAccounts
+int 1
+==
+bz failed
+
+// MintwALGOs(Account owner, Vault address, amount)
+int 0
+txn ApplicationID
+byte "vault"
+app_local_get_ex
+// registered?
+bz failed
+
+// is the same Vault that corresponds to the account
+txn Accounts 1
+==
+bz failed
+
+// tx1: App MintwALGOs
+// tx2: ASA transfer
+global GroupSize
+int 2
+==
+// ApplicationCall
+gtxn 0 TypeEnum
+int 6
+==
+&&
+// AssetTransfer
+gtxn 1 TypeEnum
+int 4
+==
+&&
+
+// check amounts
+gtxn 1 AssetAmount
+txna ApplicationArgs 1
+btoi
+==
+&&
+bz failed
+
+int 0
+byte "minted"
+app_local_get
+
+//int 67
+txna ApplicationArgs 1
+btoi
++
+store 4
+
+int 0
+byte "minted"
+load 4
+app_local_put
+
+int 1
+return
+
+
+no_admin_no_mint:
 // unknown call
 int 0
 return

@@ -9,14 +9,13 @@ Local variables are used to track all user information:
 
 ## Transaction Types
 
-### Admin SetVaultStatus
+### Admin SetAccountStatus
 
 The administrator can enable or disable any vault at any time.
 * Tx1: 
 Sender: admin
 acc0: User Address
 arg0: new status
-
 
 
 
@@ -33,16 +32,20 @@ arg0: new status
 If the vault was already registered it throws an error.
 Sender: user registering Vault 
 arg0: str:register
-arg1 = addr:vault address
+
+acc0 = vault address
+
+TESTME
 
 ### User Deposit
 
 User deposits ALGOs to the Vault. App keeps track of the amount of algos deposited without rewards.
 
 * Tx1: 
-Sender: user Vault owner
-arg0 = str:deposit
-arg1 = addr:vault address
+Sender: Vault owner
+arg0 = str:deposit-algos
+
+acc0 = vault address
 
 * Tx2: 
 To: Vault address
@@ -55,6 +58,24 @@ Closeout: ensures that the user can't call it if there are deposits
 ### User Withdraw ALGOs
 
 ### User Mint wALGOs
+
+* Tx1: 
+
+Sender: Vault owner
+arg0 = str:mint-walgos
+arg1 = int:amount
+acc0 = vault address
+txn TypeEnum 6
+
+* Tx2: 
+txn TypeEnum 4
+AssetSender: Mint Account
+AssetReceiver: Vault owner 
+Fee: MinimumFee
+AssetAmount: mint amount
+AssetCloseTo: ZeroAddress
+
+
 
 ### User Burn wALGOs
 
@@ -69,3 +90,4 @@ mint-account
 manager
 global-status
 status
+Fee: mint a % of wALGOs for the manager
