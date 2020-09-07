@@ -61,3 +61,11 @@ Closeout: ensures that the user can't call it if there are deposits
 User creates a vault
 User deposits the Algos 
 User withdraw wAlgos
+
+
+## Setup Parameters ##
+
+mint-account
+manager
+global-status
+status
