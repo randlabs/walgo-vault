@@ -23,7 +23,7 @@ app_global_put
 //0 args must be used on creation
 
 // by default Minter = Creator
-byte "Minter"
+byte "MintAccount"
 txn Sender
 app_global_put
 
@@ -202,18 +202,25 @@ byte "register"
 bz no_admin_no_register
 
 txn NumAppArgs
-int 2
+int 1
+==
+bz failed
+
+txn NumAccounts
+int 1
 ==
 bz failed
 
 // Register(Account owner, Vault address)
 byte "Program"
-byte base64 ASYBIA==
+//byte base64 ASYBIA==
+byte base64 AiADAgboiaMBJgEg
 concat
 txn Sender
 //addr 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
 concat
-byte base64 MQAoEg==
+byte base64 MQcoEjIEIg8QMwAQIxIQMwAYJBIQ
+//byte base64 MQAoEg==
 concat
 
 //byte base64 ASYBICFkn8x6bwiE3yb+ZFRuEiYT8zVRwtOSDIqxn92F2FaCMwEAKBI=
@@ -234,7 +241,7 @@ bnz failed
 // assign the Vault address to the account. It is possible to calculate this address from the account but we may need it. 
 int 0
 byte "vault"
-txna ApplicationArgs 1
+txn Accounts 1
 app_local_put
 
 int 1
@@ -300,21 +307,6 @@ return
 
 
 no_admin_no_deposit:
-//* Tx1: 
-
-//Sender: Vault owner
-//arg0 = str:mint
-//arg1 = int:amount
-//acc0 = vault address
-//txn TypeEnum 6
-
-//* Tx2: 
-//txn TypeEnum 4
-//AssetSender: Mint Account
-//AssetReceiver: Vault owner 
-//Fee: MinimumFee
-//AssetAmount: mint amount
-//AssetCloseTo: ZeroAddress
 
 
 txna ApplicationArgs 0
@@ -367,17 +359,54 @@ txna ApplicationArgs 1
 btoi
 ==
 &&
+
+// check account
+gtxn 1 AssetReceiver
+txn Sender
+==
+&&
+
+gtxn 1 Sender
+byte "MintAccount"
+app_global_get
+==
+&&
+
+gtxn 1 Fee
+global MinTxnFee
+==
+&&
+
+// no Close
+gtxn 1 CloseRemainderTo 
+global ZeroAddress
+==
+&&
+
+// ASA ID
+gtxn 1 XferAsset
+int 2671688
+==
+&&
+
 bz failed
+
 
 int 0
 byte "minted"
 app_local_get
 
-//int 67
 txna ApplicationArgs 1
 btoi
 +
 store 4
+
+// the ALGO balance must be greater to the total minted wALGOs
+int 1
+balance
+load 4
+>=
+bz failed
 
 int 0
 byte "minted"

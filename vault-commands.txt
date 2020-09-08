@@ -20,6 +20,9 @@ goal app create --creator W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMB
 >>
 2671848
 
+// Clean App
+goal app clear --app-id 2671848 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
+
 // Delete App
 goal app delete --app-id 2671848 --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
 
@@ -38,9 +41,9 @@ goal app read --local --app-id 2671848 --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEO
 goal app read --global --app-id 2671848 --guess-format
 
 // RegisterVault
-goal app call --app-id 2671848 --app-arg "str:register" --app-account TXT6BQNYL2MVDDUSDKLNPSU6WRYNBI2RSLTCKMU7EUAZSI4XFG5T7TYJV4 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
+goal app call --app-id 2671848 --app-arg "str:register" --app-account SEX6MY3DK2GI2LTP7AUBBJFJYB53X7KMGORYLA65D4OTDRDUETUFAFF5LI --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
 Reject:
-goal app call --app-id 2671848 --app-arg "str:register" --app-account TXT6BQNYL2MVDDUSDKLNPSU6WRYNBI2RSLTCKMU7EUAZSI4XFG5T7TYJV4 --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
+goal app call --app-id 2671848 --app-arg "str:register" --app-account SEX6MY3DK2GI2LTP7AUBBJFJYB53X7KMGORYLA65D4OTDRDUETUFAFF5LI --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
 
 // SetGlobalStatus
 goal app call --app-id 2671848 --app-arg "str:global-status" --app-arg "int:0" --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
@@ -49,16 +52,16 @@ goal app call --app-id 2671848 --app-arg "str:global-status" --app-arg "int:0" -
 goal app call --app-id 2671848 --app-arg "str:status" --app-arg "int:0" --app-account 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
 
 // DepositALGOs
-goal app call --app-id 2671848 --app-arg "str:deposit-algos" --app-account TXT6BQNYL2MVDDUSDKLNPSU6WRYNBI2RSLTCKMU7EUAZSI4XFG5T7TYJV4 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=deposit-unsigned.tx 
-goal clerk send --from=4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --to=TXT6BQNYL2MVDDUSDKLNPSU6WRYNBI2RSLTCKMU7EUAZSI4XFG5T7TYJV4 --fee=1000 --amount=7100000 --out=send-unsigned.tx
+goal app call --app-id 2671848 --app-arg "str:deposit-algos" --app-account SEX6MY3DK2GI2LTP7AUBBJFJYB53X7KMGORYLA65D4OTDRDUETUFAFF5LI --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=deposit-unsigned.tx 
+goal clerk send --from=4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --to=SEX6MY3DK2GI2LTP7AUBBJFJYB53X7KMGORYLA65D4OTDRDUETUFAFF5LI --fee=1000 --amount=7100000 --out=send-unsigned.tx
 cat deposit-unsigned.tx send-unsigned.tx > combinedtransactions.tx
 goal clerk group -i combinedtransactions.tx -o groupedtransactions.tx 
 goal clerk sign -i groupedtransactions.tx -o signout.tx --signer 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
 goal clerk rawsend -f signout.tx
 
 // MintwALGOs
-goal app call --app-id 2671848 --app-arg "str:mint-walgos" --app-arg "int:430000" --app-account TXT6BQNYL2MVDDUSDKLNPSU6WRYNBI2RSLTCKMU7EUAZSI4XFG5T7TYJV4 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=mint-unsigned.tx
-goal asset send --assetid 2671688 --from=ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4 --to=4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --fee=1000 --amount=430000 --out=send-unsigned.tx
+goal app call --app-id 2671848 --app-arg "str:mint-walgos" --app-arg "int:430000" --app-account SEX6MY3DK2GI2LTP7AUBBJFJYB53X7KMGORYLA65D4OTDRDUETUFAFF5LI --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=mint-unsigned.tx
+goal asset send --assetid 2671688 --from=ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4 --to=4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 -c=0000000000000000000 --fee=1000 --amount=430000 --out=send-unsigned.tx
 cat mint-unsigned.tx send-unsigned.tx > combinedtransactions.tx
 goal clerk group -i combinedtransactions.tx -o groupedtransactions.tx 
 goal clerk split -i groupedtransactions.tx -o minttx.tx
@@ -68,7 +71,7 @@ cat minttx-0-signed.tx minttx-1-signed.tx > signout.tx
 goal clerk rawsend -f signout.tx
 
 // dryrun
-goal app call --app-id 2671848 --app-arg "str:mint-walgos" --app-arg "int:440000" --app-account TXT6BQNYL2MVDDUSDKLNPSU6WRYNBI2RSLTCKMU7EUAZSI4XFG5T7TYJV4 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=mint-unsigned.tx --dryrun-dump
+goal app call --app-id 2671848 --app-arg "str:mint-walgos" --app-arg "int:440000" --app-account SEX6MY3DK2GI2LTP7AUBBJFJYB53X7KMGORYLA65D4OTDRDUETUFAFF5LI --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=mint-unsigned.tx --dryrun-dump
 goal clerk dryrun-remote -D mint-unsigned.tx --verbose
 
 // Optin ASA from TEAL 
@@ -78,8 +81,12 @@ goal clerk rawsend -f optin-ASA.tx
 
 goal asset send --assetid 2671688 -a 0 -f 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 -t 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --fee 1000 
 
+// send ALGOs from Vault
+goal clerk send --from=SEX6MY3DK2GI2LTP7AUBBJFJYB53X7KMGORYLA65D4OTDRDUETUFAFF5LI --to=SEX6MY3DK2GI2LTP7AUBBJFJYB53X7KMGORYLA65D4OTDRDUETUFAFF5LI --fee=1000 --amount=7100000 --out=send-unsigned.tx
+goal clerk sign -i optin-ASA.tx -p minter.teal -o=optin-ASA.tx
+
 // dryrun
-goal app call --app-id 2671848 --app-arg "str:deposit-algos" --app-account TXT6BQNYL2MVDDUSDKLNPSU6WRYNBI2RSLTCKMU7EUAZSI4XFG5T7TYJV4 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=dumptx.tx --dryrun-dump
+goal app call --app-id 2671848 --app-arg "str:deposit-algos" --app-account SEX6MY3DK2GI2LTP7AUBBJFJYB53X7KMGORYLA65D4OTDRDUETUFAFF5LI --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=dumptx.tx --dryrun-dump
 goal clerk dryrun-remote -D dumptx.tx --verbose
 
 /// 

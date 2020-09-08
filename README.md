@@ -64,17 +64,16 @@ Closeout: ensures that the user can't call it if there are deposits
 Sender: Vault owner
 arg0 = str:mint-walgos
 arg1 = int:amount
-acc0 = vault address
 txn TypeEnum 6
 
 * Tx2: 
 txn TypeEnum 4
 AssetSender: Mint Account
 AssetReceiver: Vault owner 
-Fee: MinimumFee
-AssetAmount: mint amount
+Fee: MinTxnFee
+AssetAmount: mint amount. The total minted amount must be less or equal to the ALGO Vault balance
 AssetCloseTo: ZeroAddress
-
+XferAsset: 2671688 (betanet)
 
 
 ### User Burn wALGOs

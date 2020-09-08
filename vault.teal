@@ -2,6 +2,25 @@
 // Allows users to deposit their Algos and withdraw wAlgos
 // TMPL_USER_ADDRESS:	public key of the user
 
-txn Sender 
+#pragma version 2
+
+txn Receiver 
 addr TMPL_USER_ADDRESS
 ==
+
+global GroupSize
+int 2
+>=
+&&
+
+// Application Call
+gtxn 0 TypeEnum
+int 6
+==
+&&
+
+gtxn 0 ApplicationID // betanet
+int 2671848
+==
+&&
+
