@@ -15,14 +15,17 @@ The administrator can enable or disable any vault at any time.
 * Tx1: 
 
 Sender: admin
+
 acc0: User Address
+
 arg0: new status
 
 
 
 ### User Optin
 
-* Tx1: from Vault owner account. Parameter: Vault address
+* Tx1: from Vault owner account. 
+
 
 ### User Closeout
 
@@ -31,25 +34,30 @@ arg0: new status
 
 * Tx1: Register vault address using the user account. It verifies that the Vault address corresponds to the TEAL generated for the user account. 
 If the vault was already registered it throws an error.
+
 Sender: user registering Vault 
+
 arg0: str:register
 
-acc0 = vault address
+acc0: Vault address
 
-TESTME
 
 ### User Deposit
 
 User deposits ALGOs to the Vault. App keeps track of the amount of algos deposited without rewards.
 
 * Tx1: 
-Sender: Vault owner
-arg0 = str:deposit-algos
 
-acc0 = vault address
+Sender: Vault owner
+
+arg0: str:deposit-algos
+
+acc0: Vault address
 
 * Tx2: 
+
 To: Vault address
+
 Amount: deposit amount
 
 
@@ -63,31 +71,47 @@ Closeout: ensures that the user can't call it if there are deposits
 * Tx1: 
 
 Sender: Vault owner
-arg0 = str:mint-walgos
-arg1 = int:amount
+
+arg0: str:mint-walgos
+
+arg1: int:amount
+
 txn TypeEnum 6
 
 * Tx2: 
+
 txn TypeEnum 4
-AssetSender: Mint Account
+
+Sender: Mint Account
+
 AssetReceiver: Vault owner 
+
 Fee: MinTxnFee
+
 AssetAmount: mint amount. The total minted amount must be less or equal to the ALGO Vault balance
+
 AssetCloseTo: ZeroAddress
+
 XferAsset: 2671688 (betanet)
 
 
 ### User Burn wALGOs
 
 User creates a vault
+
 User deposits the Algos 
+
 User withdraw wAlgos
 
 
 ## Setup Parameters ##
 
 mint-account
+
 manager
+
 global-status
+
 status
+
 Fee: mint a % of wALGOs for the manager
