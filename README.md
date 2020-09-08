@@ -13,6 +13,7 @@ Local variables are used to track all user information:
 
 The administrator can enable or disable any vault at any time.
 * Tx1: 
+
 Sender: admin
 acc0: User Address
 arg0: new status
