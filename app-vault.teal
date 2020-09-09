@@ -244,11 +244,24 @@ byte "vault"
 txn Accounts 1
 app_local_put
 
+// SetAccountStatus(1)
+int 0
+byte "status"
+int 1
+app_local_put
+
 int 1
 return
 
 
 no_admin_no_register:
+
+// verify if the Account status is enabled
+int 0
+byte "status"
+app_local_get
+bz failed
+
 txna ApplicationArgs 0
 byte "deposit-algos"
 ==
@@ -277,16 +290,32 @@ bz failed
 global GroupSize
 int 2
 ==
+
 // ApplicationCall
 gtxn 0 TypeEnum
 int 6
 ==
 &&
+
 // Payment
 gtxn 1 TypeEnum
 int 1
 ==
 &&
+
+// more than 0
+gtxn 1 Amount
+int 0
+>
+&&
+
+gtxn 1 Amount
+txna ApplicationArgs 1
+btoi
+==
+&&
+
+bz failed
 
 int 0
 byte "deposits"
@@ -358,6 +387,12 @@ gtxn 1 AssetAmount
 txna ApplicationArgs 1
 btoi
 ==
+&&
+
+// more than 0
+gtxn 1 AssetAmount
+int 0
+>
 &&
 
 // check account
