@@ -2,10 +2,21 @@
 
 ## Vault
 
-1 Vault per user implemented as an Algorand Application
-Local variables are used to track all user information:
-* wALGOs withdrawed 
-* Account frozen
+Accounts can create a Vault and store their ALGOs their and receive participation rewards. They can mint wALGOs up to the balance of the ALGOs in the Vault and withdraw the ALGOs at any time keeping ALGO balance above the amount of wALGOs minted.
+
+Global Variables:
+* Creator: creator and manager of the Application
+* GlobalStatus: 1 if the Application is enabled and 0 if it is not
+* MintAccount: account storing the wALGOs. This account must give access to the Application to send the wALGOs to the Vault owner accounts
+
+Remarks:
+Only 1 Vault per account is allowed. 
+
+Local variables stored in the Vault owner accounts:
+* status: 1 if the Vault is enabled and 0 if it is not
+* minted: amount of wALGOs minted
+* deposits: amount of ALGOs deposited without taking into account the participation rewards
+* vault: Vault account corresponding to Vault owner account. This address is calculated from vault.teal specialized with the Vault owner account
 
 ## Application Calls
 
@@ -36,7 +47,7 @@ arg0: new status
 
 ### User Optin
 
-* Tx1: from Vault owner account. 
+* Tx1: from Vault owner account
 
 ### User Closeout
 
@@ -50,9 +61,29 @@ User deposits ALGOs to the Vault. App keeps track of the amount of algos deposit
 
 * Tx1: 
 
-Sender: Vault owner
+Sender: Vault owner account
 
 arg0: str:deposit-algos
+
+arg1: int:amount
+
+Application Call tx
+
+* Tx2: 
+
+To: Vault account
+
+Amount: deposit amount. It should be equal to arg1 Tx1
+
+Payment tx
+
+### User Mint wALGOs
+
+* Tx1: 
+
+Sender: Vault owner account
+
+arg0: str:mint-walgos
 
 arg1: int:amount
 
@@ -62,34 +93,13 @@ Application Call tx
 
 * Tx2: 
 
-To: Vault address
+Sender: Mint account
 
-Amount: deposit amount equal to arg1 Tx1
-
-Payment tx
-
-
-### User Mint wALGOs
-
-* Tx1: 
-
-Sender: Vault owner
-
-arg0: str:mint-walgos
-
-arg1: int:amount
-
-Application Call tx
-
-* Tx2: 
-
-Sender: Mint Account
-
-AssetReceiver: Vault owner 
+AssetReceiver: any account
 
 Fee: MinTxnFee
 
-AssetAmount: mint amount. The total minted amount must be less or equal to the ALGO Vault balance
+AssetAmount: mint amount. The total minted amount must be less or equal to the ALGO Vault balance. It should be equal to arg1 Tx1
 
 AssetCloseTo: ZeroAddress
 
@@ -99,13 +109,54 @@ AssetTransfer tx
 
 ### User Withdraw ALGOs
 
+* Tx1: 
+
+Sender: Vault account owner
+
+arg0: str:withdraw-algos
+
+arg1: int:amount
+
+Application Call tx
+
+* Tx2: 
+
+Sender: Vault account
+
+Receiver: any account. The remaining balance must be greater than the amount of wALGOs minted
+
+Fee: MinTxnFee
+
+Amount: amount of ALGOs to withdraw, it should be equal to arg1 Tx1
+
+CloseTo: ZeroAddress
+
+Payment tx
+
 ### User Burn wALGOs
 
-User creates a vault
+* Tx1: 
 
-User deposits the Algos 
+Sender: Vault owner account
 
-User withdraw wAlgos
+arg0: str:burn-walgos
+
+arg1: int:amount
+
+Application Call tx
+
+* Tx2: 
+
+Sender: any account
+
+AssetReceiver: Mint account
+
+AssetAmount: burn amount. The total burned amount must be less or equal to total minted. It should be equal to arg1 Tx1
+
+XferAsset: 2671688 (betanet)
+
+AssetTransfer tx
+
 
 
 ## Setup Parameters ##

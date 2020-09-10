@@ -267,8 +267,8 @@ byte "deposit-algos"
 ==
 bz no_admin_no_deposit
 
-txn NumAccounts
-int 1
+txn NumAppArgs
+int 2
 ==
 bz failed
 
@@ -281,7 +281,7 @@ app_local_get_ex
 bz failed
 
 // is the same Vault that corresponds to the account
-txn Accounts 1
+gtxn 1 Receiver
 ==
 bz failed
 
@@ -396,10 +396,10 @@ int 0
 &&
 
 // check account
-gtxn 1 AssetReceiver
-txn Sender
-==
-&&
+//gtxn 1 AssetReceiver
+//txn Sender
+//==
+//&&
 
 gtxn 1 Sender
 byte "MintAccount"
@@ -453,6 +453,215 @@ return
 
 
 no_admin_no_mint:
+
+txna ApplicationArgs 0
+byte "withdraw-algos"
+==
+bz no_admin_no_withdraw
+
+txn NumAppArgs
+int 2
+==
+bz failed
+
+txn NumAccounts
+int 1
+==
+bz failed
+
+// WithdrawALGOs(Account owner, Vault address, amount)
+int 0
+txn ApplicationID
+byte "vault"
+app_local_get_ex
+// registered?
+bz failed
+
+int 0
+txn ApplicationID
+byte "vault"
+app_local_get_ex
+// registered?
+bz failed
+
+dup
+store 5
+
+// is the same Vault that corresponds to the account sending the ALGOs
+gtxn 1 Sender
+==
+
+// is the same Vault that corresponds to the Accounts[1]
+load 5
+txn Accounts 1
+==
+&&
+
+// tx1: App WithdrawALGOs
+// tx2: Payment
+global GroupSize
+int 2
+==
+&&
+
+// ApplicationCall
+gtxn 0 TypeEnum
+int 6
+==
+&&
+
+// Payment
+gtxn 1 TypeEnum
+int 1
+==
+&&
+
+// check amounts
+gtxn 1 Amount
+txna ApplicationArgs 1
+btoi
+==
+&&
+
+// more than 0
+gtxn 1 Amount
+int 0
+>
+&&
+
+// check account
+gtxn 1 Receiver
+txn Sender
+==
+&&
+
+gtxn 1 Fee
+global MinTxnFee
+==
+&&
+
+// no Close
+gtxn 1 CloseRemainderTo 
+global ZeroAddress
+==
+&&
+
+bz failed
+
+// the ALGO balance - withdraw amount - Fee must be greater to the total minted wALGOs
+int 1
+balance
+
+gtxn 1 Amount
+-
+gtxn 1 Fee
+-
+
+int 0
+byte "minted"
+app_local_get
+>=
+bz failed
+
+int 1
+return
+
+
+
+
+
+no_admin_no_withdraw:
+
+
+txna ApplicationArgs 0
+byte "burn-walgos"
+==
+bz no_admin_no_burn
+
+txn NumAppArgs
+int 2
+==
+bz failed
+
+// BurnwALGOs(Account owner, Vault address, amount)
+int 0
+txn ApplicationID
+byte "vault"
+app_local_get_ex
+// registered?
+bz failed
+
+// tx1: App BurnwALGOs
+// tx2: ASA transfer to Minter
+global GroupSize
+int 2
+==
+// ApplicationCall
+gtxn 0 TypeEnum
+int 6
+==
+&&
+// AssetTransfer
+gtxn 1 TypeEnum
+int 4
+==
+&&
+
+// check amounts
+gtxn 1 AssetAmount
+txna ApplicationArgs 1
+btoi
+==
+&&
+
+// more than 0
+gtxn 1 AssetAmount
+int 0
+>
+&&
+
+// Minter == ASA Receiver
+gtxn 1 AssetReceiver
+byte "MintAccount"
+app_global_get
+==
+&&
+
+// ASA ID
+gtxn 1 XferAsset
+int 2671688
+==
+&&
+
+bz failed
+
+int 0
+byte "minted"
+app_local_get
+
+dup
+store 4
+
+// amount to burn greater or equal to amount minted
+gtxn 1 AssetAmount
+>=
+bz failed
+
+load 4
+gtxn 1 AssetAmount
+-
+store 4
+
+int 0
+byte "minted"
+load 4
+app_local_put
+
+int 1
+return
+
+no_admin_no_burn:
+
 // unknown call
 int 0
 return
