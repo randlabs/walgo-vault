@@ -170,3 +170,10 @@ global-status
 status
 
 Fee: mint a % of wALGOs for the manager
+
+## TODO
+
+* Mint fee
+* Rewards fee
+* Fees withdraw
+* Clean Closeout: it should allow users to closeout only after burning all the minted wALGOs and withdraw all the ALGOs from the Vault
