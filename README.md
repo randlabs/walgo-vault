@@ -177,3 +177,8 @@ Fee: mint a % of wALGOs for the manager
 * Rewards fee
 * Fees withdraw
 * Clean Closeout: it should allow users to closeout only after burning all the minted wALGOs and withdraw all the ALGOs from the Vault
+* Implement app-vault-opt-out.teal
+* Clean Application Delete: allow Application delete only if all the Vaults were closed before
+* Javascript version of the interaction
+* Develop minter.teal to allow only Vaults mint wALGOs
+* Automate vault-xxx.teal creation
