@@ -1,6 +1,7 @@
 // Vault Teal
 // Allows users to deposit their Algos and withdraw wAlgos
 // TMPL_USER_ADDRESS:	public key of the user
+// TMPL_APP_ID: Application ID
 
 #pragma version 2
 
@@ -20,7 +21,7 @@ int 6
 &&
 
 gtxn 0 ApplicationID // betanet
-int 2671848
+int TMPL_APP_ID
 ==
 &&
 

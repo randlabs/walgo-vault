@@ -54,13 +54,23 @@ async function main () {
 		// await vaultManager.optIn(account4)
 		//await vaultManager.updateApp (vaultAdmin)
 
-		await vaultManager.readGlobalState(vaultAdmin)
-		await vaultManager.readLocalState(vaultAdmin)
-		await vaultManager.readLocalState(account1)
-		await vaultManager.readLocalState(account2)
-		await vaultManager.readLocalState(account3)
-		await vaultManager.readLocalState(account4)
-		await vaultManager.readLocalState(account5)
+		await vaultManager.setMintAccount(vaultAdmin, account1.addr)
+		await vaultManager.setMintAccount(vaultAdmin, 'ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4')
+		
+		try {
+			await vaultManager.clearApp(account2)
+		} catch (err) {
+		}
+		await vaultManager.optIn(account2)
+		await vaultManager.registerVault(account2)
+
+		await vaultManager.readGlobalState(vaultAdmin.addr)
+		await vaultManager.readLocalState(vaultAdmin.addr)
+		await vaultManager.readLocalState(account1.addr)
+		await vaultManager.readLocalState(account2.addr)
+		await vaultManager.readLocalState(account3.addr)
+		await vaultManager.readLocalState(account4.addr)
+		await vaultManager.readLocalState(account5.addr)
 	} catch (err) {
 		let text = err.error
 
