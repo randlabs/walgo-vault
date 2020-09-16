@@ -54,35 +54,53 @@ async function main () {
 		// await vaultManager.optIn(account4)
 		//await vaultManager.updateApp (vaultAdmin)
 
-		// await vaultManager.setMintAccount(vaultAdmin, account1.addr)
-		// await vaultManager.setMintAccount(vaultAdmin, 'ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4')
-		await vaultManager.setGlobalStatus(vaultAdmin, 1)
+		let txId = await vaultManager.setMintAccount(vaultAdmin, account1.addr)
+		console.log('setMintAccount %s: %s', account1.addr, txId)
+		txId = await vaultManager.setMintAccount(vaultAdmin, 'ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4')
+		console.log('setMintAccount ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4: %s', txId)
+		txId = await vaultManager.setGlobalStatus(vaultAdmin, 1)
+		console.log('setGlobalStatus to 1: %s', txId)
 		
 		try {
-			await vaultManager.clearApp(account2)
+			txId = await vaultManager.clearApp(account2)
+			console.log('clearApp %s: %s', account2.addr, txId)
 		} catch (err) {
-			console.log('Register successfully failed')
 		}
-		await vaultManager.optIn(account2)
-		await vaultManager.setGlobalStatus(vaultAdmin, 0)
+		txId = await vaultManager.optIn(account2)
+		console.log('optIn %s: %s', account2.addr, txId)
 
+		txId = await vaultManager.setGlobalStatus(vaultAdmin, 0)
+		console.log('setGlobalStatus to 0: %s', txId)
+
+		let txResponse = await vaultManager.waitForTransactionResponse(txId)
+		vaultManager.printAppCallDelta(txResponse)
 		// it should fail
 		try {
-			await vaultManager.registerVault(account2)
+			txId = await vaultManager.registerVault(account2)
+			console.log('ERROR: registerVault should have failed %s: %s', account2.addr, txId)
+	
 		} catch (err) {
 			console.log('Register successfully failed')
 		}
 
-		await vaultManager.setGlobalStatus(vaultAdmin, 1)
-		await vaultManager.registerVault(account2)
+		txId = await vaultManager.setGlobalStatus(vaultAdmin, 1)
+		console.log('setGlobalStatus to 1: %s', txId)
 
-		await vaultManager.readGlobalState(vaultAdmin.addr)
-		await vaultManager.readLocalState(vaultAdmin.addr)
-		await vaultManager.readLocalState(account1.addr)
-		await vaultManager.readLocalState(account2.addr)
-		await vaultManager.readLocalState(account3.addr)
-		await vaultManager.readLocalState(account4.addr)
-		await vaultManager.readLocalState(account5.addr)
+		txId = await vaultManager.registerVault(account2)
+		console.log('registerVault %s: %s', account2.addr, txId)
+		
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
+		vaultManager.printAppCallDelta(txResponse)
+
+		await vaultManager.printGlobalState(vaultAdmin.addr)
+		await vaultManager.printLocalState(vaultAdmin.addr)
+		await vaultManager.printLocalState(account1.addr)
+		await vaultManager.printLocalState(account2.addr)
+		await vaultManager.printLocalState(account3.addr)
+		await vaultManager.printLocalState(account4.addr)
+		await vaultManager.printLocalState(account5.addr)
+
+		console.log('Success!!!')
 	} catch (err) {
 		let text = err.error
 

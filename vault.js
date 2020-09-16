@@ -1,14 +1,10 @@
 const algosdk = require('algosdk')
 const fs = require('fs')
 const tools = require('./tools')
-const sha512 = require("js-sha512")
-const hibase32 = require("hi-base32");
 const { Console } = require('console');
 
 const approvalProgramFilename = 'app-vault.teal'
 const clearProgramFilename = 'app-vault-opt-out.teal'
-
-const ALGORAND_ADDRESS_SIZE = 58
 
 var vaultTEAL = `#pragma version 2
 txn Receiver 
@@ -43,6 +39,28 @@ class VaultManager {
 			this.appId = appId
 		}
 
+		this.readLocalState = async function (accountAddr) {
+			return tools.readAppLocalState(algodClient, accountAddr)
+		}
+
+		this.readGlobalState = async function (accountAddr) {
+			return tools.readAppGlobalState(algodClient, accountAddr)
+		}
+
+		this.printLocalState = async function (accountAddr) {
+			let ret = await tools.readAppLocalState(algodClient, this.appId, accountAddr)
+			if (ret) {
+				tools.printAppStateArray(ret);
+			}
+		}
+
+		this.printGlobalState = async function (accountAddr) {
+			let ret = await tools.readAppGlobalState(algodClient, this.appId, accountAddr)
+			if (ret) {
+				tools.printAppStateArray(ret);
+			}
+		}
+
 		// helper function to await transaction confirmation
 		// Function used to wait for a tx confirmation
 		this.waitForConfirmation = async function (txId) {
@@ -52,11 +70,29 @@ class VaultManager {
 				const pendingInfo = await this.algodClient.pendingTransactionInformation(txId).do()
 				if (pendingInfo['confirmed-round'] !== null && pendingInfo['confirmed-round'] > 0) {
 					// Got the completed Transaction
-					console.log('Transaction ' + txId + ' confirmed in round ' + pendingInfo['confirmed-round'])
-					break
+
+					return pendingInfo['confirmed-round']
 				}
 				lastRound++
 				await this.algodClient.statusAfterBlock(lastRound).do()
+			}
+		}
+		this.waitForTransactionResponse = async function (txId) {
+			// Wait for confirmation
+			await this.waitForConfirmation(txId)
+
+			// display results
+			return await this.algodClient.pendingTransactionInformation(txId).do()
+		}
+
+		this.printAppCallDelta = function(transactionResponse) {
+			if (transactionResponse['global-state-delta'] !== undefined) {
+				console.log('Global State updated:')
+				tools.printAppCallDeltaArray (transactionResponse['global-state-delta'])
+			}
+			if (transactionResponse['local-state-delta'] !== undefined) {
+				console.log('Local State updated:')
+				tools.printAppCallDeltaArray (transactionResponse['local-state-delta'])
 			}
 		}
 
@@ -104,23 +140,23 @@ class VaultManager {
 
 			// Sign the transaction
 			const signedTxn = txn.signTxn(creatorAccount.sk)
-			console.log('Signed transaction with txID: %s', txId)
+			// console.log('Signed transaction with txID: %s', txId)
 
 			// Submit the transaction
 			await algodClient.sendRawTransaction(signedTxn).do()
 			return txId;
 
-			// Wait for confirmation
-			await this.waitForConfirmation(txId)
+			// // Wait for confirmation
+			// await this.waitForConfirmation(txId)
 
-			// display results
-			const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
-			const appId = transactionResponse['application-index']
-			console.log('Created new app-id: ', appId)
+			// // display results
+			// const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
+			// const appId = transactionResponse['application-index']
+			// console.log('Created new app-id: ', appId)
 
-			this.appId = appId
+			// this.appId = appId
 
-			return appId
+			// return appId
 		}
 
 		// optIn
@@ -140,33 +176,33 @@ class VaultManager {
 
 			// Sign the transaction
 			const signedTxn = txn.signTxn(account.sk)
-			console.log('Signed transaction with txID: %s', txId)
+			// console.log('Signed transaction with txID: %s', txId)
 
 			// Submit the transaction
 			await this.algodClient.sendRawTransaction(signedTxn).do()
 
 			return txId
 
-			// Wait for confirmation
-			await this.waitForConfirmation(txId)
+			// // Wait for confirmation
+			// await this.waitForConfirmation(txId)
 
-			// display results
-			const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
-			console.log('Opted-in to app-id:', transactionResponse.txn.txn.apid)
+			// // display results
+			// const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
+			// console.log('Opted-in to app-id:', transactionResponse.txn.txn.apid)
 		}
 
 		// setMintAccount
 		this.setMintAccount = async function (adminAccount, mintAddr) {
-			let appArgs = [];
+			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from('mint-account')))
-			let appAccounts = [];
+			let appAccounts = []
 			appAccounts.push (mintAddr)
 
 			return await this.callApp (adminAccount, appArgs, appAccounts)
 		}
 		
 		this.setGlobalStatus = async function (adminAccount, newStatus) {
-			let appArgs = [];
+			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from('global-status')))
 			appArgs.push(new Uint8Array(tools.getInt64Bytes(newStatus)))
 
@@ -174,7 +210,7 @@ class VaultManager {
 		}
 		
 		this.setLocalStatus = async function (account, newStatus) {
-			let appArgs = [];
+			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from('status')))
 			appArgs.push(new Uint8Array(tools.getInt64Bytes(newStatus)))
 
@@ -218,131 +254,31 @@ class VaultManager {
 
 			// Sign the transaction
 			const signedTxn = txn.signTxn(account.sk)
-			console.log('Signed transaction with txID: %s', txId)
+			// console.log('Signed transaction with txID: %s', txId)
 
 			// Submit the transaction
 			await this.algodClient.sendRawTransaction(signedTxn).do()
 
-			// Wait for confirmation
-			await this.waitForConfirmation(txId)
-
-			// display results
-			const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
-			console.log('Called app-id:', transactionResponse.txn.txn.apid)
-			if (transactionResponse['global-state-delta'] !== undefined) {
-				console.log('Global State updated:')
-				this.dumpDeltaArray (transactionResponse['global-state-delta'])
-			}
-			if (transactionResponse['local-state-delta'] !== undefined) {
-				console.log('Local State updated:')
-				this.dumpDeltaArray (transactionResponse['local-state-delta'])
-			}
-
 			return txId
+
+			// // Wait for confirmation
+			// await this.waitForConfirmation(txId)
+
+			// // display results
+			// const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
+			// console.log('Called app-id:', transactionResponse.txn.txn.apid)
+			// if (transactionResponse['global-state-delta'] !== undefined) {
+			// 	console.log('Global State updated:')
+			// 	tools.printAppCallDeltaArray (transactionResponse['global-state-delta'])
+			// }
+			// if (transactionResponse['local-state-delta'] !== undefined) {
+			// 	console.log('Local State updated:')
+			// 	tools.printAppCallDeltaArray (transactionResponse['local-state-delta'])
+			// }
+
+			// return txId
 		}
 
-		this.addressFromByteBuffer = function (addr) {
-			const bytes = Buffer.from(addr, "base64")
-	
-			//compute checksum
-			const checksum = sha512.sha512_256.array(bytes).slice(28, 32);
-	
-			const c = new Uint8Array(bytes.length + checksum.length);
-			c.set(bytes);
-			c.set(checksum, bytes.length)
-	
-			const v = hibase32.encode(c)
-
-			return v.toString().slice(0, ALGORAND_ADDRESS_SIZE)
-		}
-
-		this.dumpDeltaArray = function (deltaArray) {
-			for (let i = 0; i < deltaArray.length; i++) {
-				if (deltaArray[i].address) {
-					console.log ('Local state change address: ' + deltaArray[i].address)
-					for (let j = 0; j < deltaArray[i].delta.length; j++) {
-						this.dumpDelta(deltaArray[i].delta[j])
-					}
-				}
-				else {
-					console.log ('Global state change')
-					this.dumpDelta(deltaArray[i])
-				}
-			}
-		}
-		this.dumpStateArray = function (stateArray) {
-			for (let n = 0; n < stateArray.length; n++) {
-				this.dumpState(stateArray[n])
-			}
-		}
-	
-		this.dumpDelta = function(state) {
-			let text = Buffer.from(state.key, 'base64').toString() + ': '
-			if (state.value.bytes !== undefined) {
-				let addr = this.addressFromByteBuffer (state.value.bytes)
-				if (addr.length == ALGORAND_ADDRESS_SIZE) {
-					text += addr
-				}
-				else {
-					text += state.value.bytes
-				}
-			}
-			else if (state.value.uint !== undefined) {
-				text += state.value.uint
-			}
-			else {
-				text += 'no change'
-			}
-			console.log(text)
-		}
-
-		this.dumpState = function(state) {
-			let text = Buffer.from(state.key, 'base64').toString() + ': '
-			if (state.value.type == 1) {
-
-				let addr = this.addressFromByteBuffer (state.value.bytes)
-				if (addr.length == ALGORAND_ADDRESS_SIZE) {
-					text += addr
-				}
-				else {
-					text += state.value.bytes
-				}
-			}
-			else if (state.value.type == 2) {
-				text += state.value.uint
-			}
-			else {
-				text += state.value.bytes
-			}
-			console.log(text)
-	}
-
-		// read global state of application
-		this.readGlobalState = async function (accountAddr) {
-			const accountInfoResponse = await this.algodClient.accountInformation(accountAddr).do()
-			for (let i = 0; i < accountInfoResponse['created-apps'].length; i++) {
-				if (accountInfoResponse['created-apps'][i].id === this.appId) {
-					console.log("Application's global state:")
-					let globalState = accountInfoResponse['created-apps'][i].params['global-state']
-
-					this.dumpStateArray (globalState)
-				}
-			}
-		}
-
-		// read local state of application from user account
-		this.readLocalState = async function (accountAddr) {
-			const accountInfoResponse = await this.algodClient.accountInformation(accountAddr).do()
-			for (let i = 0; i < accountInfoResponse['apps-local-state'].length; i++) {
-				if (accountInfoResponse['apps-local-state'][i].id === this.appId) {
-					console.log(accountAddr + " opted in, local state:")
-
-					if (accountInfoResponse['apps-local-state'][i]['key-value']) {
-						this.dumpStateArray (accountInfoResponse['apps-local-state'][i]['key-value'])
-					}
-				}
-			}
-		}
 
 		this.clearApp = async function (account) {
 			// define sender as creator
@@ -360,18 +296,18 @@ class VaultManager {
 
 			// Sign the transaction
 			const signedTxn = txn.signTxn(account.sk)
-			console.log('Signed transaction with txID: %s', txId)
 
 			// Submit the transaction
 			await this.algodClient.sendRawTransaction(signedTxn).do()
 
-			// Wait for confirmation
-			await this.waitForConfirmation(txId)
+			// // Wait for confirmation
+			// await this.waitForConfirmation(txId)
 
-			// display results
-			const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
-			const appId = transactionResponse.txn.txn.apid
-			console.log('Cleared address: ', account.addr, ' in AppId ' + appId)
+			// // display results
+			// const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
+			// const appId = transactionResponse.txn.txn.apid
+			// console.log('Cleared address: ', account.addr, ' in AppId ' + appId)
+
 			return txId
 		}
 
@@ -394,84 +330,26 @@ class VaultManager {
 
 			// Sign the transaction
 			const signedTxn = txn.signTxn(creatorAccount.sk)
-			console.log('Signed transaction with txID: %s', txId)
+			// console.log('Signed transaction with txID: %s', txId)
 
 			// Submit the transaction
 			await this.algodClient.sendRawTransaction(signedTxn).do()
 
-			// Wait for confirmation
-			await this.waitForConfirmation(txId)
+			return txId
 
-			// display results
-			const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
-			const appId = transactionResponse.txn.txn.apid
-			console.log('Updated app-id: ', appId)
-			return appId
+			// // Wait for confirmation
+			// await this.waitForConfirmation(txId)
+
+			// // display results
+			// const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
+			// const appId = transactionResponse.txn.txn.apid
+			// console.log('Updated app-id: ', appId)
+			// return appId
 		}
 
 		// close out from application
-		this.closeOutApp = async function (account, index) {
-			// define sender
-			const sender = account.addr
-
-			// get node suggested parameters
-			const params = await this.algodClient.getTransactionParams().do()
-			// comment out the next two lines to use suggested fee
-			params.fee = 1000
-			params.flatFee = true
-
-			// create unsigned transaction
-			const txn = algosdk.makeApplicationCloseOutTxn(sender, params, index)
-			const txId = txn.txID().toString()
-
-			// Sign the transaction
-			const signedTxn = txn.signTxn(account.sk)
-			console.log('Signed transaction with txID: %s', txId)
-
-			// Submit the transaction
-			await this.algodClient.sendRawTransaction(signedTxn).do()
-
-			// Wait for confirmation
-			await this.waitForConfirmation(txId)
-
-			// display results
-			const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
-			console.log('Closed out from app-id:', transactionResponse.txn.txn.apid)
-		}
-
-		this.deleteApp = async function (creatorAccount, index) {
-			// define sender as creator
-			const sender = creatorAccount.addr
-
-			// get node suggested parameters
-			const params = await this.algodClient.getTransactionParams().do()
-			// comment out the next two lines to use suggested fee
-			params.fee = 1000
-			params.flatFee = true
-
-			// create unsigned transaction
-			const txn = algosdk.makeApplicationDeleteTxn(sender, params, index)
-			const txId = txn.txID().toString()
-
-			// Sign the transaction
-			const signedTxn = txn.signTxn(creatorAccount.sk)
-			console.log('Signed transaction with txID: %s', txId)
-
-			// Submit the transaction
-			await this.algodClient.sendRawTransaction(signedTxn).do()
-
-			// Wait for confirmation
-			await this.waitForConfirmation(txId)
-
-			// display results
-			const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
-			const appId = transactionResponse.txn.txn.apid
-			console.log('Deleted app-id: ', appId)
-			return appId
-		}
-
-		// this.clearApp = async function (account, index) {
-		// 	// define sender as creator
+		// this.closeOutApp = async function (account, index) {
+		// 	// define sender
 		// 	const sender = account.addr
 
 		// 	// get node suggested parameters
@@ -481,7 +359,7 @@ class VaultManager {
 		// 	params.flatFee = true
 
 		// 	// create unsigned transaction
-		// 	const txn = algosdk.makeApplicationClearStateTxn(sender, params, index)
+		// 	const txn = algosdk.makeApplicationCloseOutTxn(sender, params, index)
 		// 	const txId = txn.txID().toString()
 
 		// 	// Sign the transaction
@@ -491,15 +369,49 @@ class VaultManager {
 		// 	// Submit the transaction
 		// 	await this.algodClient.sendRawTransaction(signedTxn).do()
 
+		// 	return txId
+
+		// 	// Wait for confirmation
+		// 	await this.waitForConfirmation(txId)
+
+		// 	// display results
+		// 	const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
+		// 	console.log('Closed out from app-id:', transactionResponse.txn.txn.apid)
+		// }
+
+		// this.deleteApp = async function (creatorAccount, index) {
+		// 	// define sender as creator
+		// 	const sender = creatorAccount.addr
+
+		// 	// get node suggested parameters
+		// 	const params = await this.algodClient.getTransactionParams().do()
+		// 	// comment out the next two lines to use suggested fee
+		// 	params.fee = 1000
+		// 	params.flatFee = true
+
+		// 	// create unsigned transaction
+		// 	const txn = algosdk.makeApplicationDeleteTxn(sender, params, index)
+		// 	const txId = txn.txID().toString()
+
+		// 	// Sign the transaction
+		// 	const signedTxn = txn.signTxn(creatorAccount.sk)
+		// 	console.log('Signed transaction with txID: %s', txId)
+
+		// 	// Submit the transaction
+		// 	await this.algodClient.sendRawTransaction(signedTxn).do()
+
+		// 	return txId
+
 		// 	// Wait for confirmation
 		// 	await this.waitForConfirmation(txId)
 
 		// 	// display results
 		// 	const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
 		// 	const appId = transactionResponse.txn.txn.apid
-		// 	console.log('Cleared local state for app-id: ', appId)
+		// 	console.log('Deleted app-id: ', appId)
 		// 	return appId
 		// }
+
 	}
 }
 
