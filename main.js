@@ -54,14 +54,26 @@ async function main () {
 		// await vaultManager.optIn(account4)
 		//await vaultManager.updateApp (vaultAdmin)
 
-		await vaultManager.setMintAccount(vaultAdmin, account1.addr)
-		await vaultManager.setMintAccount(vaultAdmin, 'ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4')
+		// await vaultManager.setMintAccount(vaultAdmin, account1.addr)
+		// await vaultManager.setMintAccount(vaultAdmin, 'ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4')
+		await vaultManager.setGlobalStatus(vaultAdmin, 1)
 		
 		try {
 			await vaultManager.clearApp(account2)
 		} catch (err) {
+			console.log('Register successfully failed')
 		}
 		await vaultManager.optIn(account2)
+		await vaultManager.setGlobalStatus(vaultAdmin, 0)
+
+		// it should fail
+		try {
+			await vaultManager.registerVault(account2)
+		} catch (err) {
+			console.log('Register successfully failed')
+		}
+
+		await vaultManager.setGlobalStatus(vaultAdmin, 1)
 		await vaultManager.registerVault(account2)
 
 		await vaultManager.readGlobalState(vaultAdmin.addr)

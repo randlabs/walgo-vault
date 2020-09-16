@@ -1,5 +1,6 @@
 const algosdk = require('algosdk')
-var fs = require('fs')
+const fs = require('fs')
+const tools = require('./tools')
 const sha512 = require("js-sha512")
 const hibase32 = require("hi-base32");
 const { Console } = require('console');
@@ -107,6 +108,7 @@ class VaultManager {
 
 			// Submit the transaction
 			await algodClient.sendRawTransaction(signedTxn).do()
+			return txId;
 
 			// Wait for confirmation
 			await this.waitForConfirmation(txId)
@@ -143,6 +145,8 @@ class VaultManager {
 			// Submit the transaction
 			await this.algodClient.sendRawTransaction(signedTxn).do()
 
+			return txId
+
 			// Wait for confirmation
 			await this.waitForConfirmation(txId)
 
@@ -158,9 +162,25 @@ class VaultManager {
 			let appAccounts = [];
 			appAccounts.push (mintAddr)
 
-			await this.callApp (adminAccount, appArgs, appAccounts)
+			return await this.callApp (adminAccount, appArgs, appAccounts)
 		}
 		
+		this.setGlobalStatus = async function (adminAccount, newStatus) {
+			let appArgs = [];
+			appArgs.push(new Uint8Array(Buffer.from('global-status')))
+			appArgs.push(new Uint8Array(tools.getInt64Bytes(newStatus)))
+
+			return await this.callApp (adminAccount, appArgs)
+		}
+		
+		this.setLocalStatus = async function (account, newStatus) {
+			let appArgs = [];
+			appArgs.push(new Uint8Array(Buffer.from('status')))
+			appArgs.push(new Uint8Array(tools.getInt64Bytes(newStatus)))
+
+			return await this.callApp (account, appArgs)
+		}
+
 		// registerVault
 		this.registerVault = async function (account) {
 			let program = vaultTEAL
@@ -178,7 +198,7 @@ class VaultManager {
 			let appAccounts = [];
 			appAccounts.push (compiledProgram.hash)
 
-			await this.callApp (account, appArgs, appAccounts)
+			return await this.callApp (account, appArgs, appAccounts)
 		}
 		
 		// call application
@@ -211,12 +231,14 @@ class VaultManager {
 			console.log('Called app-id:', transactionResponse.txn.txn.apid)
 			if (transactionResponse['global-state-delta'] !== undefined) {
 				console.log('Global State updated:')
-				this.dumpState (transactionResponse['global-state-delta'])
+				this.dumpDeltaArray (transactionResponse['global-state-delta'])
 			}
 			if (transactionResponse['local-state-delta'] !== undefined) {
 				console.log('Local State updated:')
-				this.dumpDelta (transactionResponse['local-state-delta'])
+				this.dumpDeltaArray (transactionResponse['local-state-delta'])
 			}
+
+			return txId
 		}
 
 		this.addressFromByteBuffer = function (addr) {
@@ -234,39 +256,66 @@ class VaultManager {
 			return v.toString().slice(0, ALGORAND_ADDRESS_SIZE)
 		}
 
-		this.dumpDelta = function (delta) {
-			for (let i = 0; i < delta.length; i++) {
-				if (delta[i].addr) {
-					console.log ('Local state change address: ' + delta[i].addr)
+		this.dumpDeltaArray = function (deltaArray) {
+			for (let i = 0; i < deltaArray.length; i++) {
+				if (deltaArray[i].address) {
+					console.log ('Local state change address: ' + deltaArray[i].address)
+					for (let j = 0; j < deltaArray[i].delta.length; j++) {
+						this.dumpDelta(deltaArray[i].delta[j])
+					}
 				}
 				else {
 					console.log ('Global state change')
+					this.dumpDelta(deltaArray[i])
 				}
-				this.dumpState (delta[i].delta)
 			}
 		}
-		this.dumpState = function (state) {
-			for (let n = 0; n < state.length; n++) {
-				let text = Buffer.from(state[n].key, 'base64').toString() + ': '
-				if (state[n].value.type == 1) {
-
-					let addr = this.addressFromByteBuffer (state[n].value.bytes)
-					if (addr.length == ALGORAND_ADDRESS_SIZE) {
-						text += addr
-					}
-					else {
-						text += state[n].value.bytes
-					}
-				}
-				else if (state[n].value.type == 2) {
-					text += state[n].value.uint
+		this.dumpStateArray = function (stateArray) {
+			for (let n = 0; n < stateArray.length; n++) {
+				this.dumpState(stateArray[n])
+			}
+		}
+	
+		this.dumpDelta = function(state) {
+			let text = Buffer.from(state.key, 'base64').toString() + ': '
+			if (state.value.bytes !== undefined) {
+				let addr = this.addressFromByteBuffer (state.value.bytes)
+				if (addr.length == ALGORAND_ADDRESS_SIZE) {
+					text += addr
 				}
 				else {
-					text += state[n].value.bytes
+					text += state.value.bytes
 				}
-				console.log(text)
 			}
+			else if (state.value.uint !== undefined) {
+				text += state.value.uint
+			}
+			else {
+				text += 'no change'
+			}
+			console.log(text)
 		}
+
+		this.dumpState = function(state) {
+			let text = Buffer.from(state.key, 'base64').toString() + ': '
+			if (state.value.type == 1) {
+
+				let addr = this.addressFromByteBuffer (state.value.bytes)
+				if (addr.length == ALGORAND_ADDRESS_SIZE) {
+					text += addr
+				}
+				else {
+					text += state.value.bytes
+				}
+			}
+			else if (state.value.type == 2) {
+				text += state.value.uint
+			}
+			else {
+				text += state.value.bytes
+			}
+			console.log(text)
+	}
 
 		// read global state of application
 		this.readGlobalState = async function (accountAddr) {
@@ -276,7 +325,7 @@ class VaultManager {
 					console.log("Application's global state:")
 					let globalState = accountInfoResponse['created-apps'][i].params['global-state']
 
-					this.dumpState (globalState)
+					this.dumpStateArray (globalState)
 				}
 			}
 		}
@@ -289,7 +338,7 @@ class VaultManager {
 					console.log(accountAddr + " opted in, local state:")
 
 					if (accountInfoResponse['apps-local-state'][i]['key-value']) {
-						this.dumpState (accountInfoResponse['apps-local-state'][i]['key-value'])
+						this.dumpStateArray (accountInfoResponse['apps-local-state'][i]['key-value'])
 					}
 				}
 			}

@@ -168,16 +168,16 @@ goal asset send -a 1 -f W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW
 goal asset send -a 1 -f W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q -t 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24  --creator W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --assetid 2658497
 goal asset send -a 1 -f W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q -t ALWDLPLVFDS5RXDHHBGP5MM3N7ICGIK7ICK6OOGOB7VAJAP6YXJBKNVT54  --creator W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --assetid 2658497
 
-goal app optin --app-id 2658711 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --app-arg "str:register" 
-goal app optin --app-id 2658711 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --app-arg "str:register" 
-goal app optin --app-id 2658711 --from ALWDLPLVFDS5RXDHHBGP5MM3N7ICGIK7ICK6OOGOB7VAJAP6YXJBKNVT54 --app-arg "str:register" 
+goal app optin --app-id 2671848 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --app-arg "str:register" 
+goal app optin --app-id 2671848 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --app-arg "str:register" 
+goal app optin --app-id 2671848 --from ALWDLPLVFDS5RXDHHBGP5MM3N7ICGIK7ICK6OOGOB7VAJAP6YXJBKNVT54 --app-arg "str:register" 
 >>
 Issued transaction from account 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE, txid XMVIVV3WAUCLHJUKG4HEO35ALP56PCEXEME6S6S2MZ7HOXAM45HQ (fee 1000)
 Transaction XMVIVV3WAUCLHJUKG4HEO35ALP56PCEXEME6S6S2MZ7HOXAM45HQ still pending as of round 5368843
 Transaction XMVIVV3WAUCLHJUKG4HEO35ALP56PCEXEME6S6S2MZ7HOXAM45HQ committed in round 5368845
 
 
-goal app call --app-id 2658711 --app-arg "str:vote" --app-arg "str:candidatea" --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --out=unsignedtransaction1.tx
+goal app call --app-id 2671848 --app-arg "str:vote" --app-arg "str:candidatea" --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --out=unsignedtransaction1.tx
 goal asset send --from=252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --to=W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --creator W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --assetid 2658497 --fee=1000 --amount=1 --out=unsignedtransaction2.tx
 cat unsignedtransaction1.tx unsignedtransaction2.tx > combinedtransactions.tx
 goal clerk group -i combinedtransactions.tx -o groupedtransactions.tx 
@@ -191,14 +191,14 @@ Transaction PYYH2SNIT5LXF6E3TM3YW2GXOS26UITVLSOVBVGRS5DYMDSOC2WA committed in ro
 Transaction HR4REISHD2JLR7A6VS5VJ5UMFLJUYQXQBO7YMOC2OX4WGDLUPTIQ committed in round 5368898
 
 
-goal app call --app-id 2658711 --app-arg "str:vote" --app-arg "str:candidateb" --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=unsignedtransaction1.tx
+goal app call --app-id 2671848 --app-arg "str:vote" --app-arg "str:candidateb" --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=unsignedtransaction1.tx
 goal asset send --from=4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --to=W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --creator W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --assetid 2658497 --fee=1000 --amount=1 --out=unsignedtransaction2.tx
 cat unsignedtransaction1.tx unsignedtransaction2.tx > combinedtransactions.tx
 goal clerk group -i combinedtransactions.tx -o groupedtransactions.tx 
 goal clerk sign -i groupedtransactions.tx -o signout.tx
 goal clerk rawsend -f signout.tx
 
-goal app call --app-id 2658711 --app-arg "str:vote" --app-arg "str:candidateb" --from ALWDLPLVFDS5RXDHHBGP5MM3N7ICGIK7ICK6OOGOB7VAJAP6YXJBKNVT54 --out=unsignedtransaction1.tx
+goal app call --app-id 2671848 --app-arg "str:vote" --app-arg "str:candidateb" --from ALWDLPLVFDS5RXDHHBGP5MM3N7ICGIK7ICK6OOGOB7VAJAP6YXJBKNVT54 --out=unsignedtransaction1.tx
 goal asset send --from=ALWDLPLVFDS5RXDHHBGP5MM3N7ICGIK7ICK6OOGOB7VAJAP6YXJBKNVT54 --to=W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --creator W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --assetid 2658497 --fee=1000 --amount=1 --out=unsignedtransaction2.tx
 cat unsignedtransaction1.tx unsignedtransaction2.tx > combinedtransactions.tx
 goal clerk group -i combinedtransactions.tx -o groupedtransactions.tx 
@@ -208,13 +208,13 @@ goal clerk rawsend -f signout.tx
 
 
 Read
-goal app read --global --app-id 2658711
-goal app read --local --app-id 2658711 --from ALWDLPLVFDS5RXDHHBGP5MM3N7ICGIK7ICK6OOGOB7VAJAP6YXJBKNVT54
-goal app read --local --app-id 2658711 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
-goal app read --local --app-id 2658711 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE
+goal app read --global --app-id 2671848
+goal app read --local --app-id 2671848 --from ALWDLPLVFDS5RXDHHBGP5MM3N7ICGIK7ICK6OOGOB7VAJAP6YXJBKNVT54
+goal app read --local --app-id 2671848 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
+goal app read --local --app-id 2671848 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE
 
 
-goal app call --app-id 2658711 --app-arg "str:vote" --app-arg "str:candidateb" --from ALWDLPLVFDS5RXDHHBGP5MM3N7ICGIK7ICK6OOGOB7VAJAP6YXJBKNVT54 --out=unsignedtransaction1.tx
+goal app call --app-id 2671848 --app-arg "str:vote" --app-arg "str:candidateb" --from ALWDLPLVFDS5RXDHHBGP5MM3N7ICGIK7ICK6OOGOB7VAJAP6YXJBKNVT54 --out=unsignedtransaction1.tx
 goal asset send --from=ALWDLPLVFDS5RXDHHBGP5MM3N7ICGIK7ICK6OOGOB7VAJAP6YXJBKNVT54 --to=W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --creator W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --assetid 2658497 --fee=1000 --amount=1 --out=unsignedtransaction2.tx
 cat unsignedtransaction1.tx unsignedtransaction2.tx > combinedtransactions.tx
 goal clerk group -i combinedtransactions.tx -o groupedtransactions.tx 
