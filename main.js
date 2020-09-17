@@ -30,13 +30,11 @@ function recoverManagerAccount () {
 
 async function setupClient () {
 	if (algodClient == null) {
-		settings = config.get()
-
 		algodClient = new algosdk.Algodv2(settings.algodClient.apiToken, settings.algodClient.server, settings.algodClient.port)
 
 		const appId = 2671848
 
-		vaultManager = new vault.VaultManager(algodClient, appId)
+		vaultManager = new vault.VaultManager(algodClient, appId, vaultAdmin.addr, settings.assetId)
 	} else {
 		return algodClient
 	}
@@ -46,15 +44,27 @@ async function setupClient () {
 
 async function main () {
 	try {
-		recoverManagerAccount()
+		let txId
+
+		// txId = await vaultManager.updateApp (vaultAdmin)
+		// console.log('updateApp: %s', txId)
+
+		txId = await vaultManager.mintwALGOs(account1, 5300)
+		console.log('mintwALGOs %s: %s', account1.addr, txId)
+
+//		txId = await vaultManager.depositALGOs(account2, 1234000)
+//		console.log('depositALGOs %s: %s', account2.addr, txId)
+
+		return
 
 		// const appId = await vaultManager.createApp(managerAccount)
 		// console.log('AppId: ' + appId)
 
 		// await vaultManager.optIn(account4)
-		//await vaultManager.updateApp (vaultAdmin)
+		txId = await vaultManager.updateApp (vaultAdmin)
+		console.log('updateApp: %s', txId)
 
-		let txId = await vaultManager.setMintAccount(vaultAdmin, account1.addr)
+		txId = await vaultManager.setMintAccount(vaultAdmin, account1.addr)
 		console.log('setMintAccount %s: %s', account1.addr, txId)
 		txId = await vaultManager.setMintAccount(vaultAdmin, 'ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4')
 		console.log('setMintAccount ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4: %s', txId)
@@ -68,6 +78,9 @@ async function main () {
 		}
 		txId = await vaultManager.optIn(account2)
 		console.log('optIn %s: %s', account2.addr, txId)
+
+		// txId = await vaultManager.setAccountStatus(vaultAdmin, account2.addr, 0)
+		// console.log('setAccountStatus %s to 0: %s', account2.addr, txId)
 
 		txId = await vaultManager.setGlobalStatus(vaultAdmin, 0)
 		console.log('setGlobalStatus to 0: %s', txId)
@@ -85,6 +98,9 @@ async function main () {
 
 		txId = await vaultManager.setGlobalStatus(vaultAdmin, 1)
 		console.log('setGlobalStatus to 1: %s', txId)
+		
+		// txId = await vaultManager.setAccountStatus(vaultAdmin, account2.addr, 1)
+		// console.log('setAccountStatus %s to 1: %s', account2.addr, txId)
 
 		txId = await vaultManager.registerVault(account2)
 		console.log('registerVault %s: %s', account2.addr, txId)
@@ -92,6 +108,7 @@ async function main () {
 		txResponse = await vaultManager.waitForTransactionResponse(txId)
 		vaultManager.printAppCallDelta(txResponse)
 
+		console.log('\nApp Status')
 		await vaultManager.printGlobalState(vaultAdmin.addr)
 		await vaultManager.printLocalState(vaultAdmin.addr)
 		await vaultManager.printLocalState(account1.addr)
@@ -118,5 +135,8 @@ async function main () {
 	// let tx = await asaTools.createASA(algodClient, managerAccount, 9007199254740991, 6);
 }
 
+settings = config.get()
+
+recoverManagerAccount()
 setupClient()
 main()

@@ -60,8 +60,8 @@ goal clerk sign -i groupedtransactions.tx -o signout.tx --signer 4YDUBDLNMVD4SBN
 goal clerk rawsend -f signout.tx
 
 // MintwALGOs
-goal app call --app-id 2671848 --app-arg "str:mint-walgos" --app-arg "int:7000" --app-account SEX6MY3DK2GI2LTP7AUBBJFJYB53X7KMGORYLA65D4OTDRDUETUFAFF5LI --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=mint-unsigned.tx
-goal asset send --assetid 2671688 --from=ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4 --to=4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --fee=1000 --amount=7000 --out=send-unsigned.tx
+goal app call --app-id 2671848 --app-arg "str:mint-walgos" --app-arg "int:7100" --app-account SEX6MY3DK2GI2LTP7AUBBJFJYB53X7KMGORYLA65D4OTDRDUETUFAFF5LI --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=mint-unsigned.tx
+goal asset send --assetid 2671688 --from=ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4 --to=4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --fee=1000 --amount=7100 --out=send-unsigned.tx
 cat mint-unsigned.tx send-unsigned.tx > combinedtransactions.tx
 goal clerk group -i combinedtransactions.tx -o groupedtransactions.tx 
 goal clerk split -i groupedtransactions.tx -o minttx.tx

@@ -97,25 +97,83 @@ printAppStateArray = function (stateArray) {
 	}
 }
 
-printAppState = function(state) {
-	let text = Buffer.from(state.key, 'base64').toString() + ': '
-	if (state.value.type == 1) {
+appValueState = function(stateValue) {
+	let text = ''
 
-		let addr = this.addressFromByteBuffer (state.value.bytes)
+	if (stateValue.type == 1) {
+		let addr = this.addressFromByteBuffer (stateValue.bytes)
 		if (addr.length == ALGORAND_ADDRESS_SIZE) {
 			text += addr
 		}
 		else {
-			text += state.value.bytes
+			text += stateValue.bytes
 		}
 	}
-	else if (state.value.type == 2) {
-		text += state.value.uint
+	else if (stateValue.type == 2) {
+		text = stateValue.uint
 	}
 	else {
-		text += state.value.bytes
+		text += stateValue.bytes
 	}
+
+	return text
+}
+
+appValueStateString = function(stateValue) {
+	let text = ''
+
+	if (stateValue.type == 1) {
+		let addr = this.addressFromByteBuffer (stateValue.bytes)
+		if (addr.length == ALGORAND_ADDRESS_SIZE) {
+			text += addr
+		}
+		else {
+			text += stateValue.bytes
+		}
+	}
+	else if (stateValue.type == 2) {
+		text += stateValue.uint
+	}
+	else {
+		text += stateValue.bytes
+	}
+
+	return text
+}
+
+// appValueStateInt: return the integer stored or 0 otherwise
+appValueStateInt = function(stateValue) {
+	let text = 0
+
+	if (stateValue.type == 2) {
+		text = stateValue.uint
+	}
+
+	return text
+}
+
+printAppState = function(state) {
+	let text = Buffer.from(state.key, 'base64').toString() + ': '
+
+	text += appValueStateString(state.value)
+
 	console.log(text)
+}
+
+printAppLocalState = async function (algodClient, appId, accountAddr) {
+	let ret = await readAppLocalState(algodClient, appId, accountAddr)
+	if (ret) {
+			console.log("Application %d local state for account %s:", appId,  accountAddr)
+			printAppStateArray(ret);
+	}
+}
+
+printAppGlobalState = async function (algodClient, appId, accountAddr) {
+	let ret = await readAppGlobalState(algodClient, appId, accountAddr)
+	if (ret) {
+			console.log("Application %d global state:", appId)
+			printAppStateArray(ret);
+	}
 }
 
 // read global state of application
@@ -123,11 +181,27 @@ readAppGlobalState = async function (algodClient, appId, accountAddr) {
 	const accountInfoResponse = await algodClient.accountInformation(accountAddr).do()
 	for (let i = 0; i < accountInfoResponse['created-apps'].length; i++) {
 		if (accountInfoResponse['created-apps'][i].id === appId) {
-			console.log("Application's global state:")
 			let globalState = accountInfoResponse['created-apps'][i].params['global-state']
 
 			return globalState
 			// this.printAppStateArray (globalState)
+		}
+	}
+}
+
+readAppGlobalStateByKey = async function (algodClient, appId, accountAddr, key) {
+	const accountInfoResponse = await algodClient.accountInformation(accountAddr).do()
+	for (let i = 0; i < accountInfoResponse['created-apps'].length; i++) {
+		if (accountInfoResponse['created-apps'][i].id === appId) {
+			// console.log("Application's global state:")
+			let stateArray = accountInfoResponse['created-apps'][i].params['global-state']
+			for (let j = 0; j < stateArray.length; j++) {
+				let text = Buffer.from(stateArray[j].key, 'base64').toString()
+
+				if(key === text) {
+					return appValueState(stateArray[j].value)
+				}
+			}
 		}
 	}
 }
@@ -137,11 +211,31 @@ readAppLocalState = async function (algodClient, appId, accountAddr) {
 	const accountInfoResponse = await algodClient.accountInformation(accountAddr).do()
 	for (let i = 0; i < accountInfoResponse['apps-local-state'].length; i++) {
 		if (accountInfoResponse['apps-local-state'][i].id === appId) {
-			console.log(accountAddr + " opted in, local state:")
+			// console.log(accountAddr + " opted in, local state:")
 
 			if (accountInfoResponse['apps-local-state'][i]['key-value']) {
 				// this.printAppStateArray (accountInfoResponse['apps-local-state'][i]['key-value'])
 				return accountInfoResponse['apps-local-state'][i]['key-value']
+			}
+		}
+	}
+}
+
+readAppLocalStateByKey = async function (algodClient, appId, accountAddr, key) {
+	const accountInfoResponse = await algodClient.accountInformation(accountAddr).do()
+	for (let i = 0; i < accountInfoResponse['apps-local-state'].length; i++) {
+		if (accountInfoResponse['apps-local-state'][i].id === appId) {
+			let stateArray = accountInfoResponse['apps-local-state'][i]['key-value']
+
+			if(!stateArray) {
+				return null
+			}
+			for (let j = 0; j < stateArray.length; j++) {
+				let text = Buffer.from(stateArray[j].key, 'base64').toString()
+
+				if(key === text) {
+					return appValueState(stateArray[j].value)
+				}
 			}
 		}
 	}
@@ -155,6 +249,10 @@ module.exports = {
 	printAppCallDelta,
 	printAppStateArray,
 	printAppState,
+	printAppLocalState,
+	printAppGlobalState,
 	readAppGlobalState,
-	readAppLocalState
+	readAppGlobalStateByKey,
+	readAppLocalState,
+	readAppLocalStateByKey
 }

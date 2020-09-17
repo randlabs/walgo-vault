@@ -6,7 +6,11 @@ const { Console } = require('console');
 const approvalProgramFilename = 'app-vault.teal'
 const clearProgramFilename = 'app-vault-opt-out.teal'
 
-var vaultTEAL = `#pragma version 2
+const MINT_ACCOUNT_GLOBAL_KEY = 'MintAccount'
+const VAULT_ACCOUNT_LOCAL_KEY = 'vault'
+
+var vaultTEAL = 
+`#pragma version 2
 txn Receiver 
 addr TMPL_USER_ADDRESS
 ==
@@ -27,38 +31,49 @@ int TMPL_APP_ID
 ==
 &&
 `
+var minterTEAL = 
+`#pragma version 2
+int 1
+return
+`
 
 class VaultManager {
-	constructor (algodClient, appId = 0) {
+	constructor (algodClient, appId = 0, creatorAddr = undefined, assetId = 0) {
 		this.algodClient = algodClient
 		this.appId = appId
-
+		this.creatorAddr = creatorAddr
+		this.assetId = assetId
 		this.algodClient = algodClient
 
 		this.setAppId = function (appId) {
 			this.appId = appId
 		}
+		this.setCreator = function (creatorAddr) {
+			this.creatorAddr = creatorAddr
+		}
 
 		this.readLocalState = async function (accountAddr) {
-			return tools.readAppLocalState(algodClient, accountAddr)
+			return tools.readAppLocalState(this.algodClient, this.appId, accountAddr)
 		}
 
 		this.readGlobalState = async function (accountAddr) {
-			return tools.readAppGlobalState(algodClient, accountAddr)
+			return tools.readAppGlobalState(this.algodClient, this.appId, accountAddr)
 		}
 
 		this.printLocalState = async function (accountAddr) {
-			let ret = await tools.readAppLocalState(algodClient, this.appId, accountAddr)
-			if (ret) {
-				tools.printAppStateArray(ret);
-			}
+			await tools.printAppLocalState(this.algodClient, this.appId, accountAddr)
 		}
 
 		this.printGlobalState = async function (accountAddr) {
-			let ret = await tools.readAppGlobalState(algodClient, this.appId, accountAddr)
-			if (ret) {
-				tools.printAppStateArray(ret);
-			}
+			await tools.printAppGlobalState(this.algodClient, this.appId, accountAddr)
+		}
+
+		this.readLocalStateByKey = async function (accountAddr, key) {
+			await tools.readAppLocalStateByKey(this.algodClient, this.appId, accountAddr, key)
+		}
+
+		this.readGlobalStateByKey = async function (accountAddr, key) {
+			await tools.readAppGlobalStateByKey(this.algodClient, this.appId, accountAddr, key)
 		}
 
 		// helper function to await transaction confirmation
@@ -209,12 +224,15 @@ class VaultManager {
 			return await this.callApp (adminAccount, appArgs)
 		}
 		
-		this.setLocalStatus = async function (account, newStatus) {
+		this.setAccountStatus = async function (adminAccount, accountAddr, newStatus) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from('status')))
 			appArgs.push(new Uint8Array(tools.getInt64Bytes(newStatus)))
 
-			return await this.callApp (account, appArgs)
+			let appAccounts = [];
+			appAccounts.push (accountAddr)
+
+			return await this.callApp (adminAccount, appArgs, appAccounts)
 		}
 
 		// registerVault
@@ -237,6 +255,90 @@ class VaultManager {
 			return await this.callApp (account, appArgs, appAccounts)
 		}
 		
+		// depositALGOs
+		this.depositALGOs = async function (account, amount) {
+			const sender = account.addr
+
+			const params = await this.algodClient.getTransactionParams().do()
+
+			// comment out the next two lines to use suggested fee
+			params.fee = 1000
+			params.flatFee = true
+
+			let vaultAddr = await tools.readAppLocalStateByKey(this.algodClient, this.appId, account.addr, 'vault')
+
+			let appArgs = [];
+			appArgs.push(new Uint8Array(Buffer.from('deposit-algos')))
+			appArgs.push(new Uint8Array(tools.getInt64Bytes(amount)))
+
+			// create unsigned transaction
+			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs)
+			let txPayment = algosdk.makePaymentTxnWithSuggestedParams(sender, vaultAddr, amount, undefined, new Uint8Array(0), params)
+			let txns = [txApp, txPayment];
+
+			// Group both transactions
+			let txgroup = algosdk.assignGroupID(txns);
+	
+			let signed = []
+			let txAppSigned = txApp.signTxn(account.sk);
+			let txPaymentSigned = txPayment.signTxn(account.sk);
+			signed.push(txAppSigned);
+			signed.push(txPaymentSigned);
+
+			let tx = (await this.algodClient.sendRawTransaction(signed).do())
+
+			return tx.txId
+		}
+
+		// depositALGOs
+		this.mintwALGOs = async function (account, amount) {
+			const sender = account.addr
+
+			const params = await this.algodClient.getTransactionParams().do()
+
+			// comment out the next two lines to use suggested fee
+			params.fee = 1000
+			params.flatFee = true
+
+			let minterAddr = await tools.readAppGlobalStateByKey(this.algodClient, this.appId, this.creatorAddr, MINT_ACCOUNT_GLOBAL_KEY)
+			let vaultAddr = await tools.readAppLocalStateByKey(this.algodClient, this.appId, account.addr, VAULT_ACCOUNT_LOCAL_KEY)
+
+			let appArgs = [];
+			appArgs.push(new Uint8Array(Buffer.from('mint-walgos')))
+			appArgs.push(new Uint8Array(tools.getInt64Bytes(amount)))
+
+			let appAccounts = []
+			appAccounts.push (vaultAddr)
+
+			// create unsigned transaction
+			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts)
+			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(minterAddr, sender, undefined, undefined, amount, new Uint8Array(0), 
+				this.assetId, params)
+			let txns = [txApp, txwALGOTransfer];
+
+			// Group both transactions
+			algosdk.assignGroupID(txns);
+
+			let encoder = new TextEncoder();
+			let programBytes = encoder.encode(minterTEAL);
+
+			const compiledProgram = await this.algodClient.compile(programBytes).do()
+
+			let exchangeProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"));
+
+			let lsigMinter = algosdk.makeLogicSig(exchangeProgram);
+
+			let signed = []
+			let txAppSigned = txApp.signTxn(account.sk);
+			let txwALGOTransferSigned = algosdk.signLogicSigTransactionObject(txwALGOTransfer, lsigMinter);
+			signed.push(txAppSigned);
+			signed.push(txwALGOTransferSigned.blob);
+
+			let tx = (await this.algodClient.sendRawTransaction(signed).do())
+
+			return tx.txId
+		}
+
 		// call application
 		this.callApp = async function (account, appArgs, appAccounts) {
 			// define sender
