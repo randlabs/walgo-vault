@@ -44,18 +44,19 @@ async function setupClient () {
 
 async function main () {
 	try {
-		let txId
+		// let txId
 
-		// txId = await vaultManager.updateApp (vaultAdmin)
-		// console.log('updateApp: %s', txId)
+		// await vaultManager.printLocalState(account2.addr)
 
-		txId = await vaultManager.mintwALGOs(account1, 5300)
-		console.log('mintwALGOs %s: %s', account1.addr, txId)
+		// txId = await vaultManager.withdrawALGOs(account2, 18398532)
+		// console.log('withdrawALGOs %s: %s', account2.addr, txId)
 
-//		txId = await vaultManager.depositALGOs(account2, 1234000)
-//		console.log('depositALGOs %s: %s', account2.addr, txId)
+		// let txRet = await vaultManager.waitForTransactionResponse(txId)
+		// vaultManager.printAppCallDelta(txRet)
 
-		return
+		// await vaultManager.printLocalState(account2.addr)
+
+		// return
 
 		// const appId = await vaultManager.createApp(managerAccount)
 		// console.log('AppId: ' + appId)
@@ -107,6 +108,20 @@ async function main () {
 		
 		txResponse = await vaultManager.waitForTransactionResponse(txId)
 		vaultManager.printAppCallDelta(txResponse)
+
+		txId = await vaultManager.depositALGOs(account2, 1234000)
+		console.log('depositALGOs %s: %s', account2.addr, txId)
+
+		txId = await vaultManager.mintwALGOs(account2, 5300)
+		console.log('mintwALGOs %s: %s', account2.addr, txId)
+
+		txId = await vaultManager.withdrawALGOs(account2, 500300)
+		console.log('withdrawALGOs %s: %s', account2.addr, txId)
+
+		txId = await vaultManager.burnwALGOs(account2, 5300)
+		console.log('burnwALGOs %s: %s', account2.addr, txId)
+
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
 		console.log('\nApp Status')
 		await vaultManager.printGlobalState(vaultAdmin.addr)

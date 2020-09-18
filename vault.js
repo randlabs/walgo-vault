@@ -9,6 +9,16 @@ const clearProgramFilename = 'app-vault-opt-out.teal'
 const MINT_ACCOUNT_GLOBAL_KEY = 'MintAccount'
 const VAULT_ACCOUNT_LOCAL_KEY = 'vault'
 
+const DEPOSIT_ALGOS_OP = 'deposit-algos'
+const MINT_WALGOS_OP = 'mint-walgos'
+const WITHDRAW_ALGOS_OP = 'withdraw-algos'
+const BURN_ALGOS_OP = 'burn-walgos'
+
+const REGISTER_OP = 'register'
+const SET_STATUS_OP = 'status'
+const SET_GLOBAL_STATUS_OP = 'global-status'
+const SET_MINT_ACCOUNT_OP = 'mint-account'
+
 var vaultTEAL = 
 `#pragma version 2
 txn Receiver 
@@ -160,18 +170,6 @@ class VaultManager {
 			// Submit the transaction
 			await algodClient.sendRawTransaction(signedTxn).do()
 			return txId;
-
-			// // Wait for confirmation
-			// await this.waitForConfirmation(txId)
-
-			// // display results
-			// const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
-			// const appId = transactionResponse['application-index']
-			// console.log('Created new app-id: ', appId)
-
-			// this.appId = appId
-
-			// return appId
 		}
 
 		// optIn
@@ -191,25 +189,36 @@ class VaultManager {
 
 			// Sign the transaction
 			const signedTxn = txn.signTxn(account.sk)
-			// console.log('Signed transaction with txID: %s', txId)
 
 			// Submit the transaction
 			await this.algodClient.sendRawTransaction(signedTxn).do()
 
 			return txId
+		}
 
-			// // Wait for confirmation
-			// await this.waitForConfirmation(txId)
+		this.optInASA = async function (account) {
+			const sender = account.addr
 
-			// // display results
-			// const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
-			// console.log('Opted-in to app-id:', transactionResponse.txn.txn.apid)
+			const params = await this.algodClient.getTransactionParams().do()
+
+			// comment out the next two lines to use suggested fee
+			params.fee = 1000
+			params.flatFee = true
+
+			// create unsigned transaction
+			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, account.addr, undefined, 
+				undefined, 0, new Uint8Array(0), this.assetId, params)
+			let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk);
+
+			let tx = (await this.algodClient.sendRawTransaction(txwALGOTransferSigned).do())
+
+			return tx.txId
 		}
 
 		// setMintAccount
 		this.setMintAccount = async function (adminAccount, mintAddr) {
 			let appArgs = []
-			appArgs.push(new Uint8Array(Buffer.from('mint-account')))
+			appArgs.push(new Uint8Array(Buffer.from(SET_MINT_ACCOUNT_OP)))
 			let appAccounts = []
 			appAccounts.push (mintAddr)
 
@@ -218,7 +227,7 @@ class VaultManager {
 		
 		this.setGlobalStatus = async function (adminAccount, newStatus) {
 			let appArgs = []
-			appArgs.push(new Uint8Array(Buffer.from('global-status')))
+			appArgs.push(new Uint8Array(Buffer.from(SET_GLOBAL_STATUS_OP)))
 			appArgs.push(new Uint8Array(tools.getInt64Bytes(newStatus)))
 
 			return await this.callApp (adminAccount, appArgs)
@@ -226,7 +235,7 @@ class VaultManager {
 		
 		this.setAccountStatus = async function (adminAccount, accountAddr, newStatus) {
 			let appArgs = []
-			appArgs.push(new Uint8Array(Buffer.from('status')))
+			appArgs.push(new Uint8Array(Buffer.from(SET_STATUS_OP)))
 			appArgs.push(new Uint8Array(tools.getInt64Bytes(newStatus)))
 
 			let appAccounts = [];
@@ -235,20 +244,24 @@ class VaultManager {
 			return await this.callApp (adminAccount, appArgs, appAccounts)
 		}
 
-		// registerVault
-		this.registerVault = async function (account) {
+		this.vaultCompiledTEALByAddress = async function(vaultAddr) {
 			let program = vaultTEAL
 			
 			program = program.replace(/TMPL_APP_ID/g, this.appId)
-			program = program.replace(/TMPL_USER_ADDRESS/g, account.addr)
+			program = program.replace(/TMPL_USER_ADDRESS/g, vaultAddr)
 
-			let encoder = new TextEncoder();
+			let encoder = new TextEncoder()
 			let programBytes = encoder.encode(program);
 			
-			const compiledProgram = await this.algodClient.compile(programBytes).do()
+			return await this.algodClient.compile(programBytes).do()
+		}
+
+		// registerVault
+		this.registerVault = async function (account) {
+			const compiledProgram = await this.vaultCompiledTEALByAddress(account.addr)
 
 			let appArgs = [];
-			appArgs.push(new Uint8Array(Buffer.from('register')))
+			appArgs.push(new Uint8Array(Buffer.from(REGISTER_OP)))
 			let appAccounts = [];
 			appAccounts.push (compiledProgram.hash)
 
@@ -265,10 +278,10 @@ class VaultManager {
 			params.fee = 1000
 			params.flatFee = true
 
-			let vaultAddr = await tools.readAppLocalStateByKey(this.algodClient, this.appId, account.addr, 'vault')
+			let vaultAddr = await tools.readAppLocalStateByKey(this.algodClient, this.appId, account.addr, VAULT_ACCOUNT_LOCAL_KEY)
 
 			let appArgs = [];
-			appArgs.push(new Uint8Array(Buffer.from('deposit-algos')))
+			appArgs.push(new Uint8Array(Buffer.from(DEPOSIT_ALGOS_OP)))
 			appArgs.push(new Uint8Array(tools.getInt64Bytes(amount)))
 
 			// create unsigned transaction
@@ -277,8 +290,8 @@ class VaultManager {
 			let txns = [txApp, txPayment];
 
 			// Group both transactions
-			let txgroup = algosdk.assignGroupID(txns);
-	
+			algosdk.assignGroupID(txns);
+
 			let signed = []
 			let txAppSigned = txApp.signTxn(account.sk);
 			let txPaymentSigned = txPayment.signTxn(account.sk);
@@ -290,7 +303,7 @@ class VaultManager {
 			return tx.txId
 		}
 
-		// depositALGOs
+		// mintwALGOs
 		this.mintwALGOs = async function (account, amount) {
 			const sender = account.addr
 
@@ -303,8 +316,15 @@ class VaultManager {
 			let minterAddr = await tools.readAppGlobalStateByKey(this.algodClient, this.appId, this.creatorAddr, MINT_ACCOUNT_GLOBAL_KEY)
 			let vaultAddr = await tools.readAppLocalStateByKey(this.algodClient, this.appId, account.addr, VAULT_ACCOUNT_LOCAL_KEY)
 
+			if(!minterAddr) {
+				throw new Error('ERROR: ' + MINT_ACCOUNT_GLOBAL_KEY + ' not defined')
+			}
+			if(!vaultAddr) {
+				throw new Error('ERROR: Account not registered')
+			}
+
 			let appArgs = [];
-			appArgs.push(new Uint8Array(Buffer.from('mint-walgos')))
+			appArgs.push(new Uint8Array(Buffer.from(MINT_WALGOS_OP)))
 			appArgs.push(new Uint8Array(tools.getInt64Bytes(amount)))
 
 			let appAccounts = []
@@ -324,15 +344,103 @@ class VaultManager {
 
 			const compiledProgram = await this.algodClient.compile(programBytes).do()
 
-			let exchangeProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"));
+			let minterProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"));
 
-			let lsigMinter = algosdk.makeLogicSig(exchangeProgram);
+			let lsigMinter = algosdk.makeLogicSig(minterProgram);
 
 			let signed = []
 			let txAppSigned = txApp.signTxn(account.sk);
 			let txwALGOTransferSigned = algosdk.signLogicSigTransactionObject(txwALGOTransfer, lsigMinter);
 			signed.push(txAppSigned);
 			signed.push(txwALGOTransferSigned.blob);
+
+			let tx = (await this.algodClient.sendRawTransaction(signed).do())
+
+			return tx.txId
+		}
+
+		// withdrawALGOs
+		this.withdrawALGOs = async function (account, amount) {
+			const sender = account.addr
+
+			const params = await this.algodClient.getTransactionParams().do()
+
+			// comment out the next two lines to use suggested fee
+			params.fee = 1000
+			params.flatFee = true
+
+			let vaultAddr = await tools.readAppLocalStateByKey(this.algodClient, this.appId, account.addr, VAULT_ACCOUNT_LOCAL_KEY)
+
+			if(!vaultAddr) {
+				throw new Error('ERROR: Account not registered')
+			}
+
+			let appArgs = [];
+			appArgs.push(new Uint8Array(Buffer.from(WITHDRAW_ALGOS_OP)))
+			appArgs.push(new Uint8Array(tools.getInt64Bytes(amount)))
+
+			let appAccounts = []
+			appAccounts.push (vaultAddr)
+
+			// create unsigned transaction
+			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts)
+			let txWithdraw = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, sender, amount, undefined, new Uint8Array(0), params)
+
+			let txns = [txApp, txWithdraw];
+
+			// Group both transactions
+			algosdk.assignGroupID(txns);
+
+			const compiledProgram = await this.vaultCompiledTEALByAddress(sender)
+
+			let vaultProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"));
+
+			let lsigVault = algosdk.makeLogicSig(vaultProgram);
+
+			let signed = []
+			let txAppSigned = txApp.signTxn(account.sk);
+			let txWithdrawSigned = algosdk.signLogicSigTransactionObject(txWithdraw, lsigVault);
+			signed.push(txAppSigned);
+			signed.push(txWithdrawSigned.blob);
+
+			let tx = (await this.algodClient.sendRawTransaction(signed).do())
+
+			return tx.txId
+		}
+
+		// burnwALGOs
+		this.burnwALGOs = async function (account, amount) {
+			const sender = account.addr
+
+			const params = await this.algodClient.getTransactionParams().do()
+
+			// comment out the next two lines to use suggested fee
+			params.fee = 1000
+			params.flatFee = true
+
+			let minterAddr = await tools.readAppGlobalStateByKey(this.algodClient, this.appId, this.creatorAddr, MINT_ACCOUNT_GLOBAL_KEY)
+			if(!minterAddr) {
+				throw new Error('ERROR: ' + MINT_ACCOUNT_GLOBAL_KEY + ' not defined')
+			}
+
+			let appArgs = [];
+			appArgs.push(new Uint8Array(Buffer.from(BURN_ALGOS_OP)))
+			appArgs.push(new Uint8Array(tools.getInt64Bytes(amount)))
+
+			// create unsigned transaction
+			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs)
+			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, minterAddr, undefined, undefined, amount, new Uint8Array(0), 
+				this.assetId, params)
+			let txns = [txApp, txwALGOTransfer];
+
+			// Group both transactions
+			algosdk.assignGroupID(txns);
+
+			let signed = []
+			let txAppSigned = txApp.signTxn(account.sk);
+			let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk);
+			signed.push(txAppSigned);
+			signed.push(txwALGOTransferSigned);
 
 			let tx = (await this.algodClient.sendRawTransaction(signed).do())
 
@@ -362,23 +470,6 @@ class VaultManager {
 			await this.algodClient.sendRawTransaction(signedTxn).do()
 
 			return txId
-
-			// // Wait for confirmation
-			// await this.waitForConfirmation(txId)
-
-			// // display results
-			// const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
-			// console.log('Called app-id:', transactionResponse.txn.txn.apid)
-			// if (transactionResponse['global-state-delta'] !== undefined) {
-			// 	console.log('Global State updated:')
-			// 	tools.printAppCallDeltaArray (transactionResponse['global-state-delta'])
-			// }
-			// if (transactionResponse['local-state-delta'] !== undefined) {
-			// 	console.log('Local State updated:')
-			// 	tools.printAppCallDeltaArray (transactionResponse['local-state-delta'])
-			// }
-
-			// return txId
 		}
 
 
@@ -401,14 +492,6 @@ class VaultManager {
 
 			// Submit the transaction
 			await this.algodClient.sendRawTransaction(signedTxn).do()
-
-			// // Wait for confirmation
-			// await this.waitForConfirmation(txId)
-
-			// // display results
-			// const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
-			// const appId = transactionResponse.txn.txn.apid
-			// console.log('Cleared address: ', account.addr, ' in AppId ' + appId)
 
 			return txId
 		}
@@ -438,15 +521,6 @@ class VaultManager {
 			await this.algodClient.sendRawTransaction(signedTxn).do()
 
 			return txId
-
-			// // Wait for confirmation
-			// await this.waitForConfirmation(txId)
-
-			// // display results
-			// const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
-			// const appId = transactionResponse.txn.txn.apid
-			// console.log('Updated app-id: ', appId)
-			// return appId
 		}
 
 		// close out from application
