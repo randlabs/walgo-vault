@@ -8,13 +8,15 @@ const clearProgramFilename = 'app-vault-opt-out.teal'
 
 const MINT_ACCOUNT_GLOBAL_KEY = 'MintAccount'
 const VAULT_ACCOUNT_LOCAL_KEY = 'vault'
+const DEPOSITED_LOCAL_KEY = 'deposited'
+const WITHDREW_LOCAL_KEY = 'withdrew'
+const MINTED_LOCAL_KEY = 'minted'
 
 const DEPOSIT_ALGOS_OP = 'deposit-algos'
 const MINT_WALGOS_OP = 'mint-walgos'
 const WITHDRAW_ALGOS_OP = 'withdraw-algos'
 const BURN_ALGOS_OP = 'burn-walgos'
 
-const REGISTER_OP = 'register'
 const SET_STATUS_OP = 'status'
 const SET_GLOBAL_STATUS_OP = 'global-status'
 const SET_MINT_ACCOUNT_OP = 'mint-account'
@@ -58,6 +60,7 @@ class VaultManager {
 		this.setAppId = function (appId) {
 			this.appId = appId
 		}
+
 		this.setCreator = function (creatorAddr) {
 			this.creatorAddr = creatorAddr
 		}
@@ -79,11 +82,21 @@ class VaultManager {
 		}
 
 		this.readLocalStateByKey = async function (accountAddr, key) {
-			await tools.readAppLocalStateByKey(this.algodClient, this.appId, accountAddr, key)
+			return await tools.readAppLocalStateByKey(this.algodClient, this.appId, accountAddr, key)
 		}
 
 		this.readGlobalStateByKey = async function (accountAddr, key) {
-			await tools.readAppGlobalStateByKey(this.algodClient, this.appId, accountAddr, key)
+			return await tools.readAppGlobalStateByKey(this.algodClient, this.appId, accountAddr, key)
+		}
+
+		this.vaultBalance = async function (accountAddr) {
+			let vaultAddr = await this.vaultAccount(accountAddr)
+			let accountInfo = await this.algodClient.accountInformation(vaultAddr).do()
+			return accountInfo.amount
+		}
+
+		this.vaultAccount = async function (accountAddr) {
+			return (await this.vaultCompiledTEALByAddress(accountAddr)).hash
 		}
 
 		// helper function to await transaction confirmation
@@ -184,7 +197,7 @@ class VaultManager {
 			params.flatFee = true
 
 			// create unsigned transaction
-			const txn = algosdk.makeApplicationOptInTxn(sender, params, this.appId)
+			const txn = await algosdk.makeApplicationOptInTxn(sender, params, this.appId)
 			const txId = txn.txID().toString()
 
 			// Sign the transaction
@@ -194,6 +207,36 @@ class VaultManager {
 			await this.algodClient.sendRawTransaction(signedTxn).do()
 
 			return txId
+		}
+
+		this.assetBalance = async function(accountAddr) {
+			let response = await this.algodClient.accountInformation(accountAddr).do()
+
+			for(let i = 0; i < response.assets.length; i++) {
+				if(response.assets[i]["asset-id"] == this.assetId) {
+					return response.assets[i]["amount"]
+				}
+			}
+			return 0
+		}
+
+		this.transferAsset = async function (account, destAddr, amount, closeAddr) {
+			const sender = account.addr
+
+			const params = await this.algodClient.getTransactionParams().do()
+
+			// comment out the next two lines to use suggested fee
+			params.fee = 1000
+			params.flatFee = true
+
+			// create unsigned transaction
+			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, destAddr, closeAddr, 
+				undefined, amount, new Uint8Array(0), this.assetId, params)
+			let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk)
+
+			let tx = (await this.algodClient.sendRawTransaction(txwALGOTransferSigned).do())
+
+			return tx.txId
 		}
 
 		this.optInASA = async function (account) {
@@ -208,7 +251,26 @@ class VaultManager {
 			// create unsigned transaction
 			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, account.addr, undefined, 
 				undefined, 0, new Uint8Array(0), this.assetId, params)
-			let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk);
+			let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk)
+
+			let tx = (await this.algodClient.sendRawTransaction(txwALGOTransferSigned).do())
+
+			return tx.txId
+		}
+
+		this.optInASA = async function (account) {
+			const sender = account.addr
+
+			const params = await this.algodClient.getTransactionParams().do()
+
+			// comment out the next two lines to use suggested fee
+			params.fee = 1000
+			params.flatFee = true
+
+			// create unsigned transaction
+			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, account.addr, undefined, 
+				undefined, 0, new Uint8Array(0), this.assetId, params)
+			let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk)
 
 			let tx = (await this.algodClient.sendRawTransaction(txwALGOTransferSigned).do())
 
@@ -244,11 +306,11 @@ class VaultManager {
 			return await this.callApp (adminAccount, appArgs, appAccounts)
 		}
 
-		this.vaultCompiledTEALByAddress = async function(vaultAddr) {
+		this.vaultCompiledTEALByAddress = async function(accountAddr) {
 			let program = vaultTEAL
 			
 			program = program.replace(/TMPL_APP_ID/g, this.appId)
-			program = program.replace(/TMPL_USER_ADDRESS/g, vaultAddr)
+			program = program.replace(/TMPL_USER_ADDRESS/g, accountAddr)
 
 			let encoder = new TextEncoder()
 			let programBytes = encoder.encode(program);
@@ -256,18 +318,6 @@ class VaultManager {
 			return await this.algodClient.compile(programBytes).do()
 		}
 
-		// registerVault
-		this.registerVault = async function (account) {
-			const compiledProgram = await this.vaultCompiledTEALByAddress(account.addr)
-
-			let appArgs = [];
-			appArgs.push(new Uint8Array(Buffer.from(REGISTER_OP)))
-			let appAccounts = [];
-			appAccounts.push (compiledProgram.hash)
-
-			return await this.callApp (account, appArgs, appAccounts)
-		}
-		
 		// depositALGOs
 		this.depositALGOs = async function (account, amount) {
 			const sender = account.addr
@@ -278,7 +328,10 @@ class VaultManager {
 			params.fee = 1000
 			params.flatFee = true
 
-			let vaultAddr = await tools.readAppLocalStateByKey(this.algodClient, this.appId, account.addr, VAULT_ACCOUNT_LOCAL_KEY)
+			let vaultAddr = await this.readLocalStateByKey(account.addr, VAULT_ACCOUNT_LOCAL_KEY)
+			if(!vaultAddr) {
+				throw new Error('ERROR: Account not opted in')
+			}
 
 			let appArgs = [];
 			appArgs.push(new Uint8Array(Buffer.from(DEPOSIT_ALGOS_OP)))
@@ -313,14 +366,14 @@ class VaultManager {
 			params.fee = 1000
 			params.flatFee = true
 
-			let minterAddr = await tools.readAppGlobalStateByKey(this.algodClient, this.appId, this.creatorAddr, MINT_ACCOUNT_GLOBAL_KEY)
-			let vaultAddr = await tools.readAppLocalStateByKey(this.algodClient, this.appId, account.addr, VAULT_ACCOUNT_LOCAL_KEY)
+			let minterAddr = await this.readGlobalStateByKey(this.creatorAddr, MINT_ACCOUNT_GLOBAL_KEY)
+			let vaultAddr = await this.readLocalStateByKey(account.addr, VAULT_ACCOUNT_LOCAL_KEY)
 
 			if(!minterAddr) {
 				throw new Error('ERROR: ' + MINT_ACCOUNT_GLOBAL_KEY + ' not defined')
 			}
 			if(!vaultAddr) {
-				throw new Error('ERROR: Account not registered')
+				throw new Error('ERROR: Account not opted in')
 			}
 
 			let appArgs = [];
@@ -369,10 +422,9 @@ class VaultManager {
 			params.fee = 1000
 			params.flatFee = true
 
-			let vaultAddr = await tools.readAppLocalStateByKey(this.algodClient, this.appId, account.addr, VAULT_ACCOUNT_LOCAL_KEY)
-
+			let vaultAddr = await this.readLocalStateByKey(account.addr, VAULT_ACCOUNT_LOCAL_KEY)
 			if(!vaultAddr) {
-				throw new Error('ERROR: Account not registered')
+				throw new Error('ERROR: Account not opted in')
 			}
 
 			let appArgs = [];
@@ -418,9 +470,13 @@ class VaultManager {
 			params.fee = 1000
 			params.flatFee = true
 
-			let minterAddr = await tools.readAppGlobalStateByKey(this.algodClient, this.appId, this.creatorAddr, MINT_ACCOUNT_GLOBAL_KEY)
+			let minterAddr = await this.readGlobalStateByKey(this.creatorAddr, MINT_ACCOUNT_GLOBAL_KEY)
 			if(!minterAddr) {
 				throw new Error('ERROR: ' + MINT_ACCOUNT_GLOBAL_KEY + ' not defined')
+			}
+			let vaultAddr = await this.readLocalStateByKey(account.addr, VAULT_ACCOUNT_LOCAL_KEY)
+			if(!vaultAddr) {
+				throw new Error('ERROR: Account not opted in')
 			}
 
 			let appArgs = [];
@@ -591,4 +647,20 @@ class VaultManager {
 	}
 }
 
-module.exports = { VaultManager }
+module.exports = { 
+	VaultManager,
+	MINT_ACCOUNT_GLOBAL_KEY,
+	VAULT_ACCOUNT_LOCAL_KEY,
+	DEPOSITED_LOCAL_KEY,
+	WITHDREW_LOCAL_KEY,
+	MINTED_LOCAL_KEY,
+	
+	DEPOSIT_ALGOS_OP,
+	MINT_WALGOS_OP,
+	WITHDRAW_ALGOS_OP,
+	BURN_ALGOS_OP,
+	
+	SET_STATUS_OP,
+	SET_GLOBAL_STATUS_OP,
+	SET_MINT_ACCOUNT_OP
+}

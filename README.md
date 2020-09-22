@@ -20,17 +20,11 @@ Local variables stored in the Vault owner accounts:
 
 ## Application Calls
 
-### RegisterVault
+### User Optin
 
-* Tx1: Register vault address using the user account. It verifies that the Vault address corresponds to the TEAL generated for the user account. 
-If the vault was already registered it throws an error.
+User opts in to the Vault App. The App creates the local data for the account.
 
-Sender: user registering Vault 
-
-arg0: str:register
-
-acc0: Vault address
-
+* Tx1: from Vault owner account
 
 ### Admin SetAccountStatus
 
@@ -44,10 +38,6 @@ acc0: User Address
 
 arg0: new status
 
-
-### User Optin
-
-* Tx1: from Vault owner account
 
 ### User Closeout
 

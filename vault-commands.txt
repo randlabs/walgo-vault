@@ -38,12 +38,8 @@ goal app call --app-id 2671848 --app-arg "str:mint-account" --app-account ZYI7YT
 goal app read --local --app-id 2671848 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --guess-format
 goal app read --local --app-id 2671848 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --guess-format
 goal app read --local --app-id 2671848 --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --guess-format
+goal app read --local --app-id 2671848 --from ZAICRIHSHWI7GGDC44ICCYFKTRORD373HZ3VZAJ45PJEUM3LMNIS5WRVLI --guess-format
 goal app read --global --app-id 2671848 --guess-format
-
-// register
-goal app call --app-id 2671848 --app-arg "str:register" --app-account SEX6MY3DK2GI2LTP7AUBBJFJYB53X7KMGORYLA65D4OTDRDUETUFAFF5LI --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
-Reject:
-goal app call --app-id 2671848 --app-arg "str:register" --app-account SEX6MY3DK2GI2LTP7AUBBJFJYB53X7KMGORYLA65D4OTDRDUETUFAFF5LI --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
 
 // setGlobalStatus
 goal app call --app-id 2671848 --app-arg "str:global-status" --app-arg "int:0" --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q

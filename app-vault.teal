@@ -183,33 +183,14 @@ bz failed
 int OptIn
 txn OnCompletion
 ==
-bnz opt_in
+bz no_admin_no_opt_in
 
-// CloseOut
-int CloseOut
-txn OnCompletion
-==
-bnz close_out
-
-txn NumAppArgs
-int 1
->=
-bz failed
-
-txna ApplicationArgs 0
-byte "register"
-==
-bz no_admin_no_register
-
-txn NumAppArgs
-int 1
-==
-bz failed
-
-txn NumAccounts
-int 1
-==
-bz failed
+int 0
+txn ApplicationID
+byte "vault"
+app_local_get_ex
+// already optIn?
+bnz failed
 
 // account -> register(Account owner, Vault address)
 byte "Program"
@@ -226,22 +207,13 @@ concat
 //byte base64 ASYBICFkn8x6bwiE3yb+ZFRuEiYT8zVRwtOSDIqxn92F2FaCMwEAKBI=
 //concat
 sha512_256
-txn Accounts 1
-//addr TXT6BQNYL2MVDDUSDKLNPSU6WRYNBI2RSLTCKMU7EUAZSI4XFG5T7TYJV4
-==
-bz failed
 
-int 0
-txn ApplicationID
-byte "vault"
-app_local_get_ex
-// already registered?
-bnz failed
+store 4
 
-// assign the Vault address to the account. It is possible to calculate this address from the account but we may need it. 
+// assign the Vault address to the account
 int 0
 byte "vault"
-txn Accounts 1
+load 4
 app_local_put
 
 // setAccountStatus(1)
@@ -254,7 +226,20 @@ int 1
 return
 
 
-no_admin_no_register:
+
+
+no_admin_no_opt_in:
+// CloseOut
+int CloseOut
+txn OnCompletion
+==
+bnz close_out
+
+// Operations have at least one argument that specifies the operation
+txn NumAppArgs
+int 1
+>=
+bz failed
 
 // verify if the Account status is enabled
 int 0
@@ -318,7 +303,7 @@ btoi
 bz failed
 
 int 0
-byte "deposits"
+byte "deposited"
 app_local_get
 
 //int 67
@@ -327,7 +312,7 @@ gtxn 1 Amount
 store 4
 
 int 0
-byte "deposits"
+byte "deposited"
 load 4
 app_local_put
 
@@ -555,6 +540,21 @@ byte "minted"
 app_local_get
 >=
 bz failed
+
+// keep track of the amount withdrawed
+int 0
+byte "withdrew"
+app_local_get
+
+gtxn 1 Amount
++
+store 4
+
+int 0
+byte "withdrew"
+load 4
+app_local_put
+
 
 int 1
 return
