@@ -241,6 +241,20 @@ readAppLocalStateByKey = async function (algodClient, appId, accountAddr, key) {
 	}
 }
 
+function uintArray8ToString(byteArray) {
+  return Array.from(byteArray, function(byte) {
+    return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+  }).join('')
+}
+
+// uintArray8ToString = function(bytes) {
+// 	var debugString = '';
+// 	for(var i=0; i<bytes.byteLength; i++) {
+// 		debugString += debugString.concat(bytes[i].toString());
+// 	}
+// 	return debugString
+// }
+
 module.exports = { 
 	timeoutPromise, 
 	getInt64Bytes,
@@ -254,5 +268,6 @@ module.exports = {
 	readAppGlobalState,
 	readAppGlobalStateByKey,
 	readAppLocalState,
-	readAppLocalStateByKey
+	readAppLocalStateByKey,
+	uintArray8ToString
 }

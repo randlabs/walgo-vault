@@ -5,9 +5,11 @@
 Accounts can create a Vault and store their ALGOs their and receive participation rewards. They can mint wALGOs up to the balance of the ALGOs in the Vault and withdraw the ALGOs at any time keeping ALGO balance above the amount of wALGOs minted.
 
 Global Variables:
-* Creator: creator and manager of the Application
+* Owner: creator and manager of the Application
 * GlobalStatus: 1 if the Application is enabled and 0 if it is not
 * MintAccount: account storing the wALGOs. This account must give access to the Application to send the wALGOs to the Vault owner accounts
+* MintFee: fee paid in wALGOs for each mintwALGOs operation
+* RewardsFee: fee paid in ALGOs from the participation rewards earned by the Vault
 
 Remarks:
 Only 1 Vault per account is allowed. 
@@ -20,32 +22,61 @@ Local variables stored in the Vault owner accounts:
 
 ## Application Calls
 
-### User Optin
+### Admin setGlobalStatus
+
+The owner can enable or disable any vault at any time.
+
+* Tx1: 
+
+Sender: owner
+
+arg0: integer: new status (0 or 1)
+
+### Admin setAccountStatus
+
+The owner can enable or disable any vault at any time.
+
+* Tx1: 
+
+Sender: owner
+
+acc0: User Address
+
+arg0: integer: new status (0 or 1)
+
+### Admin setMintFee
+
+Set the percent of wALGOs minted for the Vault owner when the user calls mintwALGOs
+
+* Tx1: 
+
+Sender: owner
+
+arg0: integer: new fee (0 to 5000 which means 0%-50%)
+
+### Admin setRewardsFee
+
+Set the percent of ALGOs reserved for the owner from the participation rewards earned by the Vault
+
+* Tx1: 
+
+Sender: owner
+
+arg0: integer: new fee (0 to 5000 which means 0%-50%)
+
+### User optIn
 
 User opts in to the Vault App. The App creates the local data for the account.
 
 * Tx1: from Vault owner account
 
-### Admin SetAccountStatus
-
-The administrator can enable or disable any vault at any time.
-
-* Tx1: 
-
-Sender: admin
-
-acc0: User Address
-
-arg0: new status
-
-
-### User Closeout
+### User closeOut
 
 TODO:
 
 Ensures that the user can't call it if there are deposits
 
-### User Deposit
+### User depositALGOs
 
 User deposits ALGOs to the Vault. App keeps track of the amount of algos deposited without rewards.
 
@@ -53,7 +84,7 @@ User deposits ALGOs to the Vault. App keeps track of the amount of algos deposit
 
 Sender: Vault owner account
 
-arg0: str:deposit-algos
+arg0: str:depositALGOs
 
 arg1: int:amount
 
@@ -67,13 +98,13 @@ Amount: deposit amount. It should be equal to arg1 Tx1
 
 Payment tx
 
-### User Mint wALGOs
+### User mintwALGOs
 
 * Tx1: 
 
 Sender: Vault owner account
 
-arg0: str:mint-walgos
+arg0: str:mintwALGOs
 
 arg1: int:amount
 
@@ -97,13 +128,13 @@ XferAsset: 2671688 (betanet)
 
 AssetTransfer tx
 
-### User Withdraw ALGOs
+### User withdrawALGOs
 
 * Tx1: 
 
 Sender: Vault account owner
 
-arg0: str:withdraw-algos
+arg0: str:withdrawALGOs
 
 arg1: int:amount
 
@@ -123,13 +154,13 @@ CloseTo: ZeroAddress
 
 Payment tx
 
-### User Burn wALGOs
+### User burnwALGOs
 
 * Tx1: 
 
 Sender: Vault owner account
 
-arg0: str:burn-walgos
+arg0: str:burnwALGOs
 
 arg1: int:amount
 

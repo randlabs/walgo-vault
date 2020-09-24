@@ -6,20 +6,25 @@ const { Console } = require('console');
 const approvalProgramFilename = 'app-vault.teal'
 const clearProgramFilename = 'app-vault-opt-out.teal'
 
-const MINT_ACCOUNT_GLOBAL_KEY = 'MintAccount'
-const VAULT_ACCOUNT_LOCAL_KEY = 'vault'
-const DEPOSITED_LOCAL_KEY = 'deposited'
-const WITHDREW_LOCAL_KEY = 'withdrew'
-const MINTED_LOCAL_KEY = 'minted'
+const MINT_ACCOUNT_GLOBAL_KEY = 'MA'
+const VAULT_ACCOUNT_LOCAL_KEY = 'v'
+const DEPOSITED_LOCAL_KEY = 'd'
+const WITHDREW_LOCAL_KEY = 'w'
+const MINTED_LOCAL_KEY = 'm'
 
-const DEPOSIT_ALGOS_OP = 'deposit-algos'
-const MINT_WALGOS_OP = 'mint-walgos'
-const WITHDRAW_ALGOS_OP = 'withdraw-algos'
-const BURN_ALGOS_OP = 'burn-walgos'
+const MINT_FEE_LOCAL_KEY = 'MF'
+const REWARDS_FEE_LOCAL_KEY = 'RF'
 
-const SET_STATUS_OP = 'status'
-const SET_GLOBAL_STATUS_OP = 'global-status'
-const SET_MINT_ACCOUNT_OP = 'mint-account'
+const DEPOSIT_ALGOS_OP = 'dA'
+const MINT_WALGOS_OP = 'mw'
+const WITHDRAW_ALGOS_OP = 'wA'
+const BURN_ALGOS_OP = 'bw'
+
+const SET_ACCOUNT_STATUS_OP = 'sAS'
+const SET_GLOBAL_STATUS_OP = 'sGS'
+const SET_MINT_ACCOUNT_OP = 'sMA'
+const SET_MINT_FEE_OP = 'sMF'
+const SET_REWARDS_FEE_OP = 'sRF'
 
 var vaultTEAL = 
 `#pragma version 2
@@ -96,7 +101,13 @@ class VaultManager {
 		}
 
 		this.vaultAccount = async function (accountAddr) {
-			return (await this.vaultCompiledTEALByAddress(accountAddr)).hash
+			let compiledProgram = (await this.vaultCompiledTEALByAddress(accountAddr))
+
+			// const byteCharacters = Buffer.from(compiledProgram.result, 'base64')
+			
+			// console.log('Program bytes %s', tools.uintArray8ToString(byteCharacters))
+
+			return compiledProgram.hash
 		}
 
 		// helper function to await transaction confirmation
@@ -152,14 +163,18 @@ class VaultManager {
 			return ret
 		}
 
+		this.appIdFromCreateAppResponse = function(txResponse) {
+			return txResponse["application-index"]
+		}
+
 		// create new application
-		this.create = async function (creatorAccount) {
+		this.createApp = async function (ownerAccount) {
 			// define sender as creator
-			const sender = creatorAccount.addr
+			const sender = ownerAccount.addr
 			const localInts = 10
-			const localBytes = 10
+			const localBytes = 2
 			const globalInts = 10
-			const globalBytes = 10
+			const globalBytes = 2
 
 			// declare onComplete as NoOp
 			const onComplete = algosdk.OnApplicationComplete.NoOpOC
@@ -170,14 +185,17 @@ class VaultManager {
 			params.fee = 1000
 			params.flatFee = true
 
+			let approvalProgramCompiled = await this.compileApprovalProgram()
+			let clearProgramCompiled = await this.compileClearProgram()
+
 			// create unsigned transaction
 			const txn = algosdk.makeApplicationCreateTxn(sender, params, onComplete,
-				this.compileApprovalProgram(), this.compileClearProgram(),
+				approvalProgramCompiled, clearProgramCompiled,
 				localInts, localBytes, globalInts, globalBytes)
 			const txId = txn.txID().toString()
 
 			// Sign the transaction
-			const signedTxn = txn.signTxn(creatorAccount.sk)
+			const signedTxn = txn.signTxn(ownerAccount.sk)
 			// console.log('Signed transaction with txID: %s', txId)
 
 			// Submit the transaction
@@ -258,25 +276,6 @@ class VaultManager {
 			return tx.txId
 		}
 
-		this.optInASA = async function (account) {
-			const sender = account.addr
-
-			const params = await this.algodClient.getTransactionParams().do()
-
-			// comment out the next two lines to use suggested fee
-			params.fee = 1000
-			params.flatFee = true
-
-			// create unsigned transaction
-			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, account.addr, undefined, 
-				undefined, 0, new Uint8Array(0), this.assetId, params)
-			let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk)
-
-			let tx = (await this.algodClient.sendRawTransaction(txwALGOTransferSigned).do())
-
-			return tx.txId
-		}
-
 		// setMintAccount
 		this.setMintAccount = async function (adminAccount, mintAddr) {
 			let appArgs = []
@@ -285,6 +284,24 @@ class VaultManager {
 			appAccounts.push (mintAddr)
 
 			return await this.callApp (adminAccount, appArgs, appAccounts)
+		}
+		
+		// setMintFee
+		this.setMintFee = async function (adminAccount, newFee) {
+			let appArgs = []
+			appArgs.push(new Uint8Array(Buffer.from(SET_MINT_FEE_OP)))
+			appArgs.push(new Uint8Array(tools.getInt64Bytes(newFee)))
+
+			return await this.callApp (adminAccount, appArgs)
+		}
+		
+		// setRewardsFee
+		this.setRewardsFee = async function (adminAccount, newFee) {
+			let appArgs = []
+			appArgs.push(new Uint8Array(Buffer.from(SET_REWARDS_FEE_OP)))
+			appArgs.push(new Uint8Array(tools.getInt64Bytes(newFee)))
+
+			return await this.callApp (adminAccount, appArgs)
 		}
 		
 		this.setGlobalStatus = async function (adminAccount, newStatus) {
@@ -297,7 +314,7 @@ class VaultManager {
 		
 		this.setAccountStatus = async function (adminAccount, accountAddr, newStatus) {
 			let appArgs = []
-			appArgs.push(new Uint8Array(Buffer.from(SET_STATUS_OP)))
+			appArgs.push(new Uint8Array(Buffer.from(SET_ACCOUNT_STATUS_OP)))
 			appArgs.push(new Uint8Array(tools.getInt64Bytes(newStatus)))
 
 			let appAccounts = [];
@@ -314,7 +331,7 @@ class VaultManager {
 
 			let encoder = new TextEncoder()
 			let programBytes = encoder.encode(program);
-			
+
 			return await this.algodClient.compile(programBytes).do()
 		}
 
@@ -552,9 +569,9 @@ class VaultManager {
 			return txId
 		}
 
-		this.updateApp = async function (creatorAccount) {
+		this.updateApp = async function (ownerAccount) {
 			// define sender as creator
-			const sender = creatorAccount.addr
+			const sender = ownerAccount.addr
 
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
@@ -570,7 +587,7 @@ class VaultManager {
 			const txId = txn.txID().toString()
 
 			// Sign the transaction
-			const signedTxn = txn.signTxn(creatorAccount.sk)
+			const signedTxn = txn.signTxn(ownerAccount.sk)
 			// console.log('Signed transaction with txID: %s', txId)
 
 			// Submit the transaction
@@ -580,69 +597,51 @@ class VaultManager {
 		}
 
 		// close out from application
-		// this.closeOutApp = async function (account, index) {
-		// 	// define sender
-		// 	const sender = account.addr
+		this.closeOut = async function (account) {
+			// define sender
+			const sender = account.addr
 
-		// 	// get node suggested parameters
-		// 	const params = await this.algodClient.getTransactionParams().do()
-		// 	// comment out the next two lines to use suggested fee
-		// 	params.fee = 1000
-		// 	params.flatFee = true
+			// get node suggested parameters
+			const params = await this.algodClient.getTransactionParams().do()
+			// comment out the next two lines to use suggested fee
+			params.fee = 1000
+			params.flatFee = true
 
-		// 	// create unsigned transaction
-		// 	const txn = algosdk.makeApplicationCloseOutTxn(sender, params, index)
-		// 	const txId = txn.txID().toString()
+			// create unsigned transaction
+			const txn = algosdk.makeApplicationCloseOutTxn(sender, params)
+			const txId = txn.txID().toString()
 
-		// 	// Sign the transaction
-		// 	const signedTxn = txn.signTxn(account.sk)
-		// 	console.log('Signed transaction with txID: %s', txId)
+			// Sign the transaction
+			const signedTxn = txn.signTxn(account.sk)
 
-		// 	// Submit the transaction
-		// 	await this.algodClient.sendRawTransaction(signedTxn).do()
+			// Submit the transaction
+			await this.algodClient.sendRawTransaction(signedTxn).do()
 
-		// 	return txId
+			return txId
+		}
 
-		// 	// Wait for confirmation
-		// 	await this.waitForConfirmation(txId)
+		this.deleteApp = async function (ownerAccount) {
+			// define sender as creator
+			const sender = ownerAccount.addr
 
-		// 	// display results
-		// 	const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
-		// 	console.log('Closed out from app-id:', transactionResponse.txn.txn.apid)
-		// }
+			// get node suggested parameters
+			const params = await this.algodClient.getTransactionParams().do()
+			// comment out the next two lines to use suggested fee
+			params.fee = 1000
+			params.flatFee = true
 
-		// this.deleteApp = async function (creatorAccount, index) {
-		// 	// define sender as creator
-		// 	const sender = creatorAccount.addr
+			// create unsigned transaction
+			const txn = algosdk.makeApplicationDeleteTxn(sender, params, this.appId)
+			const txId = txn.txID().toString()
 
-		// 	// get node suggested parameters
-		// 	const params = await this.algodClient.getTransactionParams().do()
-		// 	// comment out the next two lines to use suggested fee
-		// 	params.fee = 1000
-		// 	params.flatFee = true
+			// Sign the transaction
+			const signedTxn = txn.signTxn(ownerAccount.sk)
 
-		// 	// create unsigned transaction
-		// 	const txn = algosdk.makeApplicationDeleteTxn(sender, params, index)
-		// 	const txId = txn.txID().toString()
+			// Submit the transaction
+			await this.algodClient.sendRawTransaction(signedTxn).do()
 
-		// 	// Sign the transaction
-		// 	const signedTxn = txn.signTxn(creatorAccount.sk)
-		// 	console.log('Signed transaction with txID: %s', txId)
-
-		// 	// Submit the transaction
-		// 	await this.algodClient.sendRawTransaction(signedTxn).do()
-
-		// 	return txId
-
-		// 	// Wait for confirmation
-		// 	await this.waitForConfirmation(txId)
-
-		// 	// display results
-		// 	const transactionResponse = await this.algodClient.pendingTransactionInformation(txId).do()
-		// 	const appId = transactionResponse.txn.txn.apid
-		// 	console.log('Deleted app-id: ', appId)
-		// 	return appId
-		// }
+			return txId
+		}
 
 	}
 }
@@ -654,13 +653,15 @@ module.exports = {
 	DEPOSITED_LOCAL_KEY,
 	WITHDREW_LOCAL_KEY,
 	MINTED_LOCAL_KEY,
-	
+	MINT_FEE_LOCAL_KEY,
+	REWARDS_FEE_LOCAL_KEY,
+		
 	DEPOSIT_ALGOS_OP,
 	MINT_WALGOS_OP,
 	WITHDRAW_ALGOS_OP,
 	BURN_ALGOS_OP,
 	
-	SET_STATUS_OP,
+	SET_ACCOUNT_STATUS_OP,
 	SET_GLOBAL_STATUS_OP,
 	SET_MINT_ACCOUNT_OP
 }

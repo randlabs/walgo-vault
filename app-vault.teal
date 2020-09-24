@@ -17,22 +17,24 @@ int 0
 ==
 bz failed
 
-byte "Creator"
+byte "O" // Owner
 txn Sender
 app_global_put
 //0 args must be used on creation
 
-// by default Minter = Creator
-byte "MintAccount"
+// by default Minter = Owner
+byte "MA" // MintAccount
 txn Sender
 app_global_put
+
+// GS (GlobalStatus) starts disabled
 
 int 1
 return
 
 not_creation:
 // is it an admin action
-byte "Creator"
+byte "O" // Owner
 app_global_get
 txn Sender
 ==
@@ -40,7 +42,7 @@ txn Sender
 // position 0 == isAdmin
 store 0
 
-byte "GlobalStatus"
+byte "GS" // GlobalStatus
 app_global_get
 
 // position 1 == GlobalStatus
@@ -70,7 +72,7 @@ int 1
 bz no_admin
 
 txna ApplicationArgs 0
-byte "global-status"
+byte "sGS" // setGlobalStatus
 ==
 bz admin_no_global_status
 
@@ -96,7 +98,7 @@ bz failed
 
 // adminAccount -> setGlobalStatus(status)
 // 'GlobalStatus' -> status
-byte "GlobalStatus"
+byte "GS" // GlobalStatus
 load 4
 app_global_put
 
@@ -106,7 +108,7 @@ return
 admin_no_global_status:
 
 txna ApplicationArgs 0
-byte "mint-account"
+byte "sMA" // setMintAccount
 ==
 bz admin_no_set_mint_account
 
@@ -117,7 +119,7 @@ bz failed
 
 // adminAccount -> setMintAccount(mintAccount)
 // 'MintAccount' -> mintAccount
-byte "MintAccount"
+byte "MA" // MintAccount
 txn Accounts 1
 app_global_put
 
@@ -125,12 +127,10 @@ int 1
 return
 
 
-
-
 admin_no_set_mint_account:
 
 txna ApplicationArgs 0
-byte "status"
+byte "sAS" // setAccountStatus
 ==
 bz admin_no_status
 
@@ -162,7 +162,7 @@ bz failed
 // adminAccount -> setAccountStatus(Vault Address, status)
 // Vault address = Account1, Vault address: 'status' -> status
 int 1
-byte "status"
+byte "s" // status
 load 4
 app_local_put
 
@@ -171,10 +171,85 @@ return
 
 admin_no_status:
 
+txna ApplicationArgs 0
+byte "sMF" // setMintFee
+==
+bz admin_no_mintfee
+
+txn NumAppArgs
+int 2
+==
+bz failed
+
+// setMintFee(fee 0-5000)
+txna ApplicationArgs 1
+btoi
+
+dup
+store 4
+
+
+// mint fee can between 0 and 5000 (0%-50%)
+int 0
+>=
+load 4
+int 5000
+<=
+&&
+bz failed
+
+byte "MF" // MintFee
+load 4
+app_global_put
+
+int 1
+return
+
+
+admin_no_mintfee:
+
+txna ApplicationArgs 0
+byte "sRF" // setRewardsFee
+==
+bz admin_no_rewardsfee
+
+txn NumAppArgs
+int 2
+==
+bz failed
+
+// setRewardsFee(fee 0-5000)
+txna ApplicationArgs 1
+btoi
+
+dup
+store 4
+
+
+// mint fee can between 0 and 5000 (0%-50%)
+int 0
+>=
+load 4
+int 5000
+<=
+&&
+bz failed
+
+byte "RF" // RewardsFee
+load 4
+app_global_put
+
+int 1
+return
+
+admin_no_rewardsfee:
+
+
 // Unknown action, the admin can have a Vault so the admin account is treated as a user account
 
 
 no_admin:
+
 // test GlobalStatus
 load 1
 bz failed
@@ -187,38 +262,43 @@ bz no_admin_no_opt_in
 
 int 0
 txn ApplicationID
-byte "vault"
+byte "v" // vault
 app_local_get_ex
 // already optIn?
 bnz failed
 
 // account -> register(Account owner, Vault address)
 byte "Program"
-//byte base64 ASYBIA==
-byte base64 AiADAgboiaMBJgEg
-concat
-txn Sender
-//addr 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
-concat
-byte base64 MQcoEjIEIg8QMwAQIxIQMwAYJBIQ
-//byte base64 MQAoEg==
+byte base64 AiADAgbdn6MBJgEg
 concat
 
-//byte base64 ASYBICFkn8x6bwiE3yb+ZFRuEiYT8zVRwtOSDIqxn92F2FaCMwEAKBI=
+txn Sender
+concat
+
+byte base64 MQcoEjIEIg8QMwAQIxIQMwAYJBIQ
+concat
+
+
+//byte base64 AiADAgboiaMBJgEg
 //concat
+//txn Sender
+//concat
+//byte base64 MQcoEjIEIg8QMwAQIxIQMwAYJBIQ
+//concat
+
 sha512_256
 
 store 4
 
 // assign the Vault address to the account
 int 0
-byte "vault"
+byte "v" // vault
 load 4
 app_local_put
 
 // setAccountStatus(1)
 int 0
-byte "status"
+byte "s" // status
 int 1
 app_local_put
 
@@ -243,12 +323,12 @@ bz failed
 
 // verify if the Account status is enabled
 int 0
-byte "status"
+byte "s" // status
 app_local_get
 bz failed
 
 txna ApplicationArgs 0
-byte "deposit-algos"
+byte "dA" // depositALGOs
 ==
 bz no_admin_no_deposit
 
@@ -260,7 +340,7 @@ bz failed
 // account -> depositALGOs(Account owner, Vault address)
 int 0
 txn ApplicationID
-byte "vault"
+byte "v"
 app_local_get_ex
 // registered?
 bz failed
@@ -303,7 +383,7 @@ btoi
 bz failed
 
 int 0
-byte "deposited"
+byte "d" // deposited
 app_local_get
 
 //int 67
@@ -312,7 +392,7 @@ gtxn 1 Amount
 store 4
 
 int 0
-byte "deposited"
+byte "d" // deposited
 load 4
 app_local_put
 
@@ -322,9 +402,8 @@ return
 
 no_admin_no_deposit:
 
-
 txna ApplicationArgs 0
-byte "mint-walgos"
+byte "mw" // mintwALGOs
 ==
 bz no_admin_no_mint
 
@@ -341,7 +420,7 @@ bz failed
 // account -> mintwALGOs(Account owner, Vault address, amount)
 int 0
 txn ApplicationID
-byte "vault"
+byte "v" // vault
 app_local_get_ex
 // registered?
 bz failed
@@ -387,7 +466,7 @@ int 0
 //&&
 
 gtxn 1 Sender
-byte "MintAccount"
+byte "MA" // MintAccount
 app_global_get
 ==
 &&
@@ -413,7 +492,7 @@ bz failed
 
 
 int 0
-byte "minted"
+byte "m" // minted
 app_local_get
 
 txna ApplicationArgs 1
@@ -429,7 +508,7 @@ load 4
 bz failed
 
 int 0
-byte "minted"
+byte "m" // minted
 load 4
 app_local_put
 
@@ -440,7 +519,7 @@ return
 no_admin_no_mint:
 
 txna ApplicationArgs 0
-byte "withdraw-algos"
+byte "wA" // withdrawALGOs
 ==
 bz no_admin_no_withdraw
 
@@ -454,10 +533,11 @@ int 1
 ==
 bz failed
 
+
 // account -> withdrawALGOs(Account owner, Vault address, amount)
 int 0
 txn ApplicationID
-byte "vault"
+byte "v" // vault
 app_local_get_ex
 // registered?
 bz failed
@@ -483,7 +563,7 @@ int 2
 &&
 
 // ApplicationCall
-gtxn 0 TypeEnum
+txn TypeEnum
 int 6
 ==
 &&
@@ -524,8 +604,6 @@ global ZeroAddress
 ==
 &&
 
-bz failed
-
 // the ALGO balance - withdraw amount - Fee must be greater to the total minted wALGOs
 int 1
 balance
@@ -536,14 +614,14 @@ gtxn 1 Fee
 -
 
 int 0
-byte "minted"
+byte "m" // minted
 app_local_get
 >=
 bz failed
 
 // keep track of the amount withdrawed
 int 0
-byte "withdrew"
+byte "w" // withdrew
 app_local_get
 
 gtxn 1 Amount
@@ -551,23 +629,18 @@ gtxn 1 Amount
 store 4
 
 int 0
-byte "withdrew"
+byte "w" // withdrew
 load 4
 app_local_put
 
-
 int 1
 return
-
-
-
-
 
 no_admin_no_withdraw:
 
 
 txna ApplicationArgs 0
-byte "burn-walgos"
+byte "bw" // burnwALGOs
 ==
 bz no_admin_no_burn
 
@@ -579,7 +652,7 @@ bz failed
 // account -> burnwALGOs(Account owner, Vault address, amount)
 int 0
 txn ApplicationID
-byte "vault"
+byte "v" // vault
 app_local_get_ex
 // registered?
 bz failed
@@ -615,7 +688,7 @@ int 0
 
 // Minter == ASA Receiver
 gtxn 1 AssetReceiver
-byte "MintAccount"
+byte "MA" // MintAccount
 app_global_get
 ==
 &&
@@ -629,7 +702,7 @@ int 2671688
 bz failed
 
 int 0
-byte "minted"
+byte "m" // minted
 app_local_get
 
 dup
@@ -646,7 +719,7 @@ gtxn 1 AssetAmount
 store 4
 
 int 0
-byte "minted"
+byte "m" // minted
 load 4
 app_local_put
 
