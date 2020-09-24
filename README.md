@@ -22,7 +22,7 @@ Local variables stored in the Vault owner accounts:
 
 ## Application Calls
 
-### Admin setGlobalStatus
+### Owner setGlobalStatus
 
 The owner can enable or disable any vault at any time.
 
@@ -32,7 +32,7 @@ Sender: owner
 
 arg0: integer: new status (0 or 1)
 
-### Admin setAccountStatus
+### Owner setAccountStatus
 
 The owner can enable or disable any vault at any time.
 
@@ -44,7 +44,7 @@ acc0: User Address
 
 arg0: integer: new status (0 or 1)
 
-### Admin setMintFee
+### Owner setMintFee
 
 Set the percent of wALGOs minted for the Vault owner when the user calls mintwALGOs
 
@@ -54,7 +54,7 @@ Sender: owner
 
 arg0: integer: new fee (0 to 5000 which means 0%-50%)
 
-### Admin setRewardsFee
+### Owner setRewardsFee
 
 Set the percent of ALGOs reserved for the owner from the participation rewards earned by the Vault
 
