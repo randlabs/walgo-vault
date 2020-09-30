@@ -2,7 +2,8 @@
 
 // position 0: isAdmin
 // position 1: GlobalStatus
-
+// position 2: is registered
+// position 3: vault address
 
 // check if the app is being created
 // if so save creator
@@ -11,13 +12,14 @@ txn ApplicationID
 ==
 bz not_creation
 
-// Create Application -> Save Creator
 txn NumAppArgs
 int 0
 ==
 bz failed
 
-byte "O" // Owner
+// Admin -> createApp: args []
+// Save Creator
+byte "A" // Admin
 txn Sender
 app_global_put
 //0 args must be used on creation
@@ -34,7 +36,7 @@ return
 
 not_creation:
 // is it an admin action
-byte "O" // Owner
+byte "A" // Owner
 app_global_get
 txn Sender
 ==
@@ -56,14 +58,26 @@ int DeleteApplication
 txn OnCompletion
 ==
 bnz execute_action
+// Admin -> deleteApp: args []
+
 
 //---
 // check if this is update ---
 int UpdateApplication
 txn OnCompletion
 ==
-bnz execute_action
+bz admin_no_update
 
+// Admin -> updateApp: args []
+
+// execute update actions
+//byte "A" // Owner
+//txn Sender
+//app_global_put
+
+b execute_action
+
+admin_no_update:
 // All the other admin actions require at least one arg
 // If it is the admin account but 0 args -> admin account as a user
 txn NumAppArgs
@@ -85,21 +99,20 @@ txna ApplicationArgs 1
 btoi
 
 dup
-store 4
+store 8
 
 // GlobalStatus can be 0 or 1
 int 0
 ==
-load 4
+load 8
 int 1
 ==
 ||
 bz failed
 
-// adminAccount -> setGlobalStatus(status)
-// 'GlobalStatus' -> status
+// Admin -> setGlobalStatus: args ['sGS', 0|1]
 byte "GS" // GlobalStatus
-load 4
+load 8
 app_global_put
 
 int 1
@@ -117,8 +130,7 @@ int 1
 ==
 bz failed
 
-// adminAccount -> setMintAccount(mintAccount)
-// 'MintAccount' -> mintAccount
+// Admin -> setMintAccount: args ['sMA'] accounts: [New Mint account]
 byte "MA" // MintAccount
 txn Accounts 1
 app_global_put
@@ -128,7 +140,28 @@ return
 
 
 admin_no_set_mint_account:
+txna ApplicationArgs 0
+byte "sAA" // setAdminAccount
+==
+bz admin_no_set_admin_account
 
+txn NumAccounts
+int 1
+==
+bz failed
+
+// Admin -> setAdminAccount: args ['sAA'] accounts: [New Admin]
+byte "A" // Admin
+txn Accounts 1
+app_global_put
+
+int 1
+return
+
+
+
+
+admin_no_set_admin_account:
 txna ApplicationArgs 0
 byte "sAS" // setAccountStatus
 ==
@@ -148,22 +181,21 @@ txna ApplicationArgs 1
 btoi
 
 dup
-store 4
+store 8
 
 // status can be 0 or 1
 int 0
 ==
-load 4
+load 8
 int 1
 ==
 ||
 bz failed
 
-// adminAccount -> setAccountStatus(Vault Address, status)
-// Vault address = Account1, Vault address: 'status' -> status
+// Admin -> setAccountStatus: args ['s', 0-5000] accounts: [account to enable/disable]
 int 1
 byte "s" // status
-load 4
+load 8
 app_local_put
 
 int 1
@@ -181,25 +213,25 @@ int 2
 ==
 bz failed
 
-// setMintFee(fee 0-5000)
+// Admin -> setMintFee: args ['sMF', 0-5000]
 txna ApplicationArgs 1
 btoi
 
 dup
-store 4
+store 8
 
 
 // mint fee can between 0 and 5000 (0%-50%)
 int 0
 >=
-load 4
+load 8
 int 5000
 <=
 &&
 bz failed
 
 byte "MF" // MintFee
-load 4
+load 8
 app_global_put
 
 int 1
@@ -218,25 +250,25 @@ int 2
 ==
 bz failed
 
-// setRewardsFee(fee 0-5000)
+// Admin -> setRewardsFee: args ['sRF', 0-5000]
 txna ApplicationArgs 1
 btoi
 
 dup
-store 4
+store 8
 
 
 // mint fee can between 0 and 5000 (0%-50%)
 int 0
 >=
-load 4
+load 8
 int 5000
 <=
 &&
 bz failed
 
 byte "RF" // RewardsFee
-load 4
+load 8
 app_global_put
 
 int 1
@@ -254,22 +286,31 @@ no_admin:
 load 1
 bz failed
 
+int 0
+txn ApplicationID
+byte "v" // vault
+app_local_get_ex
+// registered?
+store 2 // is registered
+store 3 // Vault address
+
+
+no_admin_optin:
 // OptIn
 int OptIn
 txn OnCompletion
 ==
 bz no_admin_no_opt_in
 
-int 0
-txn ApplicationID
-byte "v" // vault
-app_local_get_ex
-// already optIn?
-bnz failed
+load 2
+bnz failed // already registered
 
-// account -> register(Account owner, Vault address)
+// account -> optIn: args []
 byte "Program"
-byte base64 AiADAgbdn6MBJgEg
+// App Id 2674653
+//byte base64 AiADAgbdn6MBJgEg
+// App Id 2677814
+byte base64 AiADAga2uKMBJgEg
 concat
 
 txn Sender
@@ -288,15 +329,15 @@ concat
 
 sha512_256
 
-store 4
+store 8
 
 // assign the Vault address to the account
 int 0
 byte "v" // vault
-load 4
+load 8
 app_local_put
 
-// setAccountStatus(1)
+// account -> setAccountStatus: args ['s', 1|0]
 int 0
 byte "s" // status
 int 1
@@ -309,6 +350,9 @@ return
 
 
 no_admin_no_opt_in:
+load 2
+bz failed // not registered?
+
 // CloseOut
 int CloseOut
 txn OnCompletion
@@ -337,13 +381,9 @@ int 2
 ==
 bz failed
 
-// account -> depositALGOs(Account owner, Vault address)
-int 0
-txn ApplicationID
-byte "v"
-app_local_get_ex
-// registered?
-bz failed
+// account -> depositALGOs: args ['dA', amount]
+
+load 3 // Vault address
 
 // is the same Vault that corresponds to the account
 gtxn 1 Receiver
@@ -389,11 +429,11 @@ app_local_get
 //int 67
 gtxn 1 Amount
 +
-store 4
+store 8
 
 int 0
 byte "d" // deposited
-load 4
+load 8
 app_local_put
 
 int 1
@@ -417,76 +457,72 @@ int 1
 ==
 bz failed
 
-// account -> mintwALGOs(Account owner, Vault address, amount)
-int 0
-txn ApplicationID
-byte "v" // vault
-app_local_get_ex
-// registered?
-bz failed
+// account -> mintwALGOs: args ['mw', amount] accounts: [vaultAddr]
 
 // is the same Vault that corresponds to the account
+load 3
 txn Accounts 1
 ==
 bz failed
 
 // tx1: App MintwALGOs
 // tx2: ASA transfer
-global GroupSize
-int 2
-==
+//global GroupSize
+//int 2
+//==
 // ApplicationCall
-gtxn 0 TypeEnum
+txn TypeEnum
 int 6
 ==
-&&
+//&&
 // AssetTransfer
-gtxn 1 TypeEnum
-int 4
-==
-&&
+//gtxn 1 TypeEnum
+//int 4
+//==
+//&&
 
 // check amounts
-gtxn 1 AssetAmount
-txna ApplicationArgs 1
-btoi
-==
-&&
+//gtxn 1 AssetAmount
+//txna ApplicationArgs 1
+//btoi
+//==
+//&&
 
 // more than 0
-gtxn 1 AssetAmount
-int 0
->
-&&
+//gtxn 1 AssetAmount
+//int 0
+//>
+//&&
 
 // check account
+// necessary?
 //gtxn 1 AssetReceiver
 //txn Sender
 //==
 //&&
 
-gtxn 1 Sender
-byte "MA" // MintAccount
-app_global_get
-==
-&&
+//gtxn 1 Sender
+//byte "MA" // MintAccount
+//app_global_get
+//==
+//&&
 
-gtxn 1 Fee
-global MinTxnFee
-==
-&&
+//gtxn 1 Fee
+//global MinTxnFee
+//==
+//&&
 
 // no Close
-gtxn 1 CloseRemainderTo 
-global ZeroAddress
-==
-&&
+//gtxn 1 CloseRemainderTo 
+//global ZeroAddress
+//==
+//&&
 
 // ASA ID
-gtxn 1 XferAsset
-int 2671688
-==
-&&
+//gtxn 1 XferAsset
+//int 2671688
+//==
+//&&
 
 bz failed
 
@@ -497,20 +533,47 @@ app_local_get
 
 txna ApplicationArgs 1
 btoi
+//gtxn 1 AssetAmount
 +
-store 4
+store 8
 
 // the ALGO balance must be greater to the total minted wALGOs
 int 1
 balance
-load 4
+load 8
 >=
 bz failed
 
 int 0
 byte "m" // minted
-load 4
+load 8
 app_local_put
+
+
+
+
+// add the fee to owner account
+byte "MF"
+app_global_get
+
+txna ApplicationArgs 1
+btoi
+//gtxn 1 AssetAmount
+*
+int 10000
+/
+store 5
+
+byte "WF"
+dup
+app_global_get
+load 5
++
+app_global_put // "WF" = old "WF" + newFee
+
+
+
+
 
 int 1
 return
@@ -534,28 +597,20 @@ int 1
 bz failed
 
 
-// account -> withdrawALGOs(Account owner, Vault address, amount)
-int 0
-txn ApplicationID
-byte "v" // vault
-app_local_get_ex
-// registered?
-bz failed
-
-dup
-store 5
+// account -> withdrawALGOs: args: ['wA', amount] accounts: [vaultAddr]
 
 // is the same Vault that corresponds to the account sending the ALGOs
+load 3
 gtxn 1 Sender
 ==
 
 // is the same Vault that corresponds to the Accounts[1]
-load 5
-txn Accounts 1
+load 3 // vault address
+txna Accounts 1
 ==
 &&
 
-// tx1: App WithdrawALGOs
+// tx1: App withdrawALGOs
 // tx2: Payment
 global GroupSize
 int 2
@@ -581,10 +636,10 @@ btoi
 ==
 &&
 
-// more than 0
+// more than 1000 (Minimum Withdrawal)
 gtxn 1 Amount
-int 0
->
+int 1000
+>=
 &&
 
 // check account
@@ -604,13 +659,82 @@ global ZeroAddress
 ==
 &&
 
-// the ALGO balance - withdraw amount - Fee must be greater to the total minted wALGOs
+bz failed
+
+// calculate the OwnerRewardsFees
+// OwnerRewardsFees = (TheoricalBalance + Withdrawal - Deposits) * RewardsFee
+
+// TheoricalBalance = Balance + WithdrewRewardsFees
 int 1
 balance
 
-gtxn 1 Amount
+int 0
+byte "wrf" // withdrew rewards fees
+app_local_get
++
+
+dup
+store 6
+
+int 0
+byte "w" // withdrawals
+app_local_get
+
++
+dup
+store 8
+
+int 0
+byte "d" // deposits
+app_local_get
+dup
+store 9
+
+// if rewards is 0 or less. It can be less to 0 if the real rewards is near 0 and the txs fees are greater than the fess paid
+>
+bnz greater_than_zero_rewards
+
+// 0 or less rewards
+int 0
+store 7
+
+b put_rewards_fee
+
+greater_than_zero_rewards:
+load 8
+load 9
 -
-gtxn 1 Fee
+
+byte "RF" // Rewards Fee
+app_global_get
+
+*
+
+int 10000
+/
+
+store 7
+
+put_rewards_fee:
+
+int 0
+byte "rf" // rewards fees
+load 7
+app_local_put
+
+
+
+// TheoricalBalance - AmountToWithdraw - Fee - OwnerRewardsFees >= MintedwALGOs
+load 6
+
+//gtxn 1 Amount
+txn ApplicationArgs 1
+btoi
+-
+//gtxn 1 Fee
+int 1000
+-
+load 7 // OwnerRewardsFees
 -
 
 int 0
@@ -619,18 +743,20 @@ app_local_get
 >=
 bz failed
 
-// keep track of the amount withdrawed
+// keep track of the amount withdrew
 int 0
-byte "w" // withdrew
+byte "w" // withdrawals
 app_local_get
 
-gtxn 1 Amount
+//gtxn 1 Amount
+txn ApplicationArgs 1
+btoi
 +
-store 4
+store 8
 
 int 0
-byte "w" // withdrew
-load 4
+byte "w" // withdrawals
+load 8
 app_local_put
 
 int 1
@@ -649,13 +775,7 @@ int 2
 ==
 bz failed
 
-// account -> burnwALGOs(Account owner, Vault address, amount)
-int 0
-txn ApplicationID
-byte "v" // vault
-app_local_get_ex
-// registered?
-bz failed
+// account -> burnwALGOs: args: ['bw', amount]
 
 // tx1: App BurnwALGOs
 // tx2: ASA transfer to Minter
@@ -706,22 +826,23 @@ byte "m" // minted
 app_local_get
 
 dup
-store 4
+store 8
 
 // amount to burn greater or equal to amount minted
 gtxn 1 AssetAmount
 >=
 bz failed
 
-load 4
+load 8
 gtxn 1 AssetAmount
 -
-store 4
+store 8
 
 int 0
 byte "m" // minted
-load 4
+load 8
 app_local_put
+
 
 int 1
 return
@@ -731,7 +852,6 @@ no_admin_no_burn:
 // unknown call
 int 0
 return
-
 
 
 

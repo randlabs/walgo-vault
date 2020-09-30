@@ -7,13 +7,16 @@ const approvalProgramFilename = 'app-vault.teal'
 const clearProgramFilename = 'app-vault-opt-out.teal'
 
 const MINT_ACCOUNT_GLOBAL_KEY = 'MA'
-const VAULT_ACCOUNT_LOCAL_KEY = 'v'
-const DEPOSITED_LOCAL_KEY = 'd'
-const WITHDREW_LOCAL_KEY = 'w'
-const MINTED_LOCAL_KEY = 'm'
+const MINT_FEE_GLOBAL_KEY = 'MF'
+const REWARDS_FEE_GLOBAL_KEY = 'RF'
+const ADMIN_MINT_FEES_GLOBAL_KEY = 'WF'
 
-const MINT_FEE_LOCAL_KEY = 'MF'
-const REWARDS_FEE_LOCAL_KEY = 'RF'
+const VAULT_ACCOUNT_LOCAL_KEY = 'v'
+const DEPOSITS_LOCAL_KEY = 'd'
+const WITHDRAWALS_LOCAL_KEY = 'w'
+const MINTS_LOCAL_KEY = 'm'
+const REWARDS_FEE_LAST_CALCULATION_LOCAL_KEY = 'rf'
+const WITHDREW_REWARDS_FEE_LOCAL_KEY = 'wrf'
 
 const DEPOSIT_ALGOS_OP = 'dA'
 const MINT_WALGOS_OP = 'mw'
@@ -55,19 +58,29 @@ return
 `
 
 class VaultManager {
-	constructor (algodClient, appId = 0, creatorAddr = undefined, assetId = 0) {
+	constructor (algodClient, appId = 0, adminAddr = undefined, assetId = 0) {
 		this.algodClient = algodClient
 		this.appId = appId
-		this.creatorAddr = creatorAddr
+		this.adminAddr = adminAddr
 		this.assetId = assetId
 		this.algodClient = algodClient
+		this.vaultMinBalance = 100000
+		this.minFee = 1000
 
 		this.setAppId = function (appId) {
 			this.appId = appId
 		}
 
-		this.setCreator = function (creatorAddr) {
-			this.creatorAddr = creatorAddr
+		this.setCreator = function (adminAddr) {
+			this.adminAddr = adminAddr
+		}
+
+		this.vaultMinimumBalance = function() {
+			return this.vaultMinBalance
+		}
+
+		this.minTransactionFee = function() {
+			return this.minFee
 		}
 
 		this.readLocalState = async function (accountAddr) {
@@ -90,17 +103,21 @@ class VaultManager {
 			return await tools.readAppLocalStateByKey(this.algodClient, this.appId, accountAddr, key)
 		}
 
-		this.readGlobalStateByKey = async function (accountAddr, key) {
-			return await tools.readAppGlobalStateByKey(this.algodClient, this.appId, accountAddr, key)
+		this.readGlobalStateByKey = async function (key) {
+			return await tools.readAppGlobalStateByKey(this.algodClient, this.appId, this.adminAddr, key)
 		}
 
 		this.vaultBalance = async function (accountAddr) {
-			let vaultAddr = await this.vaultAccount(accountAddr)
+			let vaultAddr = await this.vaultAddressByTEAL(accountAddr)
 			let accountInfo = await this.algodClient.accountInformation(vaultAddr).do()
 			return accountInfo.amount
 		}
 
-		this.vaultAccount = async function (accountAddr) {
+		this.vaultAddressByApp = async function (accountAddr) {
+			return await this.readLocalStateByKey(accountAddr, VAULT_ACCOUNT_LOCAL_KEY)
+		}		
+
+		this.vaultAddressByTEAL = async function (accountAddr) {
 			let compiledProgram = (await this.vaultCompiledTEALByAddress(accountAddr))
 
 			// const byteCharacters = Buffer.from(compiledProgram.result, 'base64')
@@ -154,13 +171,11 @@ class VaultManager {
 		}
 
 		this.compileClearProgram = async function () {
-			let ret = await this.compileProgram(clearProgramFilename)
-			return ret
+			return await this.compileProgram(clearProgramFilename)
 		}
 
 		this.compileApprovalProgram = async function () {
-			let ret = await this.compileProgram(approvalProgramFilename)
-			return ret
+			return await this.compileProgram(approvalProgramFilename)
 		}
 
 		this.appIdFromCreateAppResponse = function(txResponse) {
@@ -168,9 +183,9 @@ class VaultManager {
 		}
 
 		// create new application
-		this.createApp = async function (ownerAccount) {
+		this.createApp = async function (adminAccount) {
 			// define sender as creator
-			const sender = ownerAccount.addr
+			const sender = adminAccount.addr
 			const localInts = 10
 			const localBytes = 2
 			const globalInts = 10
@@ -182,7 +197,7 @@ class VaultManager {
 			// get node suggested parameters
 			const params = await algodClient.getTransactionParams().do()
 			// comment out the next two lines to use suggested fee
-			params.fee = 1000
+			params.fee = this.minFee
 			params.flatFee = true
 
 			let approvalProgramCompiled = await this.compileApprovalProgram()
@@ -195,7 +210,7 @@ class VaultManager {
 			const txId = txn.txID().toString()
 
 			// Sign the transaction
-			const signedTxn = txn.signTxn(ownerAccount.sk)
+			const signedTxn = txn.signTxn(adminAccount.sk)
 			// console.log('Signed transaction with txID: %s', txId)
 
 			// Submit the transaction
@@ -211,7 +226,7 @@ class VaultManager {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
 			// comment out the next two lines to use suggested fee
-			params.fee = 1000
+			params.fee = this.minFee
 			params.flatFee = true
 
 			// create unsigned transaction
@@ -244,7 +259,7 @@ class VaultManager {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			// comment out the next two lines to use suggested fee
-			params.fee = 1000
+			params.fee = this.minFee
 			params.flatFee = true
 
 			// create unsigned transaction
@@ -263,7 +278,7 @@ class VaultManager {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			// comment out the next two lines to use suggested fee
-			params.fee = 1000
+			params.fee = this.minFee
 			params.flatFee = true
 
 			// create unsigned transaction
@@ -294,6 +309,14 @@ class VaultManager {
 
 			return await this.callApp (adminAccount, appArgs)
 		}
+
+		this.mintFee = async function () {
+			let ret = await vaultManager.readGlobalStateByKey(MINT_FEE_GLOBAL_KEY)
+			if(!ret) {
+				return 0
+			}
+			return ret
+		}
 		
 		// setRewardsFee
 		this.setRewardsFee = async function (adminAccount, newFee) {
@@ -303,7 +326,15 @@ class VaultManager {
 
 			return await this.callApp (adminAccount, appArgs)
 		}
-		
+
+		this.rewardsFee = async function () {
+			let ret = await vaultManager.readGlobalStateByKey(REWARDS_FEE_GLOBAL_KEY)
+			if(!ret) {
+				return 0
+			}
+			return ret
+		}
+
 		this.setGlobalStatus = async function (adminAccount, newStatus) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_GLOBAL_STATUS_OP)))
@@ -321,6 +352,53 @@ class VaultManager {
 			appAccounts.push (accountAddr)
 
 			return await this.callApp (adminAccount, appArgs, appAccounts)
+		}
+
+		this.deposits = async function (accountAddr) {
+			return await vaultManager.readLocalStateByKey(accountAddr, DEPOSITS_LOCAL_KEY)
+		}
+
+		this.withdrawals = async function (accountAddr) {
+			return await vaultManager.readLocalStateByKey(accountAddr, WITHDRAWALS_LOCAL_KEY)
+		}
+
+		this.mints = async function (accountAddr) {
+			return await vaultManager.readLocalStateByKey(accountAddr, MINTS_LOCAL_KEY)
+		}
+
+		// adminMintFees: get wALGOs generated for the admin account
+		this.adminMintFees = async function () {
+			let ret = await vaultManager.readGlobalStateByKey(ADMIN_MINT_FEES_GLOBAL_KEY)
+			if(!ret) {
+				return 0
+			}
+			return ret
+		}
+
+		// withdrewVaultRewardsFees: get Vault's rewards fees already withdrew
+		this.withdrewVaultRewardsFees = async function (accountAddr) {
+			return await vaultManager.readLocalStateByKey(accountAddr, WITHDREW_REWARDS_FEE_LOCAL_KEY)
+		}
+
+		// pendingVaultRewardsFees: get unclaimed rewards fees generated by the Vault (vaultRewardsFees - withdrewVaultRewardsFees)
+		this.pendingVaultRewardsFees = async function (accountAddr) {
+			let fees = await this.vaultRewardsFees(accountAddr)
+			let withdrew = await this.withdrewVaultRewardsFees(accountAddr)
+			return (fees - withdrew)
+		}
+
+		// vaultRewardsFees: get the total rewards fees generated by the Vault
+		this.vaultRewardsFees = async function (accountAddr) {
+			let vaultBalance = await this.vaultBalance(accountAddr)
+			let deposits = await this.deposits(accountAddr)
+			let withdrawals = await this.withdrawals(accountAddr)
+			let rewardsFee = await this.rewardsFee()
+
+			let rewards = vaultBalance + withdrawals - deposits
+			if(rewards > 0) {
+				return Math.floor((vaultBalance + withdrawals - deposits) * rewardsFee / 10000)
+			}
+			return 0
 		}
 
 		this.vaultCompiledTEALByAddress = async function(accountAddr) {
@@ -342,7 +420,7 @@ class VaultManager {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			// comment out the next two lines to use suggested fee
-			params.fee = 1000
+			params.fee = this.minFee
 			params.flatFee = true
 
 			let vaultAddr = await this.readLocalStateByKey(account.addr, VAULT_ACCOUNT_LOCAL_KEY)
@@ -380,10 +458,10 @@ class VaultManager {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			// comment out the next two lines to use suggested fee
-			params.fee = 1000
+			params.fee = this.minFee
 			params.flatFee = true
 
-			let minterAddr = await this.readGlobalStateByKey(this.creatorAddr, MINT_ACCOUNT_GLOBAL_KEY)
+			let minterAddr = await this.readGlobalStateByKey(MINT_ACCOUNT_GLOBAL_KEY)
 			let vaultAddr = await this.readLocalStateByKey(account.addr, VAULT_ACCOUNT_LOCAL_KEY)
 
 			if(!minterAddr) {
@@ -436,7 +514,7 @@ class VaultManager {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			// comment out the next two lines to use suggested fee
-			params.fee = 1000
+			params.fee = this.minFee
 			params.flatFee = true
 
 			let vaultAddr = await this.readLocalStateByKey(account.addr, VAULT_ACCOUNT_LOCAL_KEY)
@@ -484,10 +562,10 @@ class VaultManager {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			// comment out the next two lines to use suggested fee
-			params.fee = 1000
+			params.fee = this.minFee
 			params.flatFee = true
 
-			let minterAddr = await this.readGlobalStateByKey(this.creatorAddr, MINT_ACCOUNT_GLOBAL_KEY)
+			let minterAddr = await this.readGlobalStateByKey(MINT_ACCOUNT_GLOBAL_KEY)
 			if(!minterAddr) {
 				throw new Error('ERROR: ' + MINT_ACCOUNT_GLOBAL_KEY + ' not defined')
 			}
@@ -528,7 +606,7 @@ class VaultManager {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
 			// comment out the next two lines to use suggested fee
-			params.fee = 1000
+			params.fee = this.minFee
 			params.flatFee = true
 
 			// create unsigned transaction
@@ -553,7 +631,7 @@ class VaultManager {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
 			// comment out the next two lines to use suggested fee
-			params.fee = 1000
+			params.fee = this.minFee
 			params.flatFee = true
 
 			// create unsigned transaction
@@ -569,14 +647,14 @@ class VaultManager {
 			return txId
 		}
 
-		this.updateApp = async function (ownerAccount) {
+		this.updateApp = async function (adminAccount) {
 			// define sender as creator
-			const sender = ownerAccount.addr
+			const sender = adminAccount.addr
 
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
 			// comment out the next two lines to use suggested fee
-			params.fee = 1000
+			params.fee = this.minFee
 			params.flatFee = true
 
 			let approvalProgramCompiled = await this.compileApprovalProgram()
@@ -587,7 +665,7 @@ class VaultManager {
 			const txId = txn.txID().toString()
 
 			// Sign the transaction
-			const signedTxn = txn.signTxn(ownerAccount.sk)
+			const signedTxn = txn.signTxn(adminAccount.sk)
 			// console.log('Signed transaction with txID: %s', txId)
 
 			// Submit the transaction
@@ -604,7 +682,7 @@ class VaultManager {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
 			// comment out the next two lines to use suggested fee
-			params.fee = 1000
+			params.fee = this.minFee
 			params.flatFee = true
 
 			// create unsigned transaction
@@ -620,14 +698,14 @@ class VaultManager {
 			return txId
 		}
 
-		this.deleteApp = async function (ownerAccount) {
+		this.deleteApp = async function (adminAccount) {
 			// define sender as creator
-			const sender = ownerAccount.addr
+			const sender = adminAccount.addr
 
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
 			// comment out the next two lines to use suggested fee
-			params.fee = 1000
+			params.fee = this.minFee
 			params.flatFee = true
 
 			// create unsigned transaction
@@ -635,7 +713,7 @@ class VaultManager {
 			const txId = txn.txID().toString()
 
 			// Sign the transaction
-			const signedTxn = txn.signTxn(ownerAccount.sk)
+			const signedTxn = txn.signTxn(adminAccount.sk)
 
 			// Submit the transaction
 			await this.algodClient.sendRawTransaction(signedTxn).do()
@@ -649,12 +727,16 @@ class VaultManager {
 module.exports = { 
 	VaultManager,
 	MINT_ACCOUNT_GLOBAL_KEY,
+	MINT_FEE_GLOBAL_KEY,
+	REWARDS_FEE_GLOBAL_KEY,
+	ADMIN_MINT_FEES_GLOBAL_KEY,
+	REWARDS_FEE_LAST_CALCULATION_LOCAL_KEY,
+
 	VAULT_ACCOUNT_LOCAL_KEY,
-	DEPOSITED_LOCAL_KEY,
-	WITHDREW_LOCAL_KEY,
-	MINTED_LOCAL_KEY,
-	MINT_FEE_LOCAL_KEY,
-	REWARDS_FEE_LOCAL_KEY,
+	DEPOSITS_LOCAL_KEY,
+	WITHDRAWALS_LOCAL_KEY,
+	MINTS_LOCAL_KEY,
+	WITHDREW_REWARDS_FEE_LOCAL_KEY,
 		
 	DEPOSIT_ALGOS_OP,
 	MINT_WALGOS_OP,

@@ -237,6 +237,8 @@ readAppLocalStateByKey = async function (algodClient, appId, accountAddr, key) {
 					return appValueState(stateArray[j].value)
 				}
 			}
+			// not found assume 0
+			return 0
 		}
 	}
 }
