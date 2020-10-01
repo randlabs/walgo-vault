@@ -23,6 +23,7 @@ const MINT_WALGOS_OP = 'mw'
 const WITHDRAW_ALGOS_OP = 'wA'
 const BURN_ALGOS_OP = 'bw'
 
+const SET_ADMIN_ACCOUNT_OP = 'sAA'
 const SET_ACCOUNT_STATUS_OP = 'sAS'
 const SET_GLOBAL_STATUS_OP = 'sGS'
 const SET_MINT_ACCOUNT_OP = 'sMA'
@@ -289,6 +290,16 @@ class VaultManager {
 			let tx = (await this.algodClient.sendRawTransaction(txwALGOTransferSigned).do())
 
 			return tx.txId
+		}
+
+		// setAdminAccount
+		this.setAdminAccount = async function (adminAccount, newAdminAddr) {
+			let appArgs = []
+			appArgs.push(new Uint8Array(Buffer.from(SET_ADMIN_ACCOUNT_OP)))
+			let appAccounts = []
+			appAccounts.push (newAdminAddr)
+
+			return await this.callApp (adminAccount, appArgs, appAccounts)
 		}
 
 		// setMintAccount

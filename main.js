@@ -289,10 +289,20 @@ async function main () {
 
 		txId = await vaultManager.setMintAccount(adminAccount, account1.addr)
 		console.log('setMintAccount %s: %s', account1.addr, txId)
-		txId = await vaultManager.setMintAccount(adminAccount, settings.mintAccountAddr)
+		txId = await vaultManager.setAdminAccount(adminAccount, account2.addr)
+		console.log('setAdminAccount %s: %s', account2.addr, txId)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
+
+		// use the new admin to set mint account
+		txId = await vaultManager.setMintAccount(account2, settings.mintAccountAddr)
 		console.log('setMintAccount %s: %s', settings.mintAccountAddr, txId)
-		txId = await vaultManager.setGlobalStatus(adminAccount, 1)
+		txId = await vaultManager.setGlobalStatus(account2, 1)
 		console.log('setGlobalStatus to 1: %s', txId)
+		txId = await vaultManager.setAdminAccount(account2, adminAccount.addr)
+
+		// restore admin account
+		console.log('setAdminAccount %s: %s', adminAccount.addr, txId)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
 		// Reset Rewards Fee
 		console.log('Reset Fees')
