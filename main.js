@@ -11,7 +11,7 @@ let account3
 let account4
 let account5
 let settings
-let rewardsFee = 150
+let withdrawalFee = 150
 let mintFee = 200
 
 function recoverManagerAccount () {
@@ -35,8 +35,8 @@ async function setupClient () {
 		algodClient = new algosdk.Algodv2(settings.algodClient.apiToken, settings.algodClient.server, settings.algodClient.port)
 
 		vaultManager = new vault.VaultManager(algodClient, settings.appId, adminAccount.addr, settings.assetId)
-		if(settings.rewardsFee) {
-			rewardsFee = settings.rewardsFee
+		if(settings.withdrawalFee) {
+			withdrawalFee = settings.withdrawalFee
 		}
 		if(settings.mintFee) {
 			mintFee = settings.mintFee
@@ -61,7 +61,7 @@ async function testAccount(account, depositAmount, mintAmount, withdrawAmount, b
 		let mintAmount = await vaultManager.mints(account.addr)
 		vaultBalance = await vaultManager.vaultBalance(account.addr)
 		if(vaultBalance > 100000 || mintAmount > 0) {
-			amount = vaultBalance - vaultManager.vaultMinimumBalance() - vaultManager.minTransactionFee()
+			withdrawalAmount = vaultBalance - vaultManager.vaultMinimumBalance() - vaultManager.minTransactionFee()
 			// just in case it did not opt In
 			let vaultAddr = await vaultManager.vaultAddressByApp(account.addr)
 			if(!vaultAddr) {
@@ -77,12 +77,11 @@ async function testAccount(account, depositAmount, mintAmount, withdrawAmount, b
 				}
 			}
 
-			amount = await vaultManager.pendingVaultRewardsFees(account.addr)
-			withdrawalAmount = vaultBalance - vaultManager.minTransactionFee() - amount
+			// withdrawalAmount = vaultBalance - vaultManager.minTransactionFee() - amount
 
-			if(vaultBalance - withdrawalAmount < vaultManager.vaultMinimumBalance()) {
-				withdrawalAmount = vaultBalance - vaultManager.vaultMinimumBalance() - vaultManager.minTransactionFee()
-			}
+			// if(vaultBalance - withdrawalAmount < vaultManager.vaultMinimumBalance()) {
+			// 	withdrawalAmount = vaultBalance - vaultManager.vaultMinimumBalance() - vaultManager.minTransactionFee()
+			// }
 			if(withdrawalAmount > vaultManager.vaultMinimumBalance()) {
 				txId = await vaultManager.withdrawALGOs(account, withdrawalAmount)
 				console.log('withdrawALGOs: %s', txId)
@@ -167,14 +166,14 @@ async function testAccount(account, depositAmount, mintAmount, withdrawAmount, b
 
 	txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-	let rewardsFees = await vaultManager.vaultRewardsFees(account.addr)
-	vaultBalance = await vaultManager.vaultBalance(account.addr)
+	// let withdrawalFee = await vaultManager.vaultWithdrawalFees(account.addr)
+	// vaultBalance = await vaultManager.vaultBalance(account.addr)
 	
-	console.log('withdrawALGOs: %s Rewards fees %d', txId, (rewardsFees))
-	correctFees = Math.floor((vaultBalance - depositAmount + withdrawAmount) * settings.rewardsFee / 10000)
-	if(rewardsFees !== correctFees) {
-		console.error('ERROR: Rewards fee should be: %d but it was: %d', correctFees, rewardsFees)
-	}
+	// console.log('withdrawALGOs: %s Rewards fees %d', txId, (withdrawalFee))
+	// correctFees = Math.floor((vaultBalance - depositAmount + withdrawAmount) * settings.withdrawalFee / 10000)
+	// if(withdrawalFee !== correctFees) {
+	// 	console.error('ERROR: Rewards fee should be: %d but it was: %d', correctFees, withdrawalFee)
+	// }
 
 	txId = await vaultManager.burnwALGOs(account, burnAmount)
 	console.log('burnwALGOs: %s', txId)
@@ -297,8 +296,8 @@ async function main () {
 
 		// Reset Rewards Fee
 		console.log('Reset Fees')
-		txId = await vaultManager.setRewardsFee(adminAccount, 0)
-		console.log('setRewardsFee: %s', txId)
+		txId = await vaultManager.setWithdrawalFee(adminAccount, 0)
+		console.log('setWithdrawalFee: %s', txId)
 
 		// Reset Mint Fee 
 		txId = await vaultManager.setMintFee(adminAccount, 0)
@@ -321,24 +320,24 @@ async function main () {
 		}
 
 		try {
-			txId = await vaultManager.setRewardsFee(account1, 300)
-			console.error('ERROR: setRewardsFee should have failed non admin account: %s', txId)
+			txId = await vaultManager.setWithdrawalFee(account1, 300)
+			console.error('ERROR: setWithdrawalFee should have failed non admin account: %s', txId)
 	
 		} catch (err) {
-			console.log('setRewardsFee successfully failed')
+			console.log('setWithdrawalFee successfully failed')
 		}
 
 		try {
-			txId = await vaultManager.setRewardsFee(adminAccount, 5001)
-			console.error('ERROR: setRewardsFee should have failed above maximum (5000): %s', txId)
+			txId = await vaultManager.setWithdrawalFee(adminAccount, 5001)
+			console.error('ERROR: setWithdrawalFee should have failed above maximum (5000): %s', txId)
 	
 		} catch (err) {
-			console.log('setRewardsFee successfully failed')
+			console.log('setWithdrawalFee successfully failed')
 		}
 
 		// Rewards Fee
-		txId = await vaultManager.setRewardsFee(adminAccount, rewardsFee)
-		console.log('setRewardsFee: %s', txId)
+		txId = await vaultManager.setWithdrawalFee(adminAccount, withdrawalFee)
+		console.log('setWithdrawalFee: %s', txId)
 
 		// Mint Fee 
 		txId = await vaultManager.setMintFee(adminAccount, mintFee)
@@ -346,9 +345,9 @@ async function main () {
 
 		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-		let fee = await vaultManager.rewardsFee()
-		if(fee !== rewardsFee) {
-			console.error('ERROR: Rewards Fee should be %d but it is %d', rewardsFee, fee)
+		let fee = await vaultManager.withdrawalFee()
+		if(fee !== withdrawalFee) {
+			console.error('ERROR: Rewards Fee should be %d but it is %d', withdrawalFee, fee)
 		}
 
 		fee = await vaultManager.mintFee()
@@ -356,8 +355,8 @@ async function main () {
 			console.error('ERROR: Mint Fee should be %d but it is %d', mintFee, fee)
 		}
 
-		//await testAccount(account1, 12000405, 4545000, 5500000, 2349000)
-		//await testAccount(account2, 6000405, 5545000, 450000, 4349000)
+		await testAccount(account1, 12000405, 4545000, 5500000, 2349000)
+		await testAccount(account2, 6000405, 5545000, 450000, 4349000)
 		await testAccount(account3, 8000405, 3545000, 4300000, 3349000)
 		await testAccount(account4, 9000405, 8545000, 350000, 7349000)
 		await testAccount(account5, 4000405, 3900405, 4500, 3900000)
@@ -449,7 +448,7 @@ async function main () {
 
 		console.log('Success!!!')
 	} catch (err) {
-		let text =  laserr.error
+		let text =  err.error
 
 		if (err.text) {
 			text = err.text

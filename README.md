@@ -9,8 +9,9 @@ Global Variables:
 * GS (GlobalStatus): 1 if the Application is enabled and 0 if it is not
 * MA (MintAccount): account storing the wALGOs. This account must give access to the Application to send the wALGOs to the Vault owner accounts
 * MF (MintFee): fee paid in wALGOs for each mintwALGOs operation
-* RF (RewardsFee): fee paid in ALGOs from the participation rewards earned by the Vault
-* WF (wALGOs Fees): wALGOs accumulated for the App Owner collected in Mint Fees
+* WF (WithdrwalFee): fee paid in ALGOs from the participation rewards earned by the Vault
+* MFa (Mint Fees accumulated): wALGOs accumulated for the Admin collected in Mint Fees
+* WFa (Withdrawal Fees accumulated): ALGOs accumulated for the Admin collected in Mint Fees
 
 Remarks:
 Only 1 Vault per account is allowed

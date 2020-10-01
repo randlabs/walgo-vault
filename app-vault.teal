@@ -241,16 +241,16 @@ return
 admin_no_mintfee:
 
 txna ApplicationArgs 0
-byte "sRF" // setRewardsFee
+byte "sWF" // setWithdrawalFee
 ==
-bz admin_no_rewardsfee
+bz admin_no_withdrawalfee
 
 txn NumAppArgs
 int 2
 ==
 bz failed
 
-// Admin -> setRewardsFee: args ['sRF', 0-5000]
+// Admin -> setWithdrawalFee: args ['sWF', 0-5000]
 txna ApplicationArgs 1
 btoi
 
@@ -258,7 +258,7 @@ dup
 store 8
 
 
-// mint fee can between 0 and 5000 (0%-50%)
+// withdrawal fee can between 0 and 5000 (0%-50%)
 int 0
 >=
 load 8
@@ -267,14 +267,14 @@ int 5000
 &&
 bz failed
 
-byte "RF" // RewardsFee
+byte "WF" // WithdrawalFee
 load 8
 app_global_put
 
 int 1
 return
 
-admin_no_rewardsfee:
+admin_no_withdrawalfee:
 
 
 // Unknown action, the admin can have a Vault so the admin account is treated as a user account
@@ -661,80 +661,16 @@ global ZeroAddress
 
 bz failed
 
-// calculate the OwnerRewardsFees
-// OwnerRewardsFees = (TheoricalBalance + Withdrawal - Deposits) * RewardsFee
-
-// TheoricalBalance = Balance + WithdrewRewardsFees
+// Balance >= Minted + WithdrawalAmount + TxFee
 int 1
 balance
 
-int 0
-byte "wrf" // withdrew rewards fees
-app_local_get
-+
-
-dup
-store 6
-
-int 0
-byte "w" // withdrawals
-app_local_get
-
-+
-dup
-store 8
-
-int 0
-byte "d" // deposits
-app_local_get
-dup
-store 9
-
-// if rewards is 0 or less. It can be less to 0 if the real rewards is near 0 and the txs fees are greater than the fess paid
->
-bnz greater_than_zero_rewards
-
-// 0 or less rewards
-int 0
-store 7
-
-b put_rewards_fee
-
-greater_than_zero_rewards:
-load 8
-load 9
+gtxn 1 Amount
+//txn ApplicationArgs 1
+//btoi
 -
-
-byte "RF" // Rewards Fee
-app_global_get
-
-*
-
-int 10000
-/
-
-store 7
-
-put_rewards_fee:
-
-int 0
-byte "rf" // rewards fees
-load 7
-app_local_put
-
-
-
-// TheoricalBalance - AmountToWithdraw - Fee - OwnerRewardsFees >= MintedwALGOs
-load 6
-
-//gtxn 1 Amount
-txn ApplicationArgs 1
-btoi
--
-//gtxn 1 Fee
-int 1000
--
-load 7 // OwnerRewardsFees
+gtxn 1 Fee
+//int 1000
 -
 
 int 0
@@ -748,9 +684,9 @@ int 0
 byte "w" // withdrawals
 app_local_get
 
-//gtxn 1 Amount
-txn ApplicationArgs 1
-btoi
+gtxn 1 Amount
+//txn ApplicationArgs 1
+//btoi
 +
 store 8
 
