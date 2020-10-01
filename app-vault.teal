@@ -319,14 +319,6 @@ concat
 byte base64 MQcoEjIEIg8QMwAQIxIQMwAYJBIQ
 concat
 
-
-//byte base64 AiADAgboiaMBJgEg
-//concat
-//txn Sender
-//concat
-//byte base64 MQcoEjIEIg8QMwAQIxIQMwAYJBIQ
-//concat
-
 sha512_256
 
 store 8
@@ -467,32 +459,32 @@ bz failed
 
 // tx1: App MintwALGOs
 // tx2: ASA transfer
-//global GroupSize
-//int 2
-//==
+global GroupSize
+int 2
+==
 // ApplicationCall
 txn TypeEnum
 int 6
 ==
-//&&
+&&
 // AssetTransfer
-//gtxn 1 TypeEnum
-//int 4
-//==
-//&&
+gtxn 1 TypeEnum
+int 4
+==
+&&
 
 // check amounts
-//gtxn 1 AssetAmount
-//txna ApplicationArgs 1
-//btoi
-//==
-//&&
+gtxn 1 AssetAmount
+txna ApplicationArgs 1
+btoi
+==
+&&
 
 // more than 0
-//gtxn 1 AssetAmount
-//int 0
-//>
-//&&
+gtxn 1 AssetAmount
+int 0
+>
+&&
 
 // check account
 // necessary?
@@ -501,28 +493,28 @@ int 6
 //==
 //&&
 
-//gtxn 1 Sender
-//byte "MA" // MintAccount
-//app_global_get
-//==
-//&&
+gtxn 1 Sender
+byte "MA" // MintAccount
+app_global_get
+==
+&&
 
-//gtxn 1 Fee
-//global MinTxnFee
-//==
-//&&
+gtxn 1 Fee
+global MinTxnFee
+==
+&&
 
 // no Close
-//gtxn 1 CloseRemainderTo 
-//global ZeroAddress
-//==
-//&&
+gtxn 1 CloseRemainderTo 
+global ZeroAddress
+==
+&&
 
 // ASA ID
-//gtxn 1 XferAsset
-//int 2671688
-//==
-//&&
+gtxn 1 XferAsset
+int 2671688
+==
+&&
 
 bz failed
 
@@ -531,9 +523,9 @@ int 0
 byte "m" // minted
 app_local_get
 
-txna ApplicationArgs 1
-btoi
-//gtxn 1 AssetAmount
+//txna ApplicationArgs 1
+//btoi
+gtxn 1 AssetAmount
 +
 store 8
 
@@ -556,9 +548,9 @@ app_local_put
 byte "MF"
 app_global_get
 
-txna ApplicationArgs 1
-btoi
-//gtxn 1 AssetAmount
+//txna ApplicationArgs 1
+//btoi
+gtxn 1 AssetAmount
 *
 int 10000
 /
@@ -684,9 +676,9 @@ int 0
 byte "w" // withdrawals
 app_local_get
 
-gtxn 1 Amount
 //txn ApplicationArgs 1
 //btoi
+gtxn 1 Amount
 +
 store 8
 
