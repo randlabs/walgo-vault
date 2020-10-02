@@ -10,14 +10,7 @@ Global Variables:
 * MA (MintAccount): account storing the wALGOs. This account must give access to the Application to send the wALGOs to the Vault owner accounts
 * MF (MintFee): fee paid in ALGOs for each mintwALGOs operation
 * DF (DepositFee): fee paid in ALGOs on each ALGO deposit
-* MFa (Mint Fees accumulated): wALGOs accumulated for the Admin collected in Mint Fees
-* WFa (Withdrawal Fees accumulated): ALGOs accumulated for the Admin collected in Mint Fees
-
-Remarks:
-Only 1 Vault per account is allowed
-Minimum Withdrawal: 1000 micro Algos
-Rewards Fee: if it is changed, the rewards already got will be impacted
-Mint Fee: if it is changed, only future mint operations are impacted
+* FA (Fees accumulated): Admin fees accumulated in all vaults
 
 Local variables stored in the Vault owner accounts:
 * s (status): 1 if the Vault is enabled and 0 if it is not
@@ -25,8 +18,14 @@ Local variables stored in the Vault owner accounts:
 * d (deposits): total amount of ALGOs deposited 
 * v (vault): Vault account corresponding to Vault owner account. This address is calculated from vault.teal specialized with the Vault owner account
 * w (withdrawals): total amount of ALGOs withdrew
-* wrf (withdrew rewards fees): rewards fees already withdrew by the App Owner
-* rf (rewards fees): debug variable to verify rewards fee calculation. It is set on the withdrawALGOs operation
+* fees: colletect fees for the Admin
+
+Remarks:
+Only 1 Vault per account is allowed
+Minimum Withdrawal: 1000 micro Algos
+Rewards Fee: if it is changed, the rewards already got will be impacted
+Mint Fee: if it is changed, only future mint operations are impacted
+
 
 ## Application Calls
 
