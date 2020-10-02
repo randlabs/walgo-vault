@@ -33,17 +33,19 @@ goal app update --app-id 2677814 --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFEL
 goal app update --app-id 2677814 --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --approval-prog ./app-vault.teal --clear-prog ./app-vault-opt-out.teal --out=dumptx.tx --dryrun-dump
 goal clerk dryrun-remote -D dumptx.tx --verbose
 
+// setAdminAccount
+goal app call --app-id 2677814 --app-arg "str:sAA" --app-account W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
 
 
 // setMintAccount
-goal app call --app-id 2677814 --app-arg "str:mint-account" --app-account W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
-goal app call --app-id 2677814 --app-arg "str:mint-account" --app-account ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4 --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
+goal app call --app-id 2677814 --app-arg "str:sMA" --app-account W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
+goal app call --app-id 2677814 --app-arg "str:sMA" --app-account ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4 --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
 
 // setMintFee
-goal app call --app-id 2677814 --app-arg "str:mint-fee" --app-arg "int:200" --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
+goal app call --app-id 2677814 --app-arg "str:sMF" --app-arg "int:200" --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
 
-// setRewardsFee
-goal app call --app-id 2677814 --app-arg "str:rewards-fee" --app-arg "int:150" --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
+// setDepositFee
+goal app call --app-id 2677814 --app-arg "str:sDF" --app-arg "int:150" --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
 
 // Read vars
 goal app read --local --app-id 2677814 --from P3WYJMZR3WV6XCJ3UQA26LTRX23X7TWWROJ54X4RXJTLNG2MJAXLQGRX5Y --guess-format
@@ -61,11 +63,16 @@ goal app call --app-id 2677814 --app-arg "str:status" --app-arg "int:0" --app-ac
 
 // depositALGOs
 goal app call --app-id 2677814 --app-arg "str:dA" --app-arg "int:100998" --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=deposit-unsigned.tx 
-goal clerk send --from=4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --to=AGB4US5JHBB4JHUYZJYWL2F77H5GYL2MUDN3UEE7P5GB4C6TX2RSPEUVYQ --fee=1000 --amount=100998 --out=send-unsigned.tx
+goal clerk send --from=4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --to=5HXZZ3MWITYUHOLMUZULKUY5AH5XREIVEEKQP5YHNAS2AZ54ZELJVPFCTQ --fee=1000 --amount=100998 --out=send-unsigned.tx
 cat deposit-unsigned.tx send-unsigned.tx > combinedtransactions.tx
 goal clerk group -i combinedtransactions.tx -o groupedtransactions.tx 
 goal clerk sign -i groupedtransactions.tx -o signout.tx --signer 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
 goal clerk rawsend -f signout.tx
+
+goal app call --app-id 2677814 --app-arg "str:dA" --app-arg "int:12000405" --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=mint-unsigned.tx --dryrun-dump
+goal clerk dryrun-remote -D mint-unsigned.tx --verbose
+
+
 
 // mintwALGOs
 goal app call --app-id 2677814 --app-arg "str:mw" --app-arg "int:4545000" --app-account 5HXZZ3MWITYUHOLMUZULKUY5AH5XREIVEEKQP5YHNAS2AZ54ZELJVPFCTQ --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=mint-unsigned.tx
@@ -94,7 +101,7 @@ cat grouptx-0-signed.tx grouptx-1-signed.tx > signout.tx
 goal clerk rawsend -f signout.tx
 
 // dryrun
-goal app call --app-id 2677814 --app-arg "str:wA" --app-arg "int:3598405" --app-account KLSPS5UNRNRTETQU7RGDS6R3E6XTVPOHNFMZEJ2OCCBS6PMFRI7S7DTP3M --from P3WYJMZR3WV6XCJ3UQA26LTRX23X7TWWROJ54X4RXJTLNG2MJAXLQGRX5Y --out=mint-unsigned.tx --dryrun-dump
+goal app call --app-id 2677814 --app-arg "str:wA" --app-arg "int:6498405" --app-account 5HXZZ3MWITYUHOLMUZULKUY5AH5XREIVEEKQP5YHNAS2AZ54ZELJVPFCTQ --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=mint-unsigned.tx --dryrun-dump
 goal clerk dryrun-remote -D mint-unsigned.tx --verbose
 
 

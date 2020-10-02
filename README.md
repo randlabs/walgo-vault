@@ -8,8 +8,8 @@ Global Variables:
 * A (Admin): admin of the Application
 * GS (GlobalStatus): 1 if the Application is enabled and 0 if it is not
 * MA (MintAccount): account storing the wALGOs. This account must give access to the Application to send the wALGOs to the Vault owner accounts
-* MF (MintFee): fee paid in wALGOs for each mintwALGOs operation
-* WF (WithdrwalFee): fee paid in ALGOs from the participation rewards earned by the Vault
+* MF (MintFee): fee paid in ALGOs for each mintwALGOs operation
+* DF (DepositFee): fee paid in ALGOs on each ALGO deposit
 * MFa (Mint Fees accumulated): wALGOs accumulated for the Admin collected in Mint Fees
 * WFa (Withdrawal Fees accumulated): ALGOs accumulated for the Admin collected in Mint Fees
 

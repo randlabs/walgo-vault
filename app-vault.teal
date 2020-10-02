@@ -57,7 +57,7 @@ bz no_admin
 int DeleteApplication
 txn OnCompletion
 ==
-bnz execute_action
+bnz success
 // Admin -> deleteApp: args []
 
 
@@ -75,7 +75,7 @@ bz admin_no_update
 //txn Sender
 //app_global_put
 
-b execute_action
+b success
 
 admin_no_update:
 // All the other admin actions require at least one arg
@@ -206,7 +206,7 @@ admin_no_status:
 txna ApplicationArgs 0
 byte "sMF" // setMintFee
 ==
-bz admin_no_mintfee
+bz admin_no_mint_fee
 
 txn NumAppArgs
 int 2
@@ -237,20 +237,56 @@ app_global_put
 int 1
 return
 
+admin_no_mint_fee:
 
-admin_no_mintfee:
+//txna ApplicationArgs 0
+//byte "sBF" // setBurnFee
+//==
+//bz admin_no_burn_fee
+
+//txn NumAppArgs
+//int 2
+//==
+//bz failed
+
+// Admin -> setBurnFee: args ['sBF', 0-5000]
+//txna ApplicationArgs 1
+//btoi
+
+//dup
+//store 8
+
+
+// burn fee can between 0 and 5000 (0%-50%)
+//int 0
+//>=
+//load 8
+//int 5000
+//<=
+//&&
+//bz failed
+
+//byte "BF" // BurnFee
+//load 8
+//app_global_put
+
+//int 1
+//return
+
+
+//admin_no_burn_fee:
 
 txna ApplicationArgs 0
-byte "sWF" // setWithdrawalFee
+byte "sDF" // setDepositFee
 ==
-bz admin_no_withdrawalfee
+bz admin_no_deposit_fee
 
 txn NumAppArgs
 int 2
 ==
 bz failed
 
-// Admin -> setWithdrawalFee: args ['sWF', 0-5000]
+// Admin -> setDepositFee: args ['sDF', 0-5000]
 txna ApplicationArgs 1
 btoi
 
@@ -258,7 +294,7 @@ dup
 store 8
 
 
-// withdrawal fee can between 0 and 5000 (0%-50%)
+// deposit fee can between 0 and 5000 (0%-50%)
 int 0
 >=
 load 8
@@ -267,14 +303,51 @@ int 5000
 &&
 bz failed
 
-byte "WF" // WithdrawalFee
+byte "DF" // DepositFee
 load 8
 app_global_put
 
 int 1
 return
 
-admin_no_withdrawalfee:
+
+admin_no_deposit_fee:
+
+//txna ApplicationArgs 0
+//byte "sWF" // setWithdrawalFee
+//==
+//bz admin_no_withdrawalfee
+
+//txn NumAppArgs
+//int 2
+//==
+//bz failed
+
+// Admin -> setWithdrawalFee: args ['sWF', 0-5000]
+//txna ApplicationArgs 1
+//btoi
+
+//dup
+//store 8
+
+
+// withdrawal fee can between 0 and 5000 (0%-50%)
+//int 0
+//>=
+//load 8
+//int 5000
+//<=
+//&&
+//bz failed
+
+//byte "WF" // WithdrawalFee
+//load 8
+//app_global_put
+
+//int 1
+//return
+
+//admin_no_withdrawalfee:
 
 
 // Unknown action, the admin can have a Vault so the admin account is treated as a user account
@@ -349,7 +422,7 @@ bz failed // not registered?
 int CloseOut
 txn OnCompletion
 ==
-bnz close_out
+bnz success
 
 // Operations have at least one argument that specifies the operation
 txn NumAppArgs
@@ -375,38 +448,44 @@ bz failed
 
 // account -> depositALGOs: args ['dA', amount]
 
-load 3 // Vault address
+//load 3 // Vault address
 
 // is the same Vault that corresponds to the account
-gtxn 1 Receiver
-==
-bz failed
+//gtxn 1 Receiver
+
+//==
+//bz failed
 
 // tx1: App DepositALGOs
 // tx2: ALGO transfer
-global GroupSize
-int 2
-==
+//global GroupSize
+//int 2
+//==
 
 // ApplicationCall
-gtxn 0 TypeEnum
+txn TypeEnum
 int 6
 ==
-&&
+//&&
 
 // Payment
-gtxn 1 TypeEnum
-int 1
-==
-&&
+//gtxn 1 TypeEnum
+//int 1
+//==
+//&&
 
 // more than 0
-gtxn 1 Amount
+txna ApplicationArgs 1
+btoi
+//gtxn 1 Amount
+dup
+store 8
+
 int 0
 >
 &&
 
-gtxn 1 Amount
+load 8
 txna ApplicationArgs 1
 btoi
 ==
@@ -418,19 +497,23 @@ int 0
 byte "d" // deposited
 app_local_get
 
-//int 67
-gtxn 1 Amount
+load 8
 +
-store 8
+store 7
 
 int 0
 byte "d" // deposited
-load 8
+load 7
 app_local_put
 
-int 1
-return
+byte "DF" // deposit fee
+app_global_get
+store 9
 
+int 0
+store 7
+
+b charge_fees
 
 no_admin_no_deposit:
 
@@ -548,27 +631,62 @@ app_local_put
 byte "MF"
 app_global_get
 
-//txna ApplicationArgs 1
-//btoi
-gtxn 1 AssetAmount
+store 9
+
+// Positon 8: amount to tax
+// Position 9: tax fee
+// Position 7: verify amount to withdraw/mint (Mint/Withdraw) or 0 if it is not necessary (Burn/Deposit)
+
+charge_fees:
+load 8
+load 9
 *
 int 10000
 /
-store 5
+// Position 8: fees to add
+store 8
 
-byte "WF"
-dup
-app_global_get
-load 5
+int 0
+byte "fees" // fees = fees + newFees
+app_local_get
+
+// tax fee
+load 8
 +
-app_global_put // "WF" = old "WF" + newFee
+store 8
+
+int 0
+byte "fees"
+load 8
+app_local_put
+
+load 7
+int 0
+==
+bz verify_balance
 
 
+b success
 
 
+//txna ApplicationArgs 1
+//btoi
+//gtxn 1 AssetAmount
+//*
+//int 10000
+///
+//store 5
 
-int 1
-return
+//byte "WF"
+//dup
+//app_global_get
+//load 5
+//+
+//app_global_put // "WF" = old "WF" + newFee
+
+
+//int 1
+//return
 
 
 no_admin_no_mint:
@@ -592,83 +710,70 @@ bz failed
 // account -> withdrawALGOs: args: ['wA', amount] accounts: [vaultAddr]
 
 // is the same Vault that corresponds to the account sending the ALGOs
-load 3
-gtxn 1 Sender
-==
+//load 3
+//gtxn 1 Sender
+//==
 
 // is the same Vault that corresponds to the Accounts[1]
-load 3 // vault address
-txna Accounts 1
-==
-&&
+//load 3 // vault address
+//txna Accounts 1
+//==
+//&&
 
 // tx1: App withdrawALGOs
 // tx2: Payment
-global GroupSize
-int 2
-==
-&&
+//global GroupSize
+//int 2
+//==
+//&&
 
 // ApplicationCall
 txn TypeEnum
 int 6
 ==
-&&
+//&&
 
 // Payment
-gtxn 1 TypeEnum
-int 1
-==
-&&
+//gtxn 1 TypeEnum
+//int 1
+//==
+//&&
 
 // check amounts
-gtxn 1 Amount
+//gtxn 1 Amount
+txna ApplicationArgs 1
+btoi
+dup
+store 7
+
 txna ApplicationArgs 1
 btoi
 ==
 &&
 
 // more than 1000 (Minimum Withdrawal)
-gtxn 1 Amount
+load 7
 int 1000
 >=
 &&
 
 // check account
-gtxn 1 Receiver
-txn Sender
-==
-&&
+//gtxn 1 Receiver
+//txn Sender
+//==
+//&&
 
-gtxn 1 Fee
-global MinTxnFee
-==
-&&
+//gtxn 1 Fee
+//global MinTxnFee
+//==
+//&&
 
 // no Close
-gtxn 1 CloseRemainderTo 
-global ZeroAddress
-==
-&&
+//gtxn 1 CloseRemainderTo 
+//global ZeroAddress
+//==
+//&&
 
-bz failed
-
-// Balance >= Minted + WithdrawalAmount + TxFee
-int 1
-balance
-
-gtxn 1 Amount
-//txn ApplicationArgs 1
-//btoi
--
-gtxn 1 Fee
-//int 1000
--
-
-int 0
-byte "m" // minted
-app_local_get
->=
 bz failed
 
 // keep track of the amount withdrew
@@ -678,7 +783,7 @@ app_local_get
 
 //txn ApplicationArgs 1
 //btoi
-gtxn 1 Amount
+load 7
 +
 store 8
 
@@ -687,8 +792,39 @@ byte "w" // withdrawals
 load 8
 app_local_put
 
+// the total amount to validate is withdrawal amount + txFee
+load 7
+//gtxn 1 Fee
+int 1000
++
+store 7
+
+// Position 7: amount to withdraw/burn. It must be less than the balance - fees
+verify_balance:
+
+// Balance >= Minted + WithdrawalAmount + TxFee
 int 1
-return
+balance
+
+load 7
+-
+
+// Balance - withdraw/mint amount - fees >= amount minted
+int 0
+byte "fees" 
+app_local_get
+
+-
+
+int 0
+byte "m" // minted
+app_local_get
+
+>=
+bz failed
+
+b success
+
 
 no_admin_no_withdraw:
 
@@ -788,9 +924,6 @@ return
 failed:
 int 0
 return
-opt_in:
-close_out:
-finished:
-execute_action:
+success:
 int 1
 return
