@@ -11,7 +11,7 @@ let account3
 let account4
 let account5
 let settings
-let depositFee = 150
+let withdrawFee = 150
 let mintFee = 200
 
 function recoverManagerAccount () {
@@ -35,8 +35,8 @@ async function setupClient () {
 		algodClient = new algosdk.Algodv2(settings.algodClient.apiToken, settings.algodClient.server, settings.algodClient.port)
 
 		vaultManager = new vault.VaultManager(algodClient, settings.appId, adminAccount.addr, settings.assetId)
-		if(settings.depositFee) {
-			depositFee = settings.depositFee
+		if(settings.withdrawFee) {
+			withdrawFee = settings.withdrawFee
 		}
 		if(settings.mintFee) {
 			mintFee = settings.mintFee
@@ -91,43 +91,50 @@ async function testAccount(account, depositAmount, mintAmount, withdrawAmount, b
 			}
 			await vaultManager.waitForTransactionResponse(txId)
 		}
+
+		let vaultAddr = await vaultManager.vaultAddressByApp(account.addr)
+		if(vaultAddr) {
+			console.log('CloseOut')
+			txId = await vaultManager.closeOut(account)
+			console.log('CloseOut: %s', txId)
+		}
 	} catch (err) {
 		console.error('ERROR: removing all algos from vault. Tried to withdraw %d: %s', withdrawalAmount, err.message)
 	}
 
-	console.log('vaultAddressByApp')
-	let vaultAddr = await vaultManager.vaultAddressByApp(account.addr)
-	if(vaultAddr) {
-		console.log('clearApp')
-		txId = await vaultManager.clearApp(account)
-		console.log('clearApp: %s', txId)
+	// console.log('vaultAddressByApp')
+	// let vaultAddr = await vaultManager.vaultAddressByApp(account.addr)
+	// if(vaultAddr) {
+	// 	console.log('clearApp')
+	// 	txId = await vaultManager.clearApp(account)
+	// 	console.log('clearApp: %s', txId)
 
-		await vaultManager.waitForTransactionResponse(txId)
+	// 	await vaultManager.waitForTransactionResponse(txId)
 
-		vaultBalance = await vaultManager.vaultBalance(account.addr)
+	// 	vaultBalance = await vaultManager.vaultBalance(account.addr)
 
-		// implement CloseApp here
-		if(vaultBalance > vaultManager.minVaultBalance()) {
+	// 	// implement CloseApp here
+	// 	if(vaultBalance > vaultManager.minVaultBalance()) {
 
-			console.log('optIn')
-			txId = await vaultManager.optIn(account)
-			console.log('optIn: %s', txId)
-			await vaultManager.waitForTransactionResponse(txId)
+	// 		console.log('optIn')
+	// 		txId = await vaultManager.optIn(account)
+	// 		console.log('optIn: %s', txId)
+	// 		await vaultManager.waitForTransactionResponse(txId)
 
-			withdrawalAmount = await vaultManager.maxWithdrawAmount(account.addr)
+	// 		withdrawalAmount = await vaultManager.maxWithdrawAmount(account.addr)
 
-			if(withdrawalAmount > 0) {
-				console.log('withdrawALGOs')
-				txId = await vaultManager.withdrawALGOs(account, withdrawalAmount)
-				console.log('withdrawALGOs: %s', txId)
-			}
-			console.log('clearApp')
-			txId = await vaultManager.clearApp(account)
-			console.log('clearApp: %s', txId)
+	// 		if(withdrawalAmount > 0) {
+	// 			console.log('withdrawALGOs')
+	// 			txId = await vaultManager.withdrawALGOs(account, withdrawalAmount)
+	// 			console.log('withdrawALGOs: %s', txId)
+	// 		}
+	// 		console.log('clearApp')
+	// 		txId = await vaultManager.clearApp(account)
+	// 		console.log('clearApp: %s', txId)
 
-			await vaultManager.waitForTransactionResponse(txId)
-		}
-	}
+	// 		await vaultManager.waitForTransactionResponse(txId)
+	// 	}
+	// }
 	
 	console.log('assetBalance')
 	let asaBalance = await vaultManager.assetBalance(account.addr)
@@ -189,21 +196,21 @@ async function testAccount(account, depositAmount, mintAmount, withdrawAmount, b
 	console.log('printAppCallDelta')
 	vaultManager.printAppCallDelta(txResponse)
 
-	console.log('adminVaultFees')
-	let collectedFeesTx = await vaultManager.adminVaultFees(account.addr)
+	// console.log('adminVaultFees')
+	// let collectedFeesTx = await vaultManager.adminVaultFees(account.addr)
 	console.log('depositALGOs')
 	txId = await vaultManager.depositALGOs(account, depositAmount)
-	console.log('depositALGOs: %s', txId)
-	txResponse = await vaultManager.waitForTransactionResponse(txId)
+	// console.log('depositALGOs: %s', txId)
+	// txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-	console.log('adminMintFees')
-	collectedFeesTx = await vaultManager.adminVaultFees(account.addr) - collectedFeesTx
-	console.log('depositALGOs: %s Collected fees %d', txId, collectedFeesTx)
+	// console.log('adminMintFees')
+	// collectedFeesTx = await vaultManager.adminVaultFees(account.addr) - collectedFeesTx
+	// console.log('depositALGOs: %s Collected fees %d', txId, collectedFeesTx)
 
-	let correctFees = Math.floor(depositAmount * settings.depositFee / 10000)
-	if(collectedFeesTx !== correctFees) {
-		console.error('ERROR: Deposit fee should be: %d but it was: %d', correctFees, collectedFeesTx)
-	}
+	// let correctFees = Math.floor(depositAmount * settings.withdrawFee / 10000)
+	// if(collectedFeesTx !== correctFees) {
+	// 	console.error('ERROR: Deposit fee should be: %d but it was: %d', correctFees, collectedFeesTx)
+	// }
 
 	console.log('adminVaultFees')
 	collectedFeesTx = await vaultManager.adminVaultFees(account.addr)
@@ -226,13 +233,13 @@ async function testAccount(account, depositAmount, mintAmount, withdrawAmount, b
 
 	txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-	// let depositFee = await vaultManager.vaultWithdrawalFees(account.addr)
+	// let withdrawFee = await vaultManager.vaultWithdrawalFees(account.addr)
 	// vaultBalance = await vaultManager.vaultBalance(account.addr)
 	
-	// console.log('withdrawALGOs: %s Rewards fees %d', txId, (depositFee))
-	// correctFees = Math.floor((vaultBalance - depositAmount + withdrawAmount) * settings.depositFee / 10000)
-	// if(depositFee !== correctFees) {
-	// 	console.error('ERROR: Rewards fee should be: %d but it was: %d', correctFees, depositFee)
+	// console.log('withdrawALGOs: %s Rewards fees %d', txId, (withdrawFee))
+	// correctFees = Math.floor((vaultBalance - depositAmount + withdrawAmount) * settings.withdrawFee / 10000)
+	// if(withdrawFee !== correctFees) {
+	// 	console.error('ERROR: Rewards fee should be: %d but it was: %d', correctFees, withdrawFee)
 	// }
 
 	console.log('burnwALGOs')
@@ -287,9 +294,13 @@ async function testAccount(account, depositAmount, mintAmount, withdrawAmount, b
 		console.log('withdrawALGOs successfully failed')
 	}
 
-	console.log('withdrawALGOs')
-	txId = await vaultManager.withdrawALGOs(account, restoreAmount)
-	console.log('withdrawALGOs %s: %s', account.addr, txId)
+	try {
+		console.log('withdrawALGOs')
+		txId = await vaultManager.withdrawALGOs(account, restoreAmount)
+		console.log('withdrawALGOs %s: %s', account.addr, txId)
+		} catch (err) {
+		console.error('withdrawALGOs FIXME: it should work but the previous one does not work because it has an issue with the fees')
+	}
 
 	txResponse = await vaultManager.waitForTransactionResponse(txId)
 
@@ -389,11 +400,19 @@ async function main () {
 
 		// txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-		// // Reset Deposit Fee
+		// fails if it the account opted in before
+		try {
+			txId = await vaultManager.optIn(adminAccount)
+		} catch(err) {
+			console.log('optIn %s: has already opted in', adminAccount.addr)
+		}
+		
+
+		// // Reset Withdraw Fee
 		// console.log('Reset Fees')
-		// console.log('setDepositFee')
-		// txId = await vaultManager.setDepositFee(adminAccount, 0)
-		// console.log('setDepositFee: %s', txId)
+		// console.log('setWithdrawFee')
+		// txId = await vaultManager.setWithdrawFee(adminAccount, 0)
+		// console.log('setWithdrawFee: %s', txId)
 
 		// // Reset Mint Fee 
 		// console.log('setMintFee')
@@ -419,27 +438,27 @@ async function main () {
 		// }
 
 		// try {
-		// 	console.log('setDepositFee: should fail')
-		// 	txId = await vaultManager.setDepositFee(account1, 300)
-		// 	console.error('ERROR: setDepositFee should have failed non admin account: %s', txId)
+		// 	console.log('setWithdrawFee: should fail')
+		// 	txId = await vaultManager.setWithdrawFee(account1, 300)
+		// 	console.error('ERROR: setWithdrawFee should have failed non admin account: %s', txId)
 	
 		// } catch (err) {
-		// 	console.log('setDepositFee successfully failed')
+		// 	console.log('setWithdrawFee successfully failed')
 		// }
 
 		// try {
-		// 	console.log('setDepositFee: should fail')
-		// 	txId = await vaultManager.setDepositFee(adminAccount, 5001)
-		// 	console.error('ERROR: setDepositFee should have failed above maximum (5000): %s', txId)
+		// 	console.log('setWithdrawFee: should fail')
+		// 	txId = await vaultManager.setWithdrawFee(adminAccount, 5001)
+		// 	console.error('ERROR: setWithdrawFee should have failed above maximum (5000): %s', txId)
 	
 		// } catch (err) {
-		// 	console.log('setDepositFee successfully failed')
+		// 	console.log('setWithdrawFee successfully failed')
 		// }
 
-		// // Deposit Fee
-		// console.log('setDepositFee')
-		// txId = await vaultManager.setDepositFee(adminAccount, depositFee)
-		// console.log('setDepositFee: %s', txId)
+		// // Withdraw Fee
+		// console.log('setWithdrawFee')
+		// txId = await vaultManager.setWithdrawFee(adminAccount, withdrawFee)
+		// console.log('setWithdrawFee: %s', txId)
 
 		// // Mint Fee 
 		// txId = await vaultManager.setMintFee(adminAccount, mintFee)
@@ -447,17 +466,17 @@ async function main () {
 
 		// txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-		// console.log('Retrieving depositFee')
-		// let fee = await vaultManager.depositFee()
-		// if(fee !== depositFee) {
-		// 	console.error('ERROR: Deposit Fee should be %d but it is %d', depositFee, fee)
-		// }
+		console.log('Retrieving withdrawFee')
+		let fee = await vaultManager.withdrawFee()
+		if(fee !== withdrawFee) {
+			console.error('ERROR: Withdraw Fee should be %d but it is %d', withdrawFee, fee)
+		}
 
-		// console.log('Retrieving mintFee')
-		// fee = await vaultManager.mintFee()
-		// if(fee !== mintFee) {
-		// 	console.error('ERROR: Mint Fee should be %d but it is %d', mintFee, fee)
-		// }
+		console.log('Retrieving mintFee')
+		fee = await vaultManager.mintFee()
+		if(fee !== mintFee) {
+			console.error('ERROR: Mint Fee should be %d but it is %d', mintFee, fee)
+		}
 
 		await testAccount(account1, 12000405, 4545000, 5500000, 2349000)
 		await testAccount(account2, 6000405, 5545000, 450000, 4349000)

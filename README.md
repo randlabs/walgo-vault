@@ -18,7 +18,7 @@ Local variables stored in the Vault owner accounts:
 * d (deposits): total amount of ALGOs deposited 
 * v (vault): Vault account corresponding to Vault owner account. This address is calculated from vault.teal specialized with the Vault owner account
 * w (withdrawals): total amount of ALGOs withdrew
-* fees: colletect fees for the Admin
+* fees: collected fees for the Admin
 
 Remarks:
 Only 1 Vault per account is allowed

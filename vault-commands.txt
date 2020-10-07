@@ -47,6 +47,13 @@ goal app call --app-id 2677814 --app-arg "str:sMF" --app-arg "int:200" --from W3
 // setDepositFee
 goal app call --app-id 2677814 --app-arg "str:sDF" --app-arg "int:150" --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
 
+// setWithdrawFee
+goal app call --app-id 2677814 --app-arg "str:sWF" --app-arg "int:250" --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
+
+goal app call --app-id 2677814 --app-arg "str:sWF" --app-arg "int:250" --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --out=mint-unsigned.tx --dryrun-dump
+goal clerk dryrun-remote -D mint-unsigned.tx --verbose
+
+
 // Read vars
 goal app read --local --app-id 2677814 --from P3WYJMZR3WV6XCJ3UQA26LTRX23X7TWWROJ54X4RXJTLNG2MJAXLQGRX5Y --guess-format
 goal app read --local --app-id 2677814 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --guess-format
@@ -90,8 +97,8 @@ goal app call --app-id 2677814 --app-arg "str:mw" --app-arg "int:4545000" --app-
 goal clerk dryrun-remote -D mint-unsigned.tx --verbose
 
 // withdrawALGOs
-goal app call --app-id 2677814 --app-arg "str:wA" --app-arg "int:12" --app-account AGB4US5JHBB4JHUYZJYWL2F77H5GYL2MUDN3UEE7P5GB4C6TX2RSPEUVYQ --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=withdraw-unsigned.tx
-goal clerk send --from=AGB4US5JHBB4JHUYZJYWL2F77H5GYL2MUDN3UEE7P5GB4C6TX2RSPEUVYQ --to=4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --fee=1000 --amount=12 --out=send-unsigned.tx
+goal app call --app-id 2677814 --app-arg "str:wA" --app-arg "int:2300000" --app-account XGW7W4QEBTKYY3ZMWQY5EDEGOEOFWSIFD74VBKALF2ZMKYWV4LCDN2I5HE --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=withdraw-unsigned.tx
+goal clerk send --from=XGW7W4QEBTKYY3ZMWQY5EDEGOEOFWSIFD74VBKALF2ZMKYWV4LCDN2I5HE --to=4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --fee=1000 --amount=2300000 --out=send-unsigned.tx
 cat withdraw-unsigned.tx send-unsigned.tx > combinedtransactions.tx
 goal clerk group -i combinedtransactions.tx -o groupedtransactions.tx 
 goal clerk split -i groupedtransactions.tx -o grouptx.tx
@@ -101,7 +108,7 @@ cat grouptx-0-signed.tx grouptx-1-signed.tx > signout.tx
 goal clerk rawsend -f signout.tx
 
 // dryrun
-goal app call --app-id 2677814 --app-arg "str:wA" --app-arg "int:6498405" --app-account 5HXZZ3MWITYUHOLMUZULKUY5AH5XREIVEEKQP5YHNAS2AZ54ZELJVPFCTQ --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=mint-unsigned.tx --dryrun-dump
+goal app call --app-id 2677814 --app-arg "str:wA" --app-arg "int:6316202" --app-account XGW7W4QEBTKYY3ZMWQY5EDEGOEOFWSIFD74VBKALF2ZMKYWV4LCDN2I5HE --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=mint-unsigned.tx --dryrun-dump
 goal clerk dryrun-remote -D mint-unsigned.tx --verbose
 
 
@@ -113,6 +120,17 @@ goal clerk group -i combinedtransactions.tx -o groupedtransactions.tx
 goal clerk split -i groupedtransactions.tx -o grouptx.tx
 goal clerk sign -i grouptx-0.tx -o grouptx-0-signed.tx --signer 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
 goal clerk sign -i grouptx-1.tx -o grouptx-1-signed.tx --signer 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
+cat grouptx-0-signed.tx grouptx-1-signed.tx > signout.tx
+goal clerk rawsend -f signout.tx
+
+// withdrawAdminFee
+goal app call --app-id 2677814 --app-arg "str:waf" --app-arg "int:12" --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --out=withdraw-unsigned.tx
+goal clerk send --from=5HXZZ3MWITYUHOLMUZULKUY5AH5XREIVEEKQP5YHNAS2AZ54ZELJVPFCTQ --to=W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --fee=1000 --amount=12 --out=send-unsigned.tx
+cat withdraw-unsigned.tx send-unsigned.tx > combinedtransactions.tx
+goal clerk group -i combinedtransactions.tx -o groupedtransactions.tx 
+goal clerk split -i groupedtransactions.tx -o grouptx.tx
+goal clerk sign -i grouptx-0.tx -o grouptx-0-signed.tx --signer 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
+goal clerk sign -i grouptx-1.tx -o grouptx-1-signed.tx --program vault-4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24.teal
 cat grouptx-0-signed.tx grouptx-1-signed.tx > signout.tx
 goal clerk rawsend -f signout.tx
 
@@ -156,13 +174,14 @@ goal app closeout --app-id 2677814 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4W
 goal app closeout --app-id 2677814 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 
 goal app closeout --app-id 2677814 --from ALWDLPLVFDS5RXDHHBGP5MM3N7ICGIK7ICK6OOGOB7VAJAP6YXJBKNVT54 
 
-goal app closeout --app-id 2658636 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --app-arg "str:register" 
+goal app closeout --app-id 2658636 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE
 goal app closeout --app-id 2658661 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --app-arg "str:register" 
 goal app closeout --app-id 2671703 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --app-arg "str:register" 
 goal app closeout --app-id 2671731 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --app-arg "str:register" 
 
-
-
+// Closeout Vault dryrun
+goal app closeout --app-id 2677814 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24  --app-arg "int:343848"  --app-account "XGW7W4QEBTKYY3ZMWQY5EDEGOEOFWSIFD74VBKALF2ZMKYWV4LCDN2I5HE"  --out=dumptx.tx --dryrun-dump
+goal clerk dryrun-remote -D dumptx.tx --verbose
 
 
 
