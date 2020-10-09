@@ -93,7 +93,7 @@ cat minttx-0-signed.tx minttx-1-signed.tx > signout.tx
 goal clerk rawsend -f signout.tx
 
 // dryrun
-goal app call --app-id 2677814 --app-arg "str:mw" --app-arg "int:4545000" --app-account 5HXZZ3MWITYUHOLMUZULKUY5AH5XREIVEEKQP5YHNAS2AZ54ZELJVPFCTQ --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=mint-unsigned.tx --dryrun-dump
+goal app call --app-id 2677814 --app-arg "str:mw" --app-arg "int:5545000" --app-account WFVOUC7SRPCHNXBIWRUJFMFPZTPXLZG7ACDUM26ADZDDTHVDVJ7KMYSSAI --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --out=mint-unsigned.tx --dryrun-dump
 goal clerk dryrun-remote -D mint-unsigned.tx --verbose
 
 // withdrawALGOs
@@ -108,7 +108,7 @@ cat grouptx-0-signed.tx grouptx-1-signed.tx > signout.tx
 goal clerk rawsend -f signout.tx
 
 // dryrun
-goal app call --app-id 2677814 --app-arg "str:wA" --app-arg "int:6316202" --app-account XGW7W4QEBTKYY3ZMWQY5EDEGOEOFWSIFD74VBKALF2ZMKYWV4LCDN2I5HE --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=mint-unsigned.tx --dryrun-dump
+goal app call --app-id 2677814 --app-arg "str:wA" --app-arg "int:4300000" --app-account SOUH5P6XUDEECLFL7V75Q3HAQUS6D55V7JLWTSGZYEKCZFYC4P3GSSI26Q --from P3WYJMZR3WV6XCJ3UQA26LTRX23X7TWWROJ54X4RXJTLNG2MJAXLQGRX5Y --out=mint-unsigned.tx --dryrun-dump
 goal clerk dryrun-remote -D mint-unsigned.tx --verbose
 
 
@@ -124,6 +124,8 @@ cat grouptx-0-signed.tx grouptx-1-signed.tx > signout.tx
 goal clerk rawsend -f signout.tx
 
 // withdrawAdminFee
+
+
 goal app call --app-id 2677814 --app-arg "str:waf" --app-arg "int:12" --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --out=withdraw-unsigned.tx
 goal clerk send --from=5HXZZ3MWITYUHOLMUZULKUY5AH5XREIVEEKQP5YHNAS2AZ54ZELJVPFCTQ --to=W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --fee=1000 --amount=12 --out=send-unsigned.tx
 cat withdraw-unsigned.tx send-unsigned.tx > combinedtransactions.tx
@@ -133,6 +135,10 @@ goal clerk sign -i grouptx-0.tx -o grouptx-0-signed.tx --signer 4YDUBDLNMVD4SBNK
 goal clerk sign -i grouptx-1.tx -o grouptx-1-signed.tx --program vault-4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24.teal
 cat grouptx-0-signed.tx grouptx-1-signed.tx > signout.tx
 goal clerk rawsend -f signout.tx
+
+goal app call --app-id 2677814 --app-arg "str:waf" --app-arg "int:83175" --app-account 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --out=dumptx.tx --dryrun-dump
+goal clerk dryrun-remote -D dumptx.tx --verbose
+
 
 // Optin ASA from TEAL 
 goal asset send --assetid 2671688 -a 0 -f ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4 -t ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4 --fee 1000  --out=optin-ASA.tx
@@ -160,12 +166,12 @@ goal asset send -a 0 -f 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZ
 ///
 
 // Optin Vault
-goal app optin --app-id 2677814 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE
+goal app optin --app-id 2677814 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --app-account WFVOUC7SRPCHNXBIWRUJFMFPZTPXLZG7ACDUM26ADZDDTHVDVJ7KMYSSAI
 goal app optin --app-id 2677814 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
 goal app optin --app-id 2677814 --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
 
 // Optin Vault dryrun
-goal app optin --app-id 2677814 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24  --out=dumptx.tx --dryrun-dump
+goal app optin --app-id 2677814 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --app-account WFVOUC7SRPCHNXBIWRUJFMFPZTPXLZG7ACDUM26ADZDDTHVDVJ7KMYSSAI --out=dumptx.tx --dryrun-dump
 goal clerk dryrun-remote -D dumptx.tx --verbose
 
 
@@ -180,7 +186,7 @@ goal app closeout --app-id 2671703 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4W
 goal app closeout --app-id 2671731 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --app-arg "str:register" 
 
 // Closeout Vault dryrun
-goal app closeout --app-id 2677814 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24  --app-arg "int:343848"  --app-account "XGW7W4QEBTKYY3ZMWQY5EDEGOEOFWSIFD74VBKALF2ZMKYWV4LCDN2I5HE"  --out=dumptx.tx --dryrun-dump
+goal app closeout --app-id 2677814 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24  --app-arg "int:980"  --app-account "XGW7W4QEBTKYY3ZMWQY5EDEGOEOFWSIFD74VBKALF2ZMKYWV4LCDN2I5HE"  --out=dumptx.tx --dryrun-dump
 goal clerk dryrun-remote -D dumptx.tx --verbose
 
 
