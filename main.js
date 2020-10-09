@@ -10,6 +10,7 @@ let account2
 let account3
 let account4
 let account5
+let account6
 let settings
 let burnFee = 150
 let mintFee = 200
@@ -28,6 +29,7 @@ function recoverManagerAccount () {
 	account3 = algosdk.mnemonicToSecretKey(settings.account3.privateKey)
 	account4 = algosdk.mnemonicToSecretKey(settings.account4.privateKey)
 	account5 = algosdk.mnemonicToSecretKey(settings.account5.privateKey)
+	account6 = algosdk.mnemonicToSecretKey(settings.account6.privateKey)
 }
 
 async function setupClient () {
@@ -55,13 +57,14 @@ async function testAccount(account, depositAmount, mintAmount, withdrawAmount, b
 	let txId
 	let vaultBalance
 	let withdrawalAmount
+	let mints
 
 	try {
 		console.log('mints')
-		let mintAmount = await vaultManager.mints(account.addr)
+		mints = await vaultManager.mints(account.addr)
 		console.log('vaultBalance')
 		vaultBalance = await vaultManager.vaultBalance(account.addr)
-		if(vaultBalance > vaultManager.minVaultBalance() || mintAmount > 0) {
+		if(vaultBalance > vaultManager.minVaultBalance() || mints > 0) {
 			withdrawalAmount = vaultBalance - vaultManager.minVaultBalance() - vaultManager.minTransactionFee()
 			// just in case it did not opt In
 			console.log('vaultAddressByApp')
@@ -75,9 +78,9 @@ async function testAccount(account, depositAmount, mintAmount, withdrawAmount, b
 				console.log('setAccountStatus')
 				txId = await vaultManager.setAccountStatus(adminAccount, account.addr, 1)
 
-				if(mintAmount) {
+				if(mints) {
 					console.log('burnwALGOs')
-					txId = await vaultManager.burnwALGOs(account, mintAmount)
+					txId = await vaultManager.burnwALGOs(account, mints)
 					await vaultManager.waitForTransactionResponse(txId)
 				}
 			}
@@ -261,6 +264,13 @@ async function testAccount(account, depositAmount, mintAmount, withdrawAmount, b
 	txId = await vaultManager.burnwALGOs(account, burnAmount)
 	console.log('burnwALGOs: %s', txId)
 	txResponse = await vaultManager.waitForTransactionResponse(txId)
+
+	console.log('mints')
+	mints = await vaultManager.mints(account.addr)
+	console.log('Net mints: %d', mints)
+	if(mints !== (mintAmount - burnAmount)) {
+		console.error('ERROR: Net mints should be %d but it is %d', mintAmount - burnAmount, mints)
+	}
 
 	console.log('adminVaultFees')
 	collectedFeesTx = await vaultManager.adminVaultFees(account.addr) - collectedFeesTx
@@ -485,6 +495,28 @@ async function main () {
 		fee = await vaultManager.mintFee()
 		if(fee !== mintFee) {
 			console.error('ERROR: Mint Fee should be %d but it is %d', mintFee, fee)
+		}
+
+		// try to optIn an address whose Vault balance != 0. It should fail, allowing non-zero balance vaults can be attacked by
+		// malicius users: ClearState a vault with minted wALGOs and then re-create it
+		let vaultAddr = await vaultManager.vaultAddressByTEAL(account6.addr)
+		let vaultBalance = await vaultManager.vaultBalance(account6.addr)
+		if(vaultBalance == 0) {
+			const params = await algodClient.getTransactionParams().do()
+			params.fee = vaultManager.minFee
+			params.flatFee = true
+
+			let txPay = algosdk.makePaymentTxnWithSuggestedParams(account1.addr, vaultAddr, 110000, undefined, new Uint8Array(0), params)
+			let txAppSigned = txPay.signTxn(account1.sk);
+			let tx = (await algodClient.sendRawTransaction(txAppSigned).do())
+			txResponse = await vaultManager.waitForTransactionResponse(txId)
+		}
+
+		try {
+			txId = await vaultManager.optIn(account6)
+			console.error('Error: optIn to non-zero balance Vault should fail Account %s Vault %s txId %s', account6.addr, vaultAddr, txId)
+		} catch (err) {
+			console.log('optIn to non-zero balance Vault successfully failed')
 		}
 
 		await testAccount(account1, 12000405, 4545000, 5500000, 2349000)

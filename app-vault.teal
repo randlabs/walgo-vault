@@ -30,7 +30,6 @@ bz failed
 byte "A" // Admin
 txn Sender
 app_global_put
-//0 args must be used on creation
 
 // by default Minter = Owner
 byte "MA" // MintAccount
@@ -163,7 +162,7 @@ bz admin_no_withdraw_admin_fee
 //bz failed
 
 
-// admin -> withdrawAdminFee: args: ['waf', amountToWithdraw] accounts: [account]
+// admin -> withdrawAdminFee: args: ['waf'] accounts: [account]
 
 int 1
 txn ApplicationID
@@ -185,6 +184,7 @@ gtxn 1 Sender
 ==
 &&
 
+// SAVE SPACE: it fails if does not have 2 args so do not ask it 
 // ApplicationCall
 //txn TypeEnum
 //int 6
@@ -194,19 +194,6 @@ gtxn 1 Sender
 // Payment
 gtxn 1 TypeEnum
 int 1
-==
-&&
-
-// check amounts
-gtxn 1 Amount
-//txna ApplicationArgs 1
-//btoi
-dup
-
-store 7
-
-txna ApplicationArgs 1
-btoi
 ==
 &&
 
@@ -228,6 +215,13 @@ global ZeroAddress
 &&
 
 bz failed
+
+// store amount to verify
+gtxn 1 Amount
+//txna ApplicationArgs 1
+//btoi
+
+store 7
 
 // substract to fees
 int 1
@@ -433,7 +427,7 @@ txn OnCompletion
 bz no_admin_no_opt_in
 
 // SAVE SPACE: it fails if does not have 1 account so do not ask it 
-// Vault address is needed to test the balance, it should be 0 to prevent a user from calling ClearState and then use the balance without returning the minted wALGOs
+// Vault balance needs to be 0 to prevent a user from calling ClearState and then use the balance without returning the minted wALGOs
 //txn NumAccounts
 //int 1
 //==
@@ -450,7 +444,7 @@ int 0
 ==
 bz failed
 
-// account -> optIn: args []
+// account -> optIn: args [] accounts: [vaultAddr]
 byte "Program"
 //byte base64 AiABtrijASYBIA==
 byte base64 AiABoNejASYBIA==
@@ -512,6 +506,8 @@ txn OnCompletion
 ==
 bz no_admin_no_close_out
 
+// account -> CloseOut: args [] accounts: [vaultAddr]
+
 // SAVE SPACE: it fails if does not have 2 args so do not ask it 
 //txn NumAppArgs
 //int 1
@@ -530,9 +526,7 @@ store 7
 txna Accounts 0
 store 8
 
-// To should be == pending Admin fees
-//txn ApplicationArgs 0
-//btoi
+// Amount should be == pending Admin fees
 gtxn 1 Amount
 store 5
 
@@ -553,6 +547,7 @@ gtxn 1 TypeEnum
 int 1
 ==
 
+// SAVE SPACE: it fails if does not have 2 args so do not ask it 
 // ApplicationCall
 //txn TypeEnum
 //int 6
@@ -575,7 +570,7 @@ global MinTxnFee
 ==
 &&
 
-// To account == Admin
+// Receiver account == Admin
 gtxn 1 Receiver 
 load 4
 ==
@@ -593,7 +588,7 @@ load 7
 byte "fees" // fees owed
 app_local_get
 
-// To amount == pending Admin fees
+// Receiver (Admin) amount == pending Admin fees
 load 5
 ==
 &&
@@ -633,7 +628,7 @@ bz no_admin_no_mint
 //==
 //bz failed
 
-// account -> mintwALGOs: args ['mw', amount] accounts: [vaultAddr]
+// account -> mintwALGOs: args ['mw'] accounts: [vaultAddr]
 
 // is the same Vault that corresponds to the account
 load 3
@@ -643,23 +638,16 @@ bz failed
 
 // tx1: App MintwALGOs
 // tx2: ASA transfer
+// AssetTransfer
+gtxn 1 TypeEnum
+int 4
+==
+
 // ApplicationCall
 //txn TypeEnum
 //int 6
 //==
 //&&
-// AssetTransfer
-gtxn 1 TypeEnum
-int 4
-==
-//&&
-
-// check amounts
-gtxn 1 AssetAmount
-txna ApplicationArgs 1
-btoi
-==
-&&
 
 // more than 0
 gtxn 1 AssetAmount
@@ -686,7 +674,7 @@ global MinTxnFee
 &&
 
 // no Close
-gtxn 1 CloseRemainderTo 
+gtxn 1 AssetCloseTo 
 global ZeroAddress
 ==
 &&
@@ -760,7 +748,7 @@ bz no_admin_no_withdraw
 //bz failed
 
 
-// account -> withdrawALGOs: args: ['wA', amount] accounts: [vaultAddr]
+// account -> withdrawALGOs: args: ['wA'] accounts: [vaultAddr]
 
 // tx1: App withdrawALGOs
 // tx2: Payment
@@ -791,15 +779,7 @@ int 1
 
 // check amounts
 gtxn 1 Amount
-//txna ApplicationArgs 1
-//btoi
-//dup
 store 7
-
-//txna ApplicationArgs 1
-//btoi
-//==
-//&&
 
 // more than 1000 (Minimum Withdrawal)
 load 7
@@ -858,30 +838,19 @@ bz no_admin_no_burn
 //==
 //bz failed
 
-// account -> burnwALGOs: args: ['bw', amount]
+// account -> burnwALGOs: args: ['bw']
 
 // tx1: App BurnwALGOs
 // tx2: ASA transfer to Minter
-//global GroupSize
-//int 2
-//==
 // ApplicationCall
 //txn 0 TypeEnum
 //int 6
 //==
-//&&
 // AssetTransfer
 gtxn 1 TypeEnum
 int 4
 ==
 //&&
-
-// check amounts
-gtxn 1 AssetAmount
-txna ApplicationArgs 1
-btoi
-==
-&&
 
 // more than 0
 gtxn 1 AssetAmount
@@ -911,13 +880,18 @@ app_local_get
 dup
 store 8
 
-// amount to burn greater or equal to amount minted
+// amount to burn less or equal to amount minted. If it is not verified the next substraction generates an error if the 
+// the amount burned is greater than the minted. 
 gtxn 1 AssetAmount
+//txna ApplicationArgs 1
+//btoi
 >=
 bz failed
 
 load 8
 gtxn 1 AssetAmount
+//txna ApplicationArgs 1
+//btoi
 -
 store 8
 
@@ -932,6 +906,8 @@ app_global_get
 
 store 9
 gtxn 1 AssetAmount
+//txna ApplicationArgs 1
+//btoi
 store 8
 int 0
 store 6

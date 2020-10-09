@@ -508,7 +508,6 @@ class VaultManager {
 
 			let appArgs = [];
 			appArgs.push(new Uint8Array(Buffer.from(MINT_WALGOS_OP)))
-			appArgs.push(new Uint8Array(tools.getInt64Bytes(amount)))
 
 			let appAccounts = []
 			appAccounts.push (vaultAddr)
@@ -559,7 +558,6 @@ class VaultManager {
 
 			let appArgs = [];
 			appArgs.push(new Uint8Array(Buffer.from(WITHDRAW_ALGOS_OP)))
-			appArgs.push(new Uint8Array(tools.getInt64Bytes(amount)))
 
 			let appAccounts = []
 			appAccounts.push (vaultAddr)
@@ -612,7 +610,6 @@ class VaultManager {
 
 			let appArgs = [];
 			appArgs.push(new Uint8Array(Buffer.from(BURN_ALGOS_OP)))
-			appArgs.push(new Uint8Array(tools.getInt64Bytes(amount)))
 
 			// create unsigned transaction
 			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs)
@@ -704,14 +701,11 @@ class VaultManager {
 				return
 			}
 
-			let appArgs = [];
-			appArgs.push(new Uint8Array(tools.getInt64Bytes(totalFees)))
-
 			let appAccounts = []
 			appAccounts.push (vaultAddr)
 
 			// create unsigned transaction
-			const txApp = algosdk.makeApplicationCloseOutTxn(sender, params, this.appId, appArgs, appAccounts)
+			const txApp = algosdk.makeApplicationCloseOutTxn(sender, params, this.appId, undefined, appAccounts)
 			let txWithdraw = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, sender, totalFees, this.adminAddr, 
 																																	new Uint8Array(0), params)
 
@@ -786,7 +780,7 @@ class VaultManager {
 
 			return txId
 		}
-		// setMintAccount
+		
 		this.setMintAccountAttack = async function (adminAccount, mintAddr, accountAddr) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_MINT_ACCOUNT_OP)))
@@ -796,6 +790,8 @@ class VaultManager {
 			return await this.testCallAppAttack(adminAccount, appArgs, appAccounts, accountAddr)
 		}
 		
+		// setMintAccountAttack: attach an additional transaction to the App Call to try to withdraw algos from a Vault.
+		// if the TEAL code does not verify the GroupSize correctly the Vault TEAL will approve the tx 
 		this.testCallAppAttack = async function (account, appArgs, appAccounts, attackAccountAddr) {
 			// define sender
 			const sender = account.addr
@@ -811,7 +807,7 @@ class VaultManager {
 				throw new Error('ERROR: Account not opted in')
 			}
 	
-				// create unsigned transaction
+			// create unsigned transaction
 			const txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts)
 			let txWithdraw = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, sender, 10000, undefined, new Uint8Array(0), params)
 			let txns = [txApp, txWithdraw];

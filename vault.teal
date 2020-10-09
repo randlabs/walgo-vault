@@ -12,23 +12,7 @@ addr TMPL_USER_ADDRESS
 ==
 pop
 
-//global GroupSize
-//int 2
-//==
-//&&
-
-// Application Call
-//gtxn 0 TypeEnum
-//int 6
-//==
-
-//gtxn 1 TypeEnum
-//int 1
-//==
-//&&
-
 gtxn 0 ApplicationID // betanet
 int TMPL_APP_ID
 ==
-//&&
 
