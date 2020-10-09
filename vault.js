@@ -793,10 +793,10 @@ class VaultManager {
 			let appAccounts = []
 			appAccounts.push (mintAddr)
 
-			return await this.testCallApp (adminAccount, appArgs, appAccounts, accountAddr)
+			return await this.testCallAppAttack(adminAccount, appArgs, appAccounts, accountAddr)
 		}
 		
-		this.testCallApp = async function (account, appArgs, appAccounts, attackAccountAddr) {
+		this.testCallAppAttack = async function (account, appArgs, appAccounts, attackAccountAddr) {
 			// define sender
 			const sender = account.addr
 
