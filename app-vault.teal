@@ -14,6 +14,11 @@ txn ApplicationID
 ==
 bz not_creation
 
+global GroupSize
+int 1
+==
+bz failed
+
 // SAVE SPACE: it fails if does not have 2 args so do not ask it 
 //txn NumAppArgs
 //int 0
@@ -33,6 +38,7 @@ txn Sender
 app_global_put
 
 // GS (GlobalStatus) starts disabled
+
 b success
 /////////////////////////////////////////////////////////////////////
 
@@ -63,10 +69,18 @@ bz no_admin
 int DeleteApplication
 txn OnCompletion
 ==
-bnz success
+bz admin_no_delete
+
+global GroupSize
+int 1
+==
+bz failed
+
+b success
+
 // Admin -> deleteApp: args []
 
-
+admin_no_delete:
 //---
 // check if this is update ---
 int UpdateApplication
@@ -75,6 +89,10 @@ txn OnCompletion
 bz admin_no_update
 
 // Admin -> updateApp: args []
+global GroupSize
+int 1
+==
+bz failed
 
 b success
 
@@ -97,6 +115,11 @@ bz admin_no_global_status
 //int 2
 //==
 //bz failed
+
+global GroupSize
+int 1
+==
+bz failed
 
 txna ApplicationArgs 1
 btoi
@@ -427,12 +450,10 @@ int 0
 ==
 bz failed
 
-//load 2
-//bnz failed // already registered
-
 // account -> optIn: args []
 byte "Program"
-byte base64 AiABtrijASYBIA==
+//byte base64 AiABtrijASYBIA==
+byte base64 AiABoNejASYBIA==
 concat
 
 txn Sender
@@ -470,13 +491,17 @@ b success
 
 
 no_admin_no_opt_in:
+// all operations have 2 txs
+global GroupSize
+int 2
+==
+bz failed
+
 int 0
 txn ApplicationID
 byte "v" // vault
 app_local_get_ex
 // registered?
-dup
-store 2 // is registered
 bz failed // not registered?
 
 store 3 // Vault address
@@ -584,13 +609,6 @@ no_admin_no_close_out:
 //txn NumAppArgs
 //int 1
 //>=
-
-// all operations have 2 txs
-global GroupSize
-int 2
-==
-//&&
-bz failed
 
 // verify if the Account status is enabled
 int 0

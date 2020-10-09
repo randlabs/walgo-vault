@@ -118,40 +118,6 @@ async function testAccount(account, depositAmount, mintAmount, withdrawAmount, b
 		console.error('ERROR: rolling back vault: %s', text)
 	}
 
-	// console.log('vaultAddressByApp')
-	// let vaultAddr = await vaultManager.vaultAddressByApp(account.addr)
-	// if(vaultAddr) {
-	// 	console.log('clearApp')
-	// 	txId = await vaultManager.clearApp(account)
-	// 	console.log('clearApp: %s', txId)
-
-	// 	await vaultManager.waitForTransactionResponse(txId)
-
-	// 	vaultBalance = await vaultManager.vaultBalance(account.addr)
-
-	// 	// implement CloseApp here
-	// 	if(vaultBalance > vaultManager.minVaultBalance()) {
-
-	// 		console.log('optIn')
-	// 		txId = await vaultManager.optIn(account)
-	// 		console.log('optIn: %s', txId)
-	// 		await vaultManager.waitForTransactionResponse(txId)
-
-	// 		withdrawalAmount = await vaultManager.maxWithdrawAmount(account.addr)
-
-	// 		if(withdrawalAmount > 0) {
-	// 			console.log('withdrawALGOs')
-	// 			txId = await vaultManager.withdrawALGOs(account, withdrawalAmount)
-	// 			console.log('withdrawALGOs: %s', txId)
-	// 		}
-	// 		console.log('clearApp')
-	// 		txId = await vaultManager.clearApp(account)
-	// 		console.log('clearApp: %s', txId)
-
-	// 		await vaultManager.waitForTransactionResponse(txId)
-	// 	}
-	// }
-	
 	console.log('assetBalance')
 	let asaBalance = await vaultManager.assetBalance(account.addr)
 	if(asaBalance !== 0) {
@@ -178,6 +144,15 @@ async function testAccount(account, depositAmount, mintAmount, withdrawAmount, b
 	// deposit algos can be always done because it does not interact with the App
 	console.log('depositALGOs')
 	txId = await vaultManager.depositALGOs(account, depositAmount)
+
+	try {
+		console.log('setMintAccountAttack')
+		// try to send 2 txs in a group to withdraw algos from a user vault from the Admin
+		txId = await vaultManager.setMintAccountAttack(adminAccount, settings.mintAccountAddr, account.addr)
+		console.error('ERROR: setMintAccountAttack should have failed: %s', txId)
+	} catch (err) {
+		console.log('setMintAccountAttack successfully failed')
+	}
 
 	// it should fail: GlobalStatus == 0
 	try {
@@ -385,7 +360,10 @@ async function main () {
 		// await vaultManager.printLocalState(account2.addr)
 
 		// return
-		// const appId = await vaultManager.deleteApp(adminAccount)
+		//console.log('deleteApp')
+		// txId = await vaultManager.deleteApp(adminAccount)
+		// txResponse = await vaultManager.waitForTransactionResponse(txId)
+		// appId = vaultManager.appIdFromCreateAppResponse(txResponse)
 		// console.log('AppId: ' + appId)
 
 		//console.log('createApp')
@@ -394,7 +372,7 @@ async function main () {
 
 		// appId = vaultManager.appIdFromCreateAppResponse(txResponse)
 		// vaultManager.setAppId(appId)
-		// console.log('AppId: ' + appId)
+		// console.log('Create App: AppId: ' + appId)
 
 		// await vaultManager.optIn(account4)
 
@@ -406,109 +384,108 @@ async function main () {
 		txId = await vaultManager.setGlobalStatus(adminAccount, 1)
 		console.log('setGlobalStatus to 1: %s', txId)		
 	
-		// txResponse = await vaultManager.waitForTransactionResponse(txId)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-		// console.log('setMintAccount')
-		// txId = await vaultManager.setMintAccount(adminAccount, account1.addr)
-		// console.log('setMintAccount %s: %s', account1.addr, txId)
+		console.log('setMintAccount')
+		txId = await vaultManager.setMintAccount(adminAccount, account1.addr)
+		console.log('setMintAccount %s: %s', account1.addr, txId)
 
-		// console.log('setAdminAccount')
-		// txId = await vaultManager.setAdminAccount(adminAccount, account2.addr)
-		// console.log('setAdminAccount %s: %s', account2.addr, txId)
-		// txResponse = await vaultManager.waitForTransactionResponse(txId)
+		console.log('setAdminAccount')
+		txId = await vaultManager.setAdminAccount(adminAccount, account2.addr)
+		console.log('setAdminAccount %s: %s', account2.addr, txId)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-		// // use the new admin to set mint account
-		// console.log('setMintAccount')
-		// txId = await vaultManager.setMintAccount(account2, settings.mintAccountAddr)
-		// console.log('setMintAccount %s: %s', settings.mintAccountAddr, txId)
+		// use the new admin to set mint account
+		console.log('setMintAccount')
+		txId = await vaultManager.setMintAccount(account2, settings.mintAccountAddr)
+		console.log('setMintAccount %s: %s', settings.mintAccountAddr, txId)
 
-		// console.log('setGlobalStatus')
-		// txId = await vaultManager.setGlobalStatus(account2, 1)
-		// console.log('setGlobalStatus to 1: %s', txId)
-		// // restore admin account
-		// console.log('setAdminAccount')
-		// txId = await vaultManager.setAdminAccount(account2, adminAccount.addr)
-		// console.log('setAdminAccount %s: %s', adminAccount.addr, txId)
+		console.log('setGlobalStatus')
+		txId = await vaultManager.setGlobalStatus(account2, 1)
+		console.log('setGlobalStatus to 1: %s', txId)
+		// restore admin account
+		console.log('setAdminAccount')
+		txId = await vaultManager.setAdminAccount(account2, adminAccount.addr)
+		console.log('setAdminAccount %s: %s', adminAccount.addr, txId)
 
-		// txResponse = await vaultManager.waitForTransactionResponse(txId)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-		// // fails if it the account opted in before
-		// try {
-		// 	txId = await vaultManager.optIn(adminAccount)
-		// } catch(err) {
-		// 	console.log('optIn %s: has already opted in', adminAccount.addr)
-		// }
+		// fails if it the account opted in before
+		try {
+			txId = await vaultManager.optIn(adminAccount)
+		} catch(err) {
+			console.log('optIn %s: has already opted in', adminAccount.addr)
+		}
+
+		// Reset Withdraw Fee
+		console.log('Reset Fees')
+		console.log('setBurnFee')
+		txId = await vaultManager.setBurnFee(adminAccount, 0)
+		console.log('setBurnFee: %s', txId)
+
+		// Reset Mint Fee 
+		console.log('setMintFee')
+		txId = await vaultManager.setMintFee(adminAccount, 0)
+		console.log('setMintFee: %s', txId)
 		
-
-		// // Reset Withdraw Fee
-		// console.log('Reset Fees')
-		// console.log('setBurnFee')
-		// txId = await vaultManager.setBurnFee(adminAccount, 0)
-		// console.log('setBurnFee: %s', txId)
-
-		// // Reset Mint Fee 
-		// console.log('setMintFee')
-		// txId = await vaultManager.setMintFee(adminAccount, 0)
-		// console.log('setMintFee: %s', txId)
-		
-		// try {
-		// 	console.log('setMintFee: should fail')
-		// 	txId = await vaultManager.setMintFee(account1, 300)
-		// 	console.error('ERROR: setMintFee should have failed non admin account: %s', txId)
+		try {
+			console.log('setMintFee: should fail')
+			txId = await vaultManager.setMintFee(account1, 300)
+			console.error('ERROR: setMintFee should have failed non admin account: %s', txId)
 	
-		// } catch (err) {
-		// 	console.log('setMintFee successfully failed')
-		// }
+		} catch (err) {
+			console.log('setMintFee successfully failed')
+		}
 
-		// try {
-		// 	console.log('setMintFee: should fail')
-		// 	txId = await vaultManager.setMintFee(adminAccount, 5001)
-		// 	console.error('ERROR: setMintFee should have failed above maximum (5000): %s', txId)
+		try {
+			console.log('setMintFee: should fail')
+			txId = await vaultManager.setMintFee(adminAccount, 5001)
+			console.error('ERROR: setMintFee should have failed above maximum (5000): %s', txId)
 	
-		// } catch (err) {
-		// 	console.log('setMintFee successfully failed')
-		// }
+		} catch (err) {
+			console.log('setMintFee successfully failed')
+		}
 
-		// try {
-		// 	console.log('setBurnFee: should fail')
-		// 	txId = await vaultManager.setBurnFee(account1, 300)
-		// 	console.error('ERROR: setBurnFee should have failed non admin account: %s', txId)
+		try {
+			console.log('setBurnFee: should fail')
+			txId = await vaultManager.setBurnFee(account1, 300)
+			console.error('ERROR: setBurnFee should have failed non admin account: %s', txId)
 	
-		// } catch (err) {
-		// 	console.log('setBurnFee successfully failed')
-		// }
+		} catch (err) {
+			console.log('setBurnFee successfully failed')
+		}
 
-		// try {
-		// 	console.log('setBurnFee: should fail')
-		// 	txId = await vaultManager.setBurnFee(adminAccount, 5001)
-		// 	console.error('ERROR: setBurnFee should have failed above maximum (5000): %s', txId)
+		try {
+			console.log('setBurnFee: should fail')
+			txId = await vaultManager.setBurnFee(adminAccount, 5001)
+			console.error('ERROR: setBurnFee should have failed above maximum (5000): %s', txId)
 	
-		// } catch (err) {
-		// 	console.log('setBurnFee successfully failed')
-		// }
+		} catch (err) {
+			console.log('setBurnFee successfully failed')
+		}
 
-		// // Burn Fee
-		// console.log('setBurnFee')
-		// txId = await vaultManager.setBurnFee(adminAccount, burnFee)
-		// console.log('setBurnFee: %s', txId)
+		// Burn Fee
+		console.log('setBurnFee')
+		txId = await vaultManager.setBurnFee(adminAccount, burnFee)
+		console.log('setBurnFee: %s', txId)
 
-		// // Mint Fee 
-		// txId = await vaultManager.setMintFee(adminAccount, mintFee)
-		// console.log('setMintFee: %s', txId)
+		// Mint Fee 
+		txId = await vaultManager.setMintFee(adminAccount, mintFee)
+		console.log('setMintFee: %s', txId)
 
-		// txResponse = await vaultManager.waitForTransactionResponse(txId)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-		// console.log('Retrieving burnFee')
-		// let fee = await vaultManager.burnFee()
-		// if(fee !== burnFee) {
-		// 	console.error('ERROR: Burn Fee should be %d but it is %d', burnFee, fee)
-		// }
+		console.log('Retrieving burnFee')
+		let fee = await vaultManager.burnFee()
+		if(fee !== burnFee) {
+			console.error('ERROR: Burn Fee should be %d but it is %d', burnFee, fee)
+		}
 
-		// console.log('Retrieving mintFee')
-		// fee = await vaultManager.mintFee()
-		// if(fee !== mintFee) {
-		// 	console.error('ERROR: Mint Fee should be %d but it is %d', mintFee, fee)
-		// }
+		console.log('Retrieving mintFee')
+		fee = await vaultManager.mintFee()
+		if(fee !== mintFee) {
+			console.error('ERROR: Mint Fee should be %d but it is %d', mintFee, fee)
+		}
 
 		await testAccount(account1, 12000405, 4545000, 5500000, 2349000)
 		await testAccount(account2, 6000405, 5545000, 300000, 4349000)

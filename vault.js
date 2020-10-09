@@ -311,6 +311,14 @@ class VaultManager {
 			return await this.callApp (adminAccount, appArgs, appAccounts)
 		}
 
+		this.adminAccount = async function () {
+			let ret = await vaultManager.readGlobalStateByKey(SET_ADMIN_ACCOUNT_OP)
+			if(!ret) {
+				return 0
+			}
+			return ret
+		}
+		
 		// setMintAccount
 		this.setMintAccount = async function (adminAccount, mintAddr) {
 			let appArgs = []
@@ -319,6 +327,14 @@ class VaultManager {
 			appAccounts.push (mintAddr)
 
 			return await this.callApp (adminAccount, appArgs, appAccounts)
+		}
+		
+		this.mintAccount = async function () {
+			let ret = await vaultManager.readGlobalStateByKey(MINT_ACCOUNT_GLOBAL_KEY)
+			if(!ret) {
+				return 0
+			}
+			return ret
 		}
 		
 		// setMintFee
@@ -453,7 +469,7 @@ class VaultManager {
 			params.fee = this.minFee
 			params.flatFee = true
 
-			let vaultAddr = await this.readLocalStateByKey(account.addr, VAULT_ACCOUNT_LOCAL_KEY)
+			let vaultAddr = await this.vaultAddressByApp(account.addr)
 			if(!vaultAddr) {
 				throw new Error('ERROR: Account not opted in')
 			}
@@ -480,11 +496,11 @@ class VaultManager {
 			params.fee = this.minFee
 			params.flatFee = true
 
-			let minterAddr = await this.readGlobalStateByKey(MINT_ACCOUNT_GLOBAL_KEY)
-			let vaultAddr = await this.readLocalStateByKey(account.addr, VAULT_ACCOUNT_LOCAL_KEY)
+			let minterAddr = await this.mintAccount()
+			let vaultAddr = await this.vaultAddressByApp(account.addr)
 
 			if(!minterAddr) {
-				throw new Error('ERROR: ' + MINT_ACCOUNT_GLOBAL_KEY + ' not defined')
+				throw new Error('ERROR: Mint account not defined')
 			}
 			if(!vaultAddr) {
 				throw new Error('ERROR: Account not opted in')
@@ -536,7 +552,7 @@ class VaultManager {
 			params.fee = this.minFee
 			params.flatFee = true
 
-			let vaultAddr = await this.readLocalStateByKey(account.addr, VAULT_ACCOUNT_LOCAL_KEY)
+			let vaultAddr = await this.vaultAddressByApp(account.addr)
 			if(!vaultAddr) {
 				throw new Error('ERROR: Account not opted in')
 			}
@@ -584,11 +600,12 @@ class VaultManager {
 			params.fee = this.minFee
 			params.flatFee = true
 
-			let minterAddr = await this.readGlobalStateByKey(MINT_ACCOUNT_GLOBAL_KEY)
+			let minterAddr = await this.mintAccount()
+			let vaultAddr = await this.vaultAddressByApp(account.addr)
+
 			if(!minterAddr) {
-				throw new Error('ERROR: ' + MINT_ACCOUNT_GLOBAL_KEY + ' not defined')
+				throw new Error('ERROR: Mint account not defined')
 			}
-			let vaultAddr = await this.readLocalStateByKey(account.addr, VAULT_ACCOUNT_LOCAL_KEY)
 			if(!vaultAddr) {
 				throw new Error('ERROR: Account not opted in')
 			}
@@ -626,7 +643,7 @@ class VaultManager {
 			params.fee = this.minFee
 			params.flatFee = true
 
-			let vaultAddr = await this.readLocalStateByKey(accountAddr, VAULT_ACCOUNT_LOCAL_KEY)
+			let vaultAddr = await this.vaultAddressByApp(accountAddr)
 			if(!vaultAddr) {
 				throw new Error('ERROR: Account not opted in')
 			}
@@ -662,51 +679,6 @@ class VaultManager {
 			let tx = (await this.algodClient.sendRawTransaction(signed).do())
 
 			return tx.txId
-
-			// const sender = adminAccount.addr
-
-			// const params = await this.algodClient.getTransactionParams().do()
-
-			// // comment out the next two lines to use suggested fee
-			// params.fee = this.minFee
-			// params.flatFee = true
-
-			// let vaultAddr = await this.readLocalStateByKey(accountAddr, VAULT_ACCOUNT_LOCAL_KEY)
-			// if(!vaultAddr) {
-			// 	throw new Error('ERROR: Account not opted in')
-			// }
-
-			// let appArgs = [];
-			// appArgs.push(new Uint8Array(Buffer.from(WITHDRAW_ADMIN_FEES_OP)))
-			// appArgs.push(new Uint8Array(tools.getInt64Bytes(amount)))
-
-			// let appAccounts = []
-			// appAccounts.push (accountAddr)
-
-			// // create unsigned transaction
-			// let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts)
-			// let txWithdraw = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, accountAddr, amount, undefined, new Uint8Array(0), params)
-
-			// let txns = [txApp, txWithdraw];
-
-			// // Group both transactions
-			// algosdk.assignGroupID(txns);
-
-			// const compiledProgram = await this.vaultCompiledTEALByAddress(sender)
-
-			// let vaultProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"));
-
-			// let lsigVault = algosdk.makeLogicSig(vaultProgram);
-
-			// let signed = []
-			// let txAppSigned = txApp.signTxn(adminAccount.sk);
-			// let txWithdrawSigned = algosdk.signLogicSigTransactionObject(txWithdraw, lsigVault);
-			// signed.push(txAppSigned);
-			// signed.push(txWithdrawSigned.blob);
-
-			// let tx = (await this.algodClient.sendRawTransaction(signed).do())
-
-			// return tx.txId
 		}
 
 		this.closeOut = async function (account) {
@@ -790,6 +762,79 @@ class VaultManager {
 			return txId
 		}
 
+		// call application
+		this.callApp = async function (account, appArgs, appAccounts) {
+			// define sender
+			const sender = account.addr
+
+			// get node suggested parameters
+			const params = await this.algodClient.getTransactionParams().do()
+			// comment out the next two lines to use suggested fee
+			params.fee = this.minFee
+			params.flatFee = true
+
+			// create unsigned transaction
+			const txn = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts)
+			const txId = txn.txID().toString()
+
+			// Sign the transaction
+			const signedTxn = txn.signTxn(account.sk)
+			// console.log('Signed transaction with txID: %s', txId)
+
+			// Submit the transaction
+			await this.algodClient.sendRawTransaction(signedTxn).do()
+
+			return txId
+		}
+		// setMintAccount
+		this.setMintAccountAttack = async function (adminAccount, mintAddr, accountAddr) {
+			let appArgs = []
+			appArgs.push(new Uint8Array(Buffer.from(SET_MINT_ACCOUNT_OP)))
+			let appAccounts = []
+			appAccounts.push (mintAddr)
+
+			return await this.testCallApp (adminAccount, appArgs, appAccounts, accountAddr)
+		}
+		
+		this.testCallApp = async function (account, appArgs, appAccounts, attackAccountAddr) {
+			// define sender
+			const sender = account.addr
+
+			// get node suggested parameters
+			const params = await this.algodClient.getTransactionParams().do()
+			// comment out the next two lines to use suggested fee
+			params.fee = this.minFee
+			params.flatFee = true
+
+			let vaultAddr = await this.vaultAddressByApp(attackAccountAddr)
+			if(!vaultAddr) {
+				throw new Error('ERROR: Account not opted in')
+			}
+	
+				// create unsigned transaction
+			const txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts)
+			let txWithdraw = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, sender, 10000, undefined, new Uint8Array(0), params)
+			let txns = [txApp, txWithdraw];
+
+			// Group both transactions
+			algosdk.assignGroupID(txns);
+
+			const compiledProgram = await this.vaultCompiledTEALByAddress(attackAccountAddr)
+
+			let vaultProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"));
+
+			let lsigVault = algosdk.makeLogicSig(vaultProgram);
+
+			let signed = []
+			let txAppSigned = txApp.signTxn(account.sk);
+			let txWithdrawSigned = algosdk.signLogicSigTransactionObject(txWithdraw, lsigVault);
+			signed.push(txAppSigned);
+			signed.push(txWithdrawSigned.blob);
+
+			let tx = (await this.algodClient.sendRawTransaction(signed).do())
+
+			return tx.txId
+		}
 
 		this.clearApp = async function (account) {
 			// define sender as creator
