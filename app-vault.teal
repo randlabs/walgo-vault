@@ -146,7 +146,7 @@ b success
 
 admin_no_global_status:
 txna ApplicationArgs 0
-byte "waf" // withdrawAdminFee
+byte "wAF" // withdrawAdminFee
 ==
 bz admin_no_withdraw_admin_fee
 
@@ -409,6 +409,29 @@ b success
 
 admin_no_burn_fee:
 
+txna ApplicationArgs 0
+byte "sCF" // setCreationFee
+==
+bz admin_no_creation_fee
+
+// SAVE SPACE: it fails if does not have 2 args so do not ask it 
+//txn NumAppArgs
+//int 2
+//==
+//bz failed
+
+// Admin -> setCreationFee: args ['sCF', int (microALGOs)]
+
+byte "CF" // BurnFee
+txna ApplicationArgs 1
+btoi
+app_global_put
+
+b success
+
+
+admin_no_creation_fee:
+
 
 // Unknown action, the admin can have a Vault so the admin account is treated as a user account
 
@@ -433,11 +456,49 @@ bz no_admin_no_opt_in
 //==
 //bz failed
 
+// GroupSize == 1 && CreationFee == 0 || GroupSize == 2 && CreationFee > 0
 global GroupSize
 int 1
 ==
+int 0
+byte "CF"
+app_global_get
+dup
+store 8
+==
+&&
+bnz optin_no_creation_fee
+
+global GroupSize
+int 2
+==
+load 8
+int 0
+>
+&&
+
 bz failed
 
+// creation fee != 0
+gtxn 1 TypeEnum
+int 1
+==
+
+// Receiver account == Admin
+gtxn 1 Receiver 
+load 4
+==
+&&
+
+// amount sent == CreationFee
+gtxn 1 Amount
+load 8
+>=
+&&
+
+bz failed
+
+optin_no_creation_fee:
 int 1
 balance
 int 0

@@ -129,7 +129,7 @@ goal clerk dryrun-remote -D dumptx.tx --verbose
 // withdrawAdminFee
 
 
-goal app call --app-id 2681760 --app-arg "str:waf" --app-arg "int:12" --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --out=withdraw-unsigned.tx
+goal app call --app-id 2681760 --app-arg "str:wAF" --app-arg "int:12" --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --out=withdraw-unsigned.tx
 goal clerk send --from=5HXZZ3MWITYUHOLMUZULKUY5AH5XREIVEEKQP5YHNAS2AZ54ZELJVPFCTQ --to=W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --fee=1000 --amount=12 --out=send-unsigned.tx
 cat withdraw-unsigned.tx send-unsigned.tx > combinedtransactions.tx
 goal clerk group -i combinedtransactions.tx -o groupedtransactions.tx 
@@ -139,7 +139,7 @@ goal clerk sign -i grouptx-1.tx -o grouptx-1-signed.tx --program vault-4YDUBDLNM
 cat grouptx-0-signed.tx grouptx-1-signed.tx > signout.tx
 goal clerk rawsend -f signout.tx
 
-goal app call --app-id 2681760 --app-arg "str:waf" --app-arg "int:83175" --app-account 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --out=dumptx.tx --dryrun-dump
+goal app call --app-id 2681760 --app-arg "str:wAF" --app-arg "int:83175" --app-account 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q --out=dumptx.tx --dryrun-dump
 goal clerk dryrun-remote -D dumptx.tx --verbose
 
 
@@ -174,7 +174,7 @@ goal app optin --app-id 2681760 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZA
 goal app optin --app-id 2681760 --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
 
 // Optin Vault dryrun
-goal app optin --app-id 2681760 --from RX5TPGZZ3DE2E7U2VWQ2ZQKRONPOYAP3UVSE2RZBN7PNLFHJOMRE4N6GGU --app-account RAUSLPUGHXQAGVSJDZ2GLJNJVXQQSBE7ZMZLT4RAUIKZR3PKMDVZNJGM5A --out=dumptx.tx --dryrun-dump
+goal app optin --app-id 2681760 --from 252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE --app-account 4AGDGIKBAUQP6BYRUILCM5QQYOZLBFWVNB2WDOE7TXCYNJPJGGOBQSRC7I --out=dumptx.tx --dryrun-dump
 goal clerk dryrun-remote -D dumptx.tx --verbose
 
 

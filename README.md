@@ -68,6 +68,16 @@ Sender: Admin
 
 arg0: integer: new fee (0 to 5000 which means 0%-50%)
 
+### Admin setCreationFee
+
+Set the fee in ALGOs that is required to send to Admin to optin to the App
+
+* Tx0: 
+
+Sender: Admin
+
+arg0: integer: new fee in microALGOs
+
 ### Admin withdrawAdminFees
 
 Admin withdraws the pending fees in the especified vault. 
@@ -107,6 +117,14 @@ Sender: Vault owner account
 acc0: Vault address
 
 Application Call tx
+
+* Tx1: pay CreationFee if it is different to 0. If the fee is 0, this tx is not necessary.
+
+Sender: any
+
+Receiver: Admin
+
+Amount: CreationFee
 
 ### User closeOut
 

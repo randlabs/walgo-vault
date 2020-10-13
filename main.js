@@ -14,6 +14,7 @@ let account6
 let settings
 let burnFee = 150
 let mintFee = 200
+let creationFee = 550000
 
 function recoverManagerAccount () {
 	// Private key mnemonic: town memory type rapid ugly aim yard moon rocket lobster survey series mesh plate great seed company vote debris limb view motion label absorb swear
@@ -37,13 +38,15 @@ async function setupClient () {
 		algodClient = new algosdk.Algodv2(settings.algodClient.apiToken, settings.algodClient.server, settings.algodClient.port)
 
 		vaultManager = new vault.VaultManager(algodClient, settings.appId, adminAccount.addr, settings.assetId)
-		if(settings.burnFee) {
+		if(settings.burnFee !== undefined) {
 			burnFee = settings.burnFee
 		}
-		if(settings.mintFee) {
+		if(settings.mintFee !== undefined) {
 			mintFee = settings.mintFee
 		}
-
+		if(settings.creationFee !== undefined) {
+			creationFee = settings.creationFee
+		}
 	} else {
 		return algodClient
 	}
@@ -474,6 +477,43 @@ async function main () {
 			console.log('setBurnFee successfully failed')
 		}
 
+		console.log('setBurnFee')
+		txId = await vaultManager.setBurnFee(adminAccount, 0)
+		console.log('setBurnFee: %s', txId)
+
+		// Reset Creation Fee 
+		console.log('setCreationFee')
+		txId = await vaultManager.setCreationFee(adminAccount, 0)
+		console.log('setCreationFee: %s', txId)
+
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
+
+		console.log('Retrieving burnFee')
+		let fee = await vaultManager.burnFee()
+		if(fee !== 0) {
+			console.error('ERROR: Burn Fee should be %d but it is %d', 0, fee)
+		}
+
+		console.log('Retrieving mintFee')
+		fee = await vaultManager.mintFee()
+		if(fee !== 0) {
+			console.error('ERROR: Mint Fee should be %d but it is %d', 0, fee)
+		}
+
+		console.log('Retrieving creationFee')
+		fee = await vaultManager.creationFee()
+		if(fee !== 0) {
+			console.error('ERROR: creation Fee should be %d but it is %d', 0, fee)
+		}
+		try {
+			console.log('setCreationFee: should fail')
+			txId = await vaultManager.setCreationFee(account2, 300)
+			console.error('ERROR: setCreationFee should have failed non admin account: %s', txId)
+	
+		} catch (err) {
+			console.log('setCreationFee successfully failed')
+		}
+
 		// Burn Fee
 		console.log('setBurnFee')
 		txId = await vaultManager.setBurnFee(adminAccount, burnFee)
@@ -483,10 +523,14 @@ async function main () {
 		txId = await vaultManager.setMintFee(adminAccount, mintFee)
 		console.log('setMintFee: %s', txId)
 
+		// Mint Fee 
+		txId = await vaultManager.setCreationFee(adminAccount, creationFee)
+		console.log('setMintFee: %s', txId)
+
 		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
 		console.log('Retrieving burnFee')
-		let fee = await vaultManager.burnFee()
+		fee = await vaultManager.burnFee()
 		if(fee !== burnFee) {
 			console.error('ERROR: Burn Fee should be %d but it is %d', burnFee, fee)
 		}
@@ -495,6 +539,12 @@ async function main () {
 		fee = await vaultManager.mintFee()
 		if(fee !== mintFee) {
 			console.error('ERROR: Mint Fee should be %d but it is %d', mintFee, fee)
+		}
+
+		console.log('Retrieving creationFee')
+		fee = await vaultManager.creationFee()
+		if(fee !== creationFee) {
+			console.error('ERROR: creation Fee should be %d but it is %d', creationFee, fee)
 		}
 
 		// try to optIn an address whose Vault balance != 0. It should fail, allowing non-zero balance vaults can be attacked by

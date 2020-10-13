@@ -9,6 +9,7 @@ const clearProgramFilename = 'app-vault-opt-out.teal'
 const MINT_ACCOUNT_GLOBAL_KEY = 'MA'
 const MINT_FEE_GLOBAL_KEY = 'MF'
 const BURN_FEE_GLOBAL_KEY = 'BF'
+const CREATION_FEE_GLOBAL_KEY = 'CF'
 
 const VAULT_ACCOUNT_LOCAL_KEY = 'v'
 const DEPOSITS_LOCAL_KEY = 'd'
@@ -19,7 +20,7 @@ const PENDING_ADMIN_FEES_LOCAL_KEY = 'fees'
 
 const MINT_WALGOS_OP = 'mw'
 const WITHDRAW_ALGOS_OP = 'wA'
-const WITHDRAW_ADMIN_FEES_OP = 'waf'
+const WITHDRAW_ADMIN_FEES_OP = 'wAF'
 const BURN_ALGOS_OP = 'bw'
 
 const SET_ADMIN_ACCOUNT_OP = 'sAA'
@@ -28,6 +29,9 @@ const SET_GLOBAL_STATUS_OP = 'sGS'
 const SET_MINT_ACCOUNT_OP = 'sMA'
 const SET_MINT_FEE_OP = 'sMF'
 const SET_BURN_FEE_OP = 'sBF'
+const SET_CREATION_FEE_OP = 'sCF'
+
+
 
 var vaultTEAL = 
 `#pragma version 2
@@ -235,21 +239,43 @@ class VaultManager {
 			params.flatFee = true
 
 			let vaultAddr = await this.vaultAddressByTEAL(account.addr)
+			let fee = await this.creationFee()
 
 			let appAccounts = []
 			appAccounts.push (vaultAddr)
 
 			// create unsigned transaction
-			const txn = await algosdk.makeApplicationOptInTxn(sender, params, this.appId, undefined, appAccounts)
-			const txId = txn.txID().toString()
+			const txApp = await algosdk.makeApplicationOptInTxn(sender, params, this.appId, undefined, appAccounts)
 
-			// Sign the transaction
-			const signedTxn = txn.signTxn(account.sk)
+			if(fee !== 0) {
+				// pay the fees
+				let txPayment = algosdk.makePaymentTxnWithSuggestedParams(sender, this.adminAddr, fee, undefined, new Uint8Array(0), params)
+				let txns = [txApp, txPayment];
+	
+				// Group both transactions
+				algosdk.assignGroupID(txns);
+		
+				let signed = []
+				let txAppSigned = txApp.signTxn(account.sk);
+				let txPaymentSigned = txPayment.signTxn(account.sk);
+				signed.push(txAppSigned);
+				signed.push(txPaymentSigned);
+	
+				let tx = (await this.algodClient.sendRawTransaction(signed).do())
+	
+				return tx.txId
+			}
+			else {
+				const txId = txApp.txID().toString()
 
-			// Submit the transaction
-			await this.algodClient.sendRawTransaction(signedTxn).do()
-
-			return txId
+				// Sign the transaction
+				const signedTxn = txApp.signTxn(account.sk)
+	
+				// Submit the transaction
+				await this.algodClient.sendRawTransaction(signedTxn).do()
+	
+				return txId
+			}
 		}
 
 		this.assetBalance = async function(accountAddr) {
@@ -365,6 +391,23 @@ class VaultManager {
 
 		this.burnFee = async function () {
 			let ret = await vaultManager.readGlobalStateByKey(BURN_FEE_GLOBAL_KEY)
+			if(!ret) {
+				return 0
+			}
+			return ret
+		}
+
+		// setMintFee
+		this.setCreationFee = async function (adminAccount, newFee) {
+			let appArgs = []
+			appArgs.push(new Uint8Array(Buffer.from(SET_CREATION_FEE_OP)))
+			appArgs.push(new Uint8Array(tools.getInt64Bytes(newFee)))
+
+			return await this.callApp (adminAccount, appArgs)
+		}
+
+		this.creationFee = async function () {
+			let ret = await vaultManager.readGlobalStateByKey(CREATION_FEE_GLOBAL_KEY)
 			if(!ret) {
 				return 0
 			}
