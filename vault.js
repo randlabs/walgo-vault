@@ -238,7 +238,7 @@ class VaultManager {
 			params.fee = this.minFee
 			params.flatFee = true
 
-			let vaultAddr = await this.vaultAddressByTEAL(account.addr)
+			let vaultAddr = await this.vaultAddressByTEAL(sender)
 			let fee = await this.creationFee()
 
 			let appAccounts = []
@@ -318,7 +318,7 @@ class VaultManager {
 			params.flatFee = true
 
 			// create unsigned transaction
-			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, account.addr, undefined, 
+			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, sender, undefined, 
 				undefined, 0, new Uint8Array(0), this.assetId, params)
 			let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk)
 
@@ -512,7 +512,7 @@ class VaultManager {
 			params.fee = this.minFee
 			params.flatFee = true
 
-			let vaultAddr = await this.vaultAddressByApp(account.addr)
+			let vaultAddr = await this.vaultAddressByApp(sender)
 			if(!vaultAddr) {
 				throw new Error('ERROR: Account not opted in')
 			}
@@ -540,7 +540,7 @@ class VaultManager {
 			params.flatFee = true
 
 			let minterAddr = await this.mintAccount()
-			let vaultAddr = await this.vaultAddressByApp(account.addr)
+			let vaultAddr = await this.vaultAddressByApp(sender)
 
 			if(!minterAddr) {
 				throw new Error('ERROR: Mint account not defined')
@@ -594,7 +594,7 @@ class VaultManager {
 			params.fee = this.minFee
 			params.flatFee = true
 
-			let vaultAddr = await this.vaultAddressByApp(account.addr)
+			let vaultAddr = await this.vaultAddressByApp(sender)
 			if(!vaultAddr) {
 				throw new Error('ERROR: Account not opted in')
 			}
@@ -642,7 +642,7 @@ class VaultManager {
 			params.flatFee = true
 
 			let minterAddr = await this.mintAccount()
-			let vaultAddr = await this.vaultAddressByApp(account.addr)
+			let vaultAddr = await this.vaultAddressByApp(sender)
 
 			if(!minterAddr) {
 				throw new Error('ERROR: Mint account not defined')
@@ -730,7 +730,7 @@ class VaultManager {
 			params.fee = this.minFee
 			params.flatFee = true
 
-			let vaultAddr = await this.vaultAddressByApp(account.addr)
+			let vaultAddr = await this.vaultAddressByApp(sender)
 			if(!vaultAddr) {
 				throw new Error('ERROR: Account not opted in')
 			}
