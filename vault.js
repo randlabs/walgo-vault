@@ -205,7 +205,7 @@ class VaultManager {
 
 			// get node suggested parameters
 			const params = await algodClient.getTransactionParams().do()
-			// comment out the next two lines to use suggested fee
+
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -234,7 +234,7 @@ class VaultManager {
 
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
-			// comment out the next two lines to use suggested fee
+
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -294,7 +294,6 @@ class VaultManager {
 
 			const params = await this.algodClient.getTransactionParams().do()
 
-			// comment out the next two lines to use suggested fee
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -313,7 +312,6 @@ class VaultManager {
 
 			const params = await this.algodClient.getTransactionParams().do()
 
-			// comment out the next two lines to use suggested fee
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -508,7 +506,6 @@ class VaultManager {
 
 			const params = await this.algodClient.getTransactionParams().do()
 
-			// comment out the next two lines to use suggested fee
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -535,7 +532,6 @@ class VaultManager {
 
 			const params = await this.algodClient.getTransactionParams().do()
 
-			// comment out the next two lines to use suggested fee
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -590,7 +586,6 @@ class VaultManager {
 
 			const params = await this.algodClient.getTransactionParams().do()
 
-			// comment out the next two lines to use suggested fee
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -637,7 +632,6 @@ class VaultManager {
 
 			const params = await this.algodClient.getTransactionParams().do()
 
-			// comment out the next two lines to use suggested fee
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -679,7 +673,6 @@ class VaultManager {
 
 			const params = await this.algodClient.getTransactionParams().do()
 
-			// comment out the next two lines to use suggested fee
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -726,7 +719,6 @@ class VaultManager {
 
 			const params = await this.algodClient.getTransactionParams().do()
 
-			// comment out the next two lines to use suggested fee
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -781,7 +773,7 @@ class VaultManager {
 
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
-			// comment out the next two lines to use suggested fee
+
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -806,7 +798,7 @@ class VaultManager {
 
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
-			// comment out the next two lines to use suggested fee
+
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -841,7 +833,7 @@ class VaultManager {
 
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
-			// comment out the next two lines to use suggested fee
+
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -881,7 +873,7 @@ class VaultManager {
 
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
-			// comment out the next two lines to use suggested fee
+
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -904,7 +896,7 @@ class VaultManager {
 
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
-			// comment out the next two lines to use suggested fee
+
 			params.fee = this.minFee
 			params.flatFee = true
 
@@ -932,7 +924,7 @@ class VaultManager {
 
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
-			// comment out the next two lines to use suggested fee
+
 			params.fee = this.minFee
 			params.flatFee = true
 
