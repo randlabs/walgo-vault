@@ -192,9 +192,7 @@ class VaultManager {
 		}
 
 		// create new application
-		this.createApp = async function (adminAccount) {
-			// define sender as creator
-			const sender = adminAccount.addr
+		this.createApp = async function (sender, signCallback) {
 			const localInts = 10
 			const localBytes = 2
 			const globalInts = 10
@@ -213,25 +211,22 @@ class VaultManager {
 			let clearProgramCompiled = await this.compileClearProgram()
 
 			// create unsigned transaction
-			const txn = algosdk.makeApplicationCreateTxn(sender, params, onComplete,
+			const txApp = algosdk.makeApplicationCreateTxn(sender, params, onComplete,
 				approvalProgramCompiled, clearProgramCompiled,
 				localInts, localBytes, globalInts, globalBytes)
 			const txId = txn.txID().toString()
 
 			// Sign the transaction
-			const signedTxn = txn.signTxn(adminAccount.sk)
-			// console.log('Signed transaction with txID: %s', txId)
+			let txAppSigned = signCallback(sender, txApp)
+			//const txAppSigned = txApp.signTxn(adminAccount.sk)
 
 			// Submit the transaction
-			await algodClient.sendRawTransaction(signedTxn).do()
+			await algodClient.sendRawTransaction(txAppSigned).do()
 			return txId;
 		}
 
 		// optIn
-		this.optIn = async function (account) {
-			// define sender
-			const sender = account.addr
-
+		this.optIn = async function (sender, signCallback) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -256,8 +251,11 @@ class VaultManager {
 				algosdk.assignGroupID(txns);
 		
 				let signed = []
-				let txAppSigned = txApp.signTxn(account.sk);
-				let txPaymentSigned = txPayment.signTxn(account.sk);
+				let txAppSigned = signCallback(sender, txApp)
+				let txPaymentSigned = signCallback(sender, txPayment)
+
+				//let txAppSigned = txApp.signTxn(account.sk);
+				//let txPaymentSigned = txPayment.signTxn(account.sk);
 				signed.push(txAppSigned);
 				signed.push(txPaymentSigned);
 	
@@ -269,10 +267,11 @@ class VaultManager {
 				const txId = txApp.txID().toString()
 
 				// Sign the transaction
-				const signedTxn = txApp.signTxn(account.sk)
+				let txAppSigned = signCallback(sender, txApp)
+				//const txAppSigned = txApp.signTxn(account.sk)
 	
 				// Submit the transaction
-				await this.algodClient.sendRawTransaction(signedTxn).do()
+				await this.algodClient.sendRawTransaction(txAppSigned).do()
 	
 				return txId
 			}
@@ -289,9 +288,7 @@ class VaultManager {
 			return 0
 		}
 
-		this.transferAsset = async function (account, destAddr, amount, closeAddr) {
-			const sender = account.addr
-
+		this.transferAsset = async function (sender, destAddr, amount, closeAddr, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
@@ -300,16 +297,15 @@ class VaultManager {
 			// create unsigned transaction
 			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, destAddr, closeAddr, 
 				undefined, amount, new Uint8Array(0), this.assetId, params)
-			let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk)
+			let txwALGOTransferSigned = signCallback(sender, txwALGOTransfer)
+			//let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk)
 
 			let tx = (await this.algodClient.sendRawTransaction(txwALGOTransferSigned).do())
 
 			return tx.txId
 		}
 
-		this.optInASA = async function (account) {
-			const sender = account.addr
-
+		this.optInASA = async function (sender, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
@@ -318,7 +314,9 @@ class VaultManager {
 			// create unsigned transaction
 			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, sender, undefined, 
 				undefined, 0, new Uint8Array(0), this.assetId, params)
-			let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk)
+			
+			let txwALGOTransferSigned = signCallback(sender, txwALGOTransfer)
+			//let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk)
 
 			let tx = (await this.algodClient.sendRawTransaction(txwALGOTransferSigned).do())
 
@@ -326,13 +324,13 @@ class VaultManager {
 		}
 
 		// setAdminAccount
-		this.setAdminAccount = async function (adminAccount, newAdminAddr) {
+		this.setAdminAccount = async function (sender, newAdminAddr, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_ADMIN_ACCOUNT_OP)))
 			let appAccounts = []
 			appAccounts.push (newAdminAddr)
 
-			return await this.callApp (adminAccount, appArgs, appAccounts)
+			return await this.callApp (sender, appArgs, appAccounts, signCallback)
 		}
 
 		this.adminAccount = async function () {
@@ -344,13 +342,13 @@ class VaultManager {
 		}
 		
 		// setMintAccount
-		this.setMintAccount = async function (adminAccount, mintAddr) {
+		this.setMintAccount = async function (sender, mintAddr, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_MINT_ACCOUNT_OP)))
 			let appAccounts = []
 			appAccounts.push (mintAddr)
 
-			return await this.callApp (adminAccount, appArgs, appAccounts)
+			return await this.callApp(sender, appArgs, appAccounts, signCallback)
 		}
 		
 		this.mintAccount = async function () {
@@ -362,12 +360,12 @@ class VaultManager {
 		}
 		
 		// setMintFee
-		this.setMintFee = async function (adminAccount, newFee) {
+		this.setMintFee = async function (sender, newFee, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_MINT_FEE_OP)))
 			appArgs.push(new Uint8Array(tools.getInt64Bytes(newFee)))
 
-			return await this.callApp (adminAccount, appArgs)
+			return await this.callApp(sender, appArgs, undefined, signCallback)
 		}
 
 		this.mintFee = async function () {
@@ -379,12 +377,12 @@ class VaultManager {
 		}
 		
 		// setDepositFee
-		this.setBurnFee = async function (adminAccount, newFee) {
+		this.setBurnFee = async function (sender, newFee, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_BURN_FEE_OP)))
 			appArgs.push(new Uint8Array(tools.getInt64Bytes(newFee)))
 
-			return await this.callApp (adminAccount, appArgs)
+			return await this.callApp(sender, appArgs, undefined, signCallback)
 		}
 
 		this.burnFee = async function () {
@@ -396,12 +394,12 @@ class VaultManager {
 		}
 
 		// setMintFee
-		this.setCreationFee = async function (adminAccount, newFee) {
+		this.setCreationFee = async function (sender, newFee, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_CREATION_FEE_OP)))
 			appArgs.push(new Uint8Array(tools.getInt64Bytes(newFee)))
 
-			return await this.callApp (adminAccount, appArgs)
+			return await this.callApp(sender, appArgs, undefined, signCallback)
 		}
 
 		this.creationFee = async function () {
@@ -412,15 +410,15 @@ class VaultManager {
 			return ret
 		}
 
-		this.setGlobalStatus = async function (adminAccount, newStatus) {
+		this.setGlobalStatus = async function (sender, newStatus, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_GLOBAL_STATUS_OP)))
 			appArgs.push(new Uint8Array(tools.getInt64Bytes(newStatus)))
 
-			return await this.callApp (adminAccount, appArgs)
+			return await this.callApp(sender, appArgs, undefined, signCallback)
 		}
 		
-		this.setAccountStatus = async function (adminAccount, accountAddr, newStatus) {
+		this.setAccountStatus = async function (sender, accountAddr, newStatus, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_ACCOUNT_STATUS_OP)))
 			appArgs.push(new Uint8Array(tools.getInt64Bytes(newStatus)))
@@ -428,7 +426,7 @@ class VaultManager {
 			let appAccounts = [];
 			appAccounts.push (accountAddr)
 
-			return await this.callApp (adminAccount, appArgs, appAccounts)
+			return await this.callApp(sender, appArgs, appAccounts, signCallback)
 		}
 
 		this.mints = async function (accountAddr) {
@@ -501,9 +499,7 @@ class VaultManager {
 		}
 
 		// depositALGOs
-		this.depositALGOs = async function (account, amount) {
-			const sender = account.addr
-
+		this.depositALGOs = async function (sender, amount, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
@@ -518,7 +514,8 @@ class VaultManager {
 			let txPayment = algosdk.makePaymentTxnWithSuggestedParams(sender, vaultAddr, amount, undefined, new Uint8Array(0), params)
 
 			let signed = []
-			let txPaymentSigned = txPayment.signTxn(account.sk);
+			let txPaymentSigned = signCallback(sender, txPayment)
+			//let txPaymentSigned = txPayment.signTxn(account.sk);
 			signed.push(txPaymentSigned);
 
 			let tx = (await this.algodClient.sendRawTransaction(signed).do())
@@ -527,9 +524,7 @@ class VaultManager {
 		}
 
 		// mintwALGOs
-		this.mintwALGOs = async function (account, amount) {
-			const sender = account.addr
-
+		this.mintwALGOs = async function (sender, amount, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
@@ -570,7 +565,8 @@ class VaultManager {
 			let lsigMinter = algosdk.makeLogicSig(minterProgram);
 
 			let signed = []
-			let txAppSigned = txApp.signTxn(account.sk);
+			let txAppSigned = signCallback(sender, txApp)
+			//let txAppSigned = txApp.signTxn(account.sk);
 			let txwALGOTransferSigned = algosdk.signLogicSigTransactionObject(txwALGOTransfer, lsigMinter);
 			signed.push(txAppSigned);
 			signed.push(txwALGOTransferSigned.blob);
@@ -581,9 +577,7 @@ class VaultManager {
 		}
 
 		// withdrawALGOs
-		this.withdrawALGOs = async function (account, amount) {
-			const sender = account.addr
-
+		this.withdrawALGOs = async function (sender, amount, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
@@ -616,7 +610,8 @@ class VaultManager {
 			let lsigVault = algosdk.makeLogicSig(vaultProgram);
 
 			let signed = []
-			let txAppSigned = txApp.signTxn(account.sk);
+			let txAppSigned = signCallback(sender, txApp)
+			//let txAppSigned = txApp.signTxn(account.sk);
 			let txWithdrawSigned = algosdk.signLogicSigTransactionObject(txWithdraw, lsigVault);
 			signed.push(txAppSigned);
 			signed.push(txWithdrawSigned.blob);
@@ -627,9 +622,7 @@ class VaultManager {
 		}
 
 		// burnwALGOs
-		this.burnwALGOs = async function (account, amount) {
-			const sender = account.addr
-
+		this.burnwALGOs = async function (sender, amount, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
@@ -658,8 +651,10 @@ class VaultManager {
 			algosdk.assignGroupID(txns);
 
 			let signed = []
-			let txAppSigned = txApp.signTxn(account.sk);
-			let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk);
+			let txAppSigned = signCallback(sender, txApp)
+			//let txAppSigned = txApp.signTxn(account.sk);
+			let txwALGOTransferSigned = signCallback(sender, txwALGOTransfer)
+			//let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk);
 			signed.push(txAppSigned);
 			signed.push(txwALGOTransferSigned);
 
@@ -667,10 +662,9 @@ class VaultManager {
 
 			return tx.txId
 		}
-		// withdrawAdminFees
-		this.withdrawAdminFees = async function (adminAccount, accountAddr, amount) {
-			const sender = adminAccount.addr
 
+		// withdrawAdminFees
+		this.withdrawAdminFees = async function (sender, accountAddr, amount, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
@@ -704,7 +698,8 @@ class VaultManager {
 			let lsigVault = algosdk.makeLogicSig(vaultProgram);
 
 			let signed = []
-			let txAppSigned = txApp.signTxn(adminAccount.sk);
+			let txAppSigned = signCallback(sender, txApp)
+			//let txAppSigned = txApp.signTxn(adminAccount.sk);
 			let txWithdrawSigned = algosdk.signLogicSigTransactionObject(txWithdraw, lsigVault);
 			signed.push(txAppSigned);
 			signed.push(txWithdrawSigned.blob);
@@ -714,9 +709,7 @@ class VaultManager {
 			return tx.txId
 		}
 
-		this.closeOut = async function (account) {
-			const sender = account.addr
-
+		this.closeOut = async function (sender, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
@@ -756,7 +749,8 @@ class VaultManager {
 			let lsigVault = algosdk.makeLogicSig(vaultProgram);
 
 			let signed = []
-			let txAppSigned = txApp.signTxn(account.sk);
+			let txAppSigned = signCallback(sender, txApp)
+			//let txAppSigned = txApp.signTxn(account.sk);
 			let txWithdrawSigned = algosdk.signLogicSigTransactionObject(txWithdraw, lsigVault);
 			signed.push(txAppSigned);
 			signed.push(txWithdrawSigned.blob);
@@ -767,10 +761,7 @@ class VaultManager {
 		}
 
 		// call application
-		this.callApp = async function (account, appArgs, appAccounts) {
-			// define sender
-			const sender = account.addr
-
+		this.callApp = async function (sender, appArgs, appAccounts, signCallback) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -778,59 +769,31 @@ class VaultManager {
 			params.flatFee = true
 
 			// create unsigned transaction
-			const txn = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts)
-			const txId = txn.txID().toString()
+			const txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts)
+			const txId = txApp.txID().toString()
 
 			// Sign the transaction
-			const signedTxn = txn.signTxn(account.sk)
-			// console.log('Signed transaction with txID: %s', txId)
+			let txAppSigned = signCallback(sender, txApp)
+			//const txAppSigned = txApp.signTxn(account.sk)
 
 			// Submit the transaction
-			await this.algodClient.sendRawTransaction(signedTxn).do()
-
-			return txId
-		}
-
-		// call application
-		this.callApp = async function (account, appArgs, appAccounts) {
-			// define sender
-			const sender = account.addr
-
-			// get node suggested parameters
-			const params = await this.algodClient.getTransactionParams().do()
-
-			params.fee = this.minFee
-			params.flatFee = true
-
-			// create unsigned transaction
-			const txn = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts)
-			const txId = txn.txID().toString()
-
-			// Sign the transaction
-			const signedTxn = txn.signTxn(account.sk)
-			// console.log('Signed transaction with txID: %s', txId)
-
-			// Submit the transaction
-			await this.algodClient.sendRawTransaction(signedTxn).do()
+			await this.algodClient.sendRawTransaction(txAppSigned).do()
 
 			return txId
 		}
 		
-		this.setMintAccountAttack = async function (adminAccount, mintAddr, accountAddr) {
+		this.setMintAccountAttack = async function (sender, mintAddr, accountAddr, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_MINT_ACCOUNT_OP)))
 			let appAccounts = []
 			appAccounts.push (mintAddr)
 
-			return await this.testCallAppAttack(adminAccount, appArgs, appAccounts, accountAddr)
+			return await this.testCallAppAttack(sender, appArgs, appAccounts, accountAddr, signCallback)
 		}
 		
 		// setMintAccountAttack: attach an additional transaction to the App Call to try to withdraw algos from a Vault.
 		// if the TEAL code does not verify the GroupSize correctly the Vault TEAL will approve the tx 
-		this.testCallAppAttack = async function (account, appArgs, appAccounts, attackAccountAddr) {
-			// define sender
-			const sender = account.addr
-
+		this.testCallAppAttack = async function (sender, appArgs, appAccounts, attackAccountAddr, signCallback) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -857,7 +820,8 @@ class VaultManager {
 			let lsigVault = algosdk.makeLogicSig(vaultProgram);
 
 			let signed = []
-			let txAppSigned = txApp.signTxn(account.sk);
+			let txAppSigned = signCallback(sender, txApp)
+			//let txAppSigned = txApp.signTxn(account.sk);
 			let txWithdrawSigned = algosdk.signLogicSigTransactionObject(txWithdraw, lsigVault);
 			signed.push(txAppSigned);
 			signed.push(txWithdrawSigned.blob);
@@ -867,10 +831,7 @@ class VaultManager {
 			return tx.txId
 		}
 
-		this.clearApp = async function (account) {
-			// define sender as creator
-			const sender = account.addr
-
+		this.clearApp = async function (sender, signCallback) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -878,22 +839,20 @@ class VaultManager {
 			params.flatFee = true
 
 			// create unsigned transaction
-			const txn = algosdk.makeApplicationClearStateTxn(sender, params, this.appId)
-			const txId = txn.txID().toString()
+			const txApp = algosdk.makeApplicationClearStateTxn(sender, params, this.appId)
+			const txId = txApp.txID().toString()
 
 			// Sign the transaction
-			const signedTxn = txn.signTxn(account.sk)
+			let txAppSigned = signCallback(sender, txApp)
+			//const txAppSigned = txApp.signTxn(account.sk)
 
 			// Submit the transaction
-			await this.algodClient.sendRawTransaction(signedTxn).do()
+			await this.algodClient.sendRawTransaction(txAppSigned).do()
 
 			return txId
 		}
 
-		this.updateApp = async function (adminAccount) {
-			// define sender as creator
-			const sender = adminAccount.addr
-
+		this.updateApp = async function (sender, signCallback) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -904,24 +863,21 @@ class VaultManager {
 			let clearProgramCompiled = await this.compileClearProgram()
 
 			// create unsigned transaction
-			const txn = algosdk.makeApplicationUpdateTxn(sender, params, this.appId, approvalProgramCompiled, clearProgramCompiled)
-			const txId = txn.txID().toString()
+			const txApp = algosdk.makeApplicationUpdateTxn(sender, params, this.appId, approvalProgramCompiled, clearProgramCompiled)
+			const txId = txApp.txID().toString()
 
 			// Sign the transaction
-			const signedTxn = txn.signTxn(adminAccount.sk)
-			// console.log('Signed transaction with txID: %s', txId)
+			let txAppSigned = signCallback(sender, txApp)
+			//const txAppSigned = txApp.signTxn(adminAccount.sk)
 
 			// Submit the transaction
-			await this.algodClient.sendRawTransaction(signedTxn).do()
+			await this.algodClient.sendRawTransaction(txAppSigned).do()
 
 			return txId
 		}
 
 
-		this.deleteApp = async function (adminAccount) {
-			// define sender as creator
-			const sender = adminAccount.addr
-
+		this.deleteApp = async function (sender, signCallback) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -929,14 +885,15 @@ class VaultManager {
 			params.flatFee = true
 
 			// create unsigned transaction
-			const txn = algosdk.makeApplicationDeleteTxn(sender, params, this.appId)
-			const txId = txn.txID().toString()
+			const txApp = algosdk.makeApplicationDeleteTxn(sender, params, this.appId)
+			const txId = txApp.txID().toString()
 
 			// Sign the transaction
-			const signedTxn = txn.signTxn(adminAccount.sk)
+			let txAppSigned = signCallback(sender, txApp)
+			//const txAppSigned = txApp.signTxn(adminAccount.sk)
 
 			// Submit the transaction
-			await this.algodClient.sendRawTransaction(signedTxn).do()
+			await this.algodClient.sendRawTransaction(txAppSigned).do()
 
 			return txId
 		}
