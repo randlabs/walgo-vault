@@ -729,7 +729,7 @@ class VaultManager {
 			
 			// if there is no balance just ClearApp
 			if(vaultBalance === 0) {
-				this.clearApp(account)
+				this.clearApp(sender, signCallback)
 				return
 			}
 
