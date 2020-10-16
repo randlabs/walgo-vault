@@ -26,7 +26,7 @@ function usage() {
 		'\t\t--burn, -b amount\n'
 	)
 
-	process.exit(1)
+	process.exit(0)
 }
 
 function signCallback(sender, tx) {
@@ -73,6 +73,7 @@ async function main() {
 	let addresses = settings.addresses
 	let signatures = settings.signatures
 	let txId
+	let promise
 
 	let vaultManager = new vault.VaultManager(settings.algodClient, settings.appId, addresses[0], settings.assetId)
 
@@ -262,6 +263,9 @@ async function main() {
 		catch(err) {
 			console.log('Error submitting transactions: ' + (err.body && err.body.message ? err.body.message : err.message))
 		}
+	}
+	else {
+		usage()
 	}
 }
 

@@ -6,6 +6,13 @@ git clone git@github.com:randlabs/stakerdao-vault.git
 npm install
 node test.js
 
+## Command Line Tool
+
+node vault-cli.js to get the command line options
+
+Command Line usage example:
+./test-cli.sh
+
 ## Vault
 
 Accounts can create a Vault and store their ALGOs their and receive participation rewards. They can mint wALGOs up to the balance of the ALGOs in the Vault and withdraw the ALGOs at any time keeping ALGO balance above the amount of wALGOs minted.
