@@ -1,5 +1,11 @@
 # StakerDAO Vault
 
+## Test Instructions
+
+git clone git@github.com:randlabs/stakerdao-vault.git
+npm install
+node test.js
+
 ## Vault
 
 Accounts can create a Vault and store their ALGOs their and receive participation rewards. They can mint wALGOs up to the balance of the ALGOs in the Vault and withdraw the ALGOs at any time keeping ALGO balance above the amount of wALGOs minted.
