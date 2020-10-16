@@ -160,6 +160,10 @@ class VaultManager {
 			return await this.algodClient.pendingTransactionInformation(txId).do()
 		}
 
+		this.anyAppCallDelta = function(transactionResponse) {
+			return (transactionResponse['global-state-delta'] || transactionResponse['local-state-delta'])
+		}
+		
 		this.printAppCallDelta = function(transactionResponse) {
 			if (transactionResponse['global-state-delta'] !== undefined) {
 				console.log('Global State updated:')
@@ -334,7 +338,7 @@ class VaultManager {
 		}
 
 		this.adminAccount = async function () {
-			let ret = await vaultManager.readGlobalStateByKey(SET_ADMIN_ACCOUNT_OP)
+			let ret = await this.readGlobalStateByKey(SET_ADMIN_ACCOUNT_OP)
 			if(!ret) {
 				return 0
 			}
@@ -352,7 +356,7 @@ class VaultManager {
 		}
 		
 		this.mintAccount = async function () {
-			let ret = await vaultManager.readGlobalStateByKey(MINT_ACCOUNT_GLOBAL_KEY)
+			let ret = await this.readGlobalStateByKey(MINT_ACCOUNT_GLOBAL_KEY)
 			if(!ret) {
 				return 0
 			}
@@ -369,7 +373,7 @@ class VaultManager {
 		}
 
 		this.mintFee = async function () {
-			let ret = await vaultManager.readGlobalStateByKey(MINT_FEE_GLOBAL_KEY)
+			let ret = await this.readGlobalStateByKey(MINT_FEE_GLOBAL_KEY)
 			if(!ret) {
 				return 0
 			}
@@ -386,7 +390,7 @@ class VaultManager {
 		}
 
 		this.burnFee = async function () {
-			let ret = await vaultManager.readGlobalStateByKey(BURN_FEE_GLOBAL_KEY)
+			let ret = await this.readGlobalStateByKey(BURN_FEE_GLOBAL_KEY)
 			if(!ret) {
 				return 0
 			}
@@ -403,7 +407,7 @@ class VaultManager {
 		}
 
 		this.creationFee = async function () {
-			let ret = await vaultManager.readGlobalStateByKey(CREATION_FEE_GLOBAL_KEY)
+			let ret = await this.readGlobalStateByKey(CREATION_FEE_GLOBAL_KEY)
 			if(!ret) {
 				return 0
 			}
@@ -430,7 +434,7 @@ class VaultManager {
 		}
 
 		this.mints = async function (accountAddr) {
-			let ret = await vaultManager.readLocalStateByKey(accountAddr, MINTS_LOCAL_KEY)
+			let ret = await this.readLocalStateByKey(accountAddr, MINTS_LOCAL_KEY)
 			if(!ret) {
 				return 0
 			}
@@ -439,7 +443,7 @@ class VaultManager {
 
 		// adminVaultFees: get Vault's Admin unclaimed fees 
 		this.adminVaultFees = async function (accountAddr) {
-			let ret = await vaultManager.readLocalStateByKey(accountAddr, PENDING_ADMIN_FEES_LOCAL_KEY)
+			let ret = await this.readLocalStateByKey(accountAddr, PENDING_ADMIN_FEES_LOCAL_KEY)
 			if(!ret) {
 				return 0
 			}

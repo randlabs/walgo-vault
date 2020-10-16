@@ -232,6 +232,11 @@ XferAsset: 2671688 (betanet)
 
 AssetTransfer tx
 
+## Run Test
+
+* Use settings.js.example as a base of the configuration
+* Create 
+
 
 ## TODO
 
