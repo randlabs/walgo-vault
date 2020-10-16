@@ -8,11 +8,11 @@ module.exports = {
 	creationFee: 1568670,
 
 	algodClient: {
-		//server: 'https://api.betanet.algoexplorer.io',
-		server: 'localhost:8080',
+		server: 'https://api.betanet.algoexplorer.io',
+		//server: 'localhost:8080',
 		port: '',
 		apiToken: {
-			'X-Algo-API-Token': '133e2f3f4c6058f59930aed3df861948c2e85a21afa733080af2b06e668ccdf7',
+			//'X-Algo-API-Token': '133e2f3f4c6058f59930aed3df861948c2e85a21afa733080af2b06e668ccdf7',
 		}
 	},
 
