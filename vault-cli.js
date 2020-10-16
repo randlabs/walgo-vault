@@ -4,22 +4,26 @@ const config = require('./config')
 
 function usage() {
 	console.log('Usage: node vault-cli.js\n' + 
-		'\t\t--from|-f address or account index\n' + 
+		'\tGeneral Parameters:\n' +
+		'\t\t--from, -f address-or-account-index\n' + 
 		'\tAdmin Operations:\n' +
-		'\t\t--create-app|-c\n' + 
-		'\t\t--app-id|-a app-id\n' + 
-		'\t\t--status|-s 0|1\n' + 
-		'\t\t--account-status|-as 0|1\n' + 
-		'\t\t--mint-fee|-mf 0-5000 (0%-50%)\n' + 
-		'\t\t--burn-fee|-bf 0-5000 (0%-50%)\n' + 
-		'\t\t--creation-fee|-cf microALGOs\n' + 
+		'\t\t--create-app, -c\n' + 
+		'\t\t--update-app, -u\n' + 
+		'\t\t--set-admin-account, -saa address-or-account-index\n' + 
+		'\t\t--set-global-status, -sgs 0|1\n' + 
+		'\t\t--set-account-status, -sas address-or-account-index 0|1\n' + 
+		'\t\t--set-mint-fee, -smf 0-5000 (0%-50%)\n' + 
+		'\t\t--set-burn-fee, -sbf 0-5000 (0%-50%)\n' + 
+		'\t\t--set-creation-fee, -scf microALGOs\n' + 
+		'\t\t--set-mint-account, -sma address-or-account-index\n' + 
 		'\tUser Operations:\n' +
-		'\t\t--optin|-o\n' +
-		'\t\t--close|-c\n' +
-		'\t\t--deposit|-d amount\n' +
-		'\t\t--withdraw|-w amount\n' +
-		'\t\t--mint|-m amount\n' +
-		'\t\t--burn|-b amount\n'
+		'\t\t--optin, -o\n' +
+		'\t\t--optin-asa, -oa\n' +
+		'\t\t--closeout, -c\n' +
+		'\t\t--deposit, -d amount\n' +
+		'\t\t--withdraw, -w amount\n' +
+		'\t\t--mint, -m amount\n' +
+		'\t\t--burn, -b amount\n'
 	)
 
 	process.exit(1)
@@ -33,7 +37,7 @@ function signCallback(sender, tx) {
 function getAddress(arg) {
 	// assume an index
 	if(arg.length < 10) {
-		arg = settings.accounts[arg].addr
+		arg = settings.addresses[arg]
 	}
 	else {
 		arg = settings.signatures[arg].addr
@@ -58,6 +62,7 @@ function getAmount(amount) {
 		console.log('Invalid Amount: %s', amount)
 		usage()
 	}
+	amount = parseInt(amount, 10)
 	return amount
 }
 
@@ -65,13 +70,25 @@ function getAmount(amount) {
 
 async function main() {
 	let from
-	let accounts = settings.accounts
+	let addresses = settings.addresses
 	let signatures = settings.signatures
 	let txId
 
-	let vaultManager = new vault.VaultManager(settings.algodClient, settings.appId, accounts[0].addr, settings.assetId)
+	let vaultManager = new vault.VaultManager(settings.algodClient, settings.appId, addresses[0], settings.assetId)
 
 	try {
+		// get general configurations
+		for(let idx = 0; idx < process.argv.length; idx++) {
+			if (process.argv[idx] == '--from' || process.argv[idx] == '-f') {
+				if(idx + 1 >= process.argv.length) {
+					usage()
+				}
+
+				from = getAddress(process.argv[++idx])
+			}
+		}
+
+		// execute commands
 		for(let idx = 0; idx < process.argv.length; idx++) {
 			// Admin Operations
 			if(process.argv[idx] == '--create-app' || process.argv[idx] == '-c') {
@@ -81,12 +98,13 @@ async function main() {
 				promise = vaultManager.createApp(from, signCallback)
 				break
 			}
-			else if (process.argv[idx] == '--from' || process.argv[idx] == '-f') {
-				if(idx + 1 >= process.argv.length) {
+			else if (process.argv[idx] == '--update-app' || process.argv[idx] == '-u') {
+				if(!from) {
 					usage()
 				}
 
-				from = getAddress(process.argv[++idx])
+				promise = vaultManager.updateApp(from, signCallback)
+				break
 			}
 			else if (process.argv[idx] == '--set-global-status' || process.argv[idx] == '-sgs') {
 				if(idx + 1 >= process.argv.length || !from || process.argv[idx+1] != 1 && process.argv[idx+1] != 0) {
@@ -105,6 +123,26 @@ async function main() {
 				let status = getStatus(process.argv[idx+2])
 
 				promise = await vaultManager.setAccountStatus(from, addr, status, signCallback)
+				break
+			}
+			else if (process.argv[idx] == '--set-admin-account' || process.argv[idx] == '-saa') {
+				if(idx + 1 >= process.argv.length || !from) {
+					usage()
+				}
+
+				let addr = getAddress(process.argv[idx+1])
+
+				promise = vaultManager.setAdminAccount(from, addr, signCallback)
+				break
+			}
+			else if (process.argv[idx] == '--set-mint-account' || process.argv[idx] == '-sma') {
+				if(idx + 1 >= process.argv.length || !from) {
+					usage()
+				}
+
+				let addr = getAddress(process.argv[idx+1])
+
+				promise = vaultManager.setMintAccount(from, addr, signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--set-mint-fee' || process.argv[idx] == '-smf') {
@@ -143,7 +181,7 @@ async function main() {
 				break
 			}
 			// User Operations
-			else if (process.argv[idx] == '--opt-in' || process.argv[idx] == '-o') {
+			else if (process.argv[idx] == '--optin' || process.argv[idx] == '-o') {
 				if(!from) {
 					usage()
 				}
@@ -151,7 +189,15 @@ async function main() {
 				promise = vaultManager.optIn(from, signCallback)
 				break
 			}
-			else if (process.argv[idx] == '--close-out' || process.argv[idx] == '-c') {
+			else if (process.argv[idx] == '--optin-asa' || process.argv[idx] == '-oa') {
+				if(!from) {
+					usage()
+				}
+
+				promise = vaultManager.optInASA(from, signCallback)
+				break
+			}
+			else if (process.argv[idx] == '--closeout' || process.argv[idx] == '-c') {
 				if(!from) {
 					usage()
 				}

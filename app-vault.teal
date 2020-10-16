@@ -644,6 +644,7 @@ app_local_get
 
 int 0
 ==
+&&
 
 load 7
 byte "fees" // fees owed

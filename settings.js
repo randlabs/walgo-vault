@@ -2,7 +2,6 @@ module.exports = {
 	appName: 'StakerDAO Vault',
 	assetId: 2671688,
 	appId: 2681760,
-	mintAccountAddr: 'ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4',
 	burnFee: 100,
 	mintFee: 150,
 	creationFee: 1568670,
@@ -45,7 +44,9 @@ module.exports = {
 		privateKey: 'lazy enforce shock brain twice box slender sea any drink tip coconut suit maid dilemma abandon antenna work kit kiss unaware six aspect about crew',
 		publicKey: '2XKEBSAJQJ5WYCYVZ5WNHLVUYJVGLJP3BPJ7PRYWDTEH6N7T742YEP6IX4'
 	},
-
+	account7: {
+		publicKey: 'ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4'
+	},
 	debug: {
 		// statsKey: 'some-key-to-enable'
 		// printUrl: true,

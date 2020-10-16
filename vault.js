@@ -738,9 +738,9 @@ class VaultManager {
 
 			// create unsigned transaction
 			const txApp = algosdk.makeApplicationCloseOutTxn(sender, params, this.appId, undefined, appAccounts)
-			let txWithdraw = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, sender, totalFees, this.adminAddr, 
+			let txWithdraw = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, this.adminAddr, totalFees, sender, 
 																																	new Uint8Array(0), params)
-
+	
 			let txns = [txApp, txWithdraw];
 
 			// Group both transactions
