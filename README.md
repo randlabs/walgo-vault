@@ -16,6 +16,7 @@ Global Variables:
 * MA (MintAccount): account storing the wALGOs. This account must give access to the Application to send the wALGOs to the Vault owner accounts
 * MF (MintFee): fee paid in ALGOs for each mintwALGOs operation
 * BF (BurnFee): fee paid in ALGOs on each burnwALGO operation
+* CF (CreationFee): fee paid in ALGOs on each burnwALGO operation
 
 Local variables stored in the Vault owner accounts:
 * s (status): 1 if the Vault is enabled and 0 if it is not
@@ -26,9 +27,7 @@ Local variables stored in the Vault owner accounts:
 Remarks:
 Only 1 Vault per account is allowed
 Minimum Withdrawal: 1000 micro Algos
-Rewards Fee: if it is changed, the rewards already got will be impacted
-Mint Fee: if it is changed, only future mint operations are impacted
-
+Mint & Burn Fee: if it is changed, only future mint operations are impacted
 
 ## Application Calls
 
