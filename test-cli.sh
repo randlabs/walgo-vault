@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-if false; then
 #
 # Admin
 #
@@ -28,7 +27,6 @@ node vault-cli.js --set-admin-account 2 --from 0
 echo 'node vault-cli.js --set-admin-account 0 --from 2'
 node vault-cli.js --set-admin-account 0 --from 2
 
-fi
 #
 # User
 #
@@ -52,4 +50,4 @@ echo 'node vault-cli.js --burn 650000 --from 1'
 node vault-cli.js --burn 650000 --from 1
 # closeout
 echo 'node vault-cli.js --closeout --from 1'
-#node vault-cli.js --closeout --from 1
+node vault-cli.js --closeout --from 1
