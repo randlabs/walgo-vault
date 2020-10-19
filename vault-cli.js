@@ -81,7 +81,7 @@ function getAmount(amount) {
 
 
 async function main() {
-	let from
+	let account
 	let addresses = settings.addresses
 	let txId
 	let promise
@@ -97,7 +97,7 @@ async function main() {
 					usage()
 				}
 
-				from = getAddress(process.argv[++idx])
+				account = getAddress(process.argv[++idx])
 			}
 		}
 
@@ -105,157 +105,157 @@ async function main() {
 		for(let idx = 0; idx < process.argv.length; idx++) {
 			// Admin Operations
 			if(process.argv[idx] == '--create-app' || process.argv[idx] == '-c') {
-				if(!from) {
+				if(!account) {
 					usage()
 				}
-				promise = vaultManager.createApp(from, signCallback)
+				promise = vaultManager.createApp(account, signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--update-app' || process.argv[idx] == '-u') {
-				if(!from) {
+				if(!account) {
 					usage()
 				}
 
-				promise = vaultManager.updateApp(from, signCallback)
+				promise = vaultManager.updateApp(account, signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--set-global-status' || process.argv[idx] == '-sgs') {
-				if(idx + 1 >= process.argv.length || !from || process.argv[idx+1] != 1 && process.argv[idx+1] != 0) {
+				if(idx + 1 >= process.argv.length || !account || process.argv[idx+1] != 1 && process.argv[idx+1] != 0) {
 					usage()
 				}
 
-				promise = vaultManager.setGlobalStatus(from, process.argv[idx+1], signCallback)
+				promise = vaultManager.setGlobalStatus(account, process.argv[idx+1], signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--set-account-status' || process.argv[idx] == '-sas') {
-				if(idx + 2 >= process.argv.length || !from) {
+				if(idx + 2 >= process.argv.length || !account) {
 					usage()
 				}
 
 				let addr = getAddress(process.argv[idx+1])
 				let status = getStatus(process.argv[idx+2])
 
-				promise = await vaultManager.setAccountStatus(from, addr, status, signCallback)
+				promise = await vaultManager.setAccountStatus(account, addr, status, signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--set-admin-account' || process.argv[idx] == '-saa') {
-				if(idx + 1 >= process.argv.length || !from) {
+				if(idx + 1 >= process.argv.length || !account) {
 					usage()
 				}
 
 				let addr = getAddress(process.argv[idx+1])
 
-				promise = vaultManager.setAdminAccount(from, addr, signCallback)
+				promise = vaultManager.setAdminAccount(account, addr, signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--set-mint-account' || process.argv[idx] == '-sma') {
-				if(idx + 1 >= process.argv.length || !from) {
+				if(idx + 1 >= process.argv.length || !account) {
 					usage()
 				}
 
 				let addr = getAddress(process.argv[idx+1])
 
-				promise = vaultManager.setMintAccount(from, addr, signCallback)
+				promise = vaultManager.setMintAccount(account, addr, signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--set-mint-fee' || process.argv[idx] == '-smf') {
-				if(idx + 1 >= process.argv.length || !from || process.argv[idx+1] > 5000 && process.argv[idx+1] < 0) {
+				if(idx + 1 >= process.argv.length || !account || process.argv[idx+1] > 5000 && process.argv[idx+1] < 0) {
 					usage()
 				}
 
-				promise = vaultManager.setMintFee(from, process.argv[idx+1], signCallback)
+				promise = vaultManager.setMintFee(account, process.argv[idx+1], signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--set-burn-fee' || process.argv[idx] == '-sbf') {
-				if(idx + 1 >= process.argv.length || !from || process.argv[idx+1] > 5000 && process.argv[idx+1] < 0) {
+				if(idx + 1 >= process.argv.length || !account || process.argv[idx+1] > 5000 && process.argv[idx+1] < 0) {
 					usage()
 				}
 
-				promise = vaultManager.setBurnFee(from, process.argv[idx+1], signCallback)
+				promise = vaultManager.setBurnFee(account, process.argv[idx+1], signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--set-creation-fee' || process.argv[idx] == '-scf') {
-				if(idx + 1 >= process.argv.length || !from || process.argv[idx+1] < 0) {
+				if(idx + 1 >= process.argv.length || !account || process.argv[idx+1] < 0) {
 					usage()
 				}
 
-				promise = vaultManager.setCreationFee(from, process.argv[idx+1], signCallback)
+				promise = vaultManager.setCreationFee(account, process.argv[idx+1], signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--withdraw-admin-fees' || process.argv[idx] == '-waf') {
-				if(idx + 2 >= process.argv.length || !from) {
+				if(idx + 2 >= process.argv.length || !account) {
 					usage()
 				}
 
 				let addr = getAddress(process.argv[idx+1])
 				let amount = getAmount(process.argv[idx+2])
 
-				promise = vaultManager.withdrawAdminFees(from, addr, amount, signCallback)
+				promise = vaultManager.withdrawAdminFees(account, addr, amount, signCallback)
 				break
 			}
 			// User Operations
 			else if (process.argv[idx] == '--optin' || process.argv[idx] == '-o') {
-				if(!from) {
+				if(!account) {
 					usage()
 				}
 
-				promise = vaultManager.optIn(from, signCallback)
+				promise = vaultManager.optIn(account, signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--optin-asa' || process.argv[idx] == '-oa') {
-				if(!from) {
+				if(!account) {
 					usage()
 				}
 
-				promise = vaultManager.optInASA(from, signCallback)
+				promise = vaultManager.optInASA(account, signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--closeout' || process.argv[idx] == '-c') {
-				if(!from) {
+				if(!account) {
 					usage()
 				}
 
-				promise = vaultManager.closeOut(from, signCallback)
+				promise = vaultManager.closeOut(account, signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--deposit' || process.argv[idx] == '-d') {
-				if(idx + 1 >= process.argv.length || !from) {
+				if(idx + 1 >= process.argv.length || !account) {
 					usage()
 				}
 
 				let amount = getAmount(process.argv[idx+1])
 
-				promise = vaultManager.depositALGOs(from, amount, signCallback)
+				promise = vaultManager.depositALGOs(account, amount, signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--withdraw' || process.argv[idx] == '-w') {
-				if(idx + 1 >= process.argv.length || !from) {
+				if(idx + 1 >= process.argv.length || !account) {
 					usage()
 				}
 
 				let amount = getAmount(process.argv[idx+1])
 
-				promise = vaultManager.withdrawALGOs(from, amount, signCallback)
+				promise = vaultManager.withdrawALGOs(account, amount, signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--mint' || process.argv[idx] == '-m') {
-				if(idx + 1 >= process.argv.length || !from) {
+				if(idx + 1 >= process.argv.length || !account) {
 					usage()
 				}
 
 				let amount = getAmount(process.argv[idx+1])
 
-				promise = vaultManager.mintwALGOs(from, amount, signCallback)
+				promise = vaultManager.mintwALGOs(account, amount, signCallback)
 				break
 			}
 			else if (process.argv[idx] == '--burn' || process.argv[idx] == '-b') {
-				if(idx + 1 >= process.argv.length || !from) {
+				if(idx + 1 >= process.argv.length || !account) {
 					usage()
 				}
 
 				let amount = getAmount(process.argv[idx+1])
 
-				promise = vaultManager.burnwALGOs(from, amount, signCallback)
+				promise = vaultManager.burnwALGOs(account, amount, signCallback)
 				break
 			}
 			// Global Status
@@ -291,49 +291,49 @@ async function main() {
 			}
 			// Local Status
 			else if (process.argv[idx] == '--minted') {
-				if(!from) {
+				if(!account) {
 					console.log('Local status operations require --account')
 					usage()
 				}
-				let minted = await vaultManager.minted(from)
+				let minted = await vaultManager.minted(account)
 				console.log('Minted: %d wALGOs', minted/1000000)
 				return
 			}
 			else if (process.argv[idx] == '--vault-addr') {
-				if(!from) {
+				if(!account) {
 					console.log('Local status operations require --account')
 					usage()
 				}
-				let address = await vaultManager.vaultAddressByTEAL(from)
-				console.log('Vault address for %s: %s', from, address)
+				let address = await vaultManager.vaultAddressByTEAL(account)
+				console.log('Vault address for %s: %s', account, address)
 				return
 			}
 			else if (process.argv[idx] == '--account-status') {
-				if(!from) {
+				if(!account) {
 					console.log('Local status operations require --account')
 					usage()
 				}
-				let status = await vaultManager.accountStatus(from)
+				let status = await vaultManager.accountStatus(account)
 				console.log('Account Status: %d', status)
 				return
 			}
 			else if (process.argv[idx] == '--admin-fees') {
-				if(!from) {
+				if(!account) {
 					console.log('Local status operations require --account')
 					usage()
 				}
-				let fees = await vaultManager.adminVaultFees(from)
-				console.log('Admin fees collected on Account %s: %d', from, fees)
+				let fees = await vaultManager.adminVaultFees(account)
+				console.log('Admin fees collected on Account %s: %d', account, fees)
 				return
 			}
 			else if (process.argv[idx] == '--vault-balance') {
-				if(!from) {
+				if(!account) {
 					console.log('Local status operations require --account')
 					usage()
 				}
-				let address = await vaultManager.vaultAddressByTEAL(from)
-				let balance = await vaultManager.vaultBalance(from)
-				console.log('Vault of account %s: %s balance %d', from, address, balance)
+				let address = await vaultManager.vaultAddressByTEAL(account)
+				let balance = await vaultManager.vaultBalance(account)
+				console.log('Vault of account %s: %s balance %d', account, address, balance)
 				return
 			}
 		}
