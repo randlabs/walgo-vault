@@ -5,7 +5,7 @@ const config = require('./config')
 function usage() {
 	console.log('Usage: node vault-cli.js\n' + 
 		'\tGeneral Parameters:\n' +
-		'\t\t--from, -f address-or-account-index\n' + 
+		'\t\t--account, -f address-or-account-index\n' + 
 		'\tAdmin Operations:\n' +
 		'\t\t--create-app, -c\n' + 
 		'\t\t--update-app, -u\n' + 
@@ -23,7 +23,19 @@ function usage() {
 		'\t\t--deposit, -d amount\n' +
 		'\t\t--withdraw, -w amount\n' +
 		'\t\t--mint, -m amount\n' +
-		'\t\t--burn, -b amount\n'
+		'\t\t--burn, -b amount\n' +
+		'\tGlobal Status:\n' +
+		'\t\t--status\n' +
+		'\t\t--admin-account\n' +
+		'\t\t--mint-fee\n' +
+		'\t\t--creation-fee\n' +
+		'\t\t--burn-fee\n' +
+		'\t\t--mint-account\n' +
+		'\tLocal Status: Use --account to specify account\n' +
+		'\t\t--minted\n' +
+		'\t\t--vault-addr\n' +
+		'\t\t--account-status\n' +
+		'\t\t--admin-fees\n'
 	)
 
 	process.exit(0)
@@ -71,16 +83,16 @@ function getAmount(amount) {
 async function main() {
 	let from
 	let addresses = settings.addresses
-	let signatures = settings.signatures
 	let txId
 	let promise
+	let read
 
 	let vaultManager = new vault.VaultManager(settings.algodClient, settings.appId, addresses[0], settings.assetId)
 
 	try {
 		// get general configurations
 		for(let idx = 0; idx < process.argv.length; idx++) {
-			if (process.argv[idx] == '--from' || process.argv[idx] == '-f') {
+			if (process.argv[idx] == '--account' || process.argv[idx] == '-a') {
 				if(idx + 1 >= process.argv.length) {
 					usage()
 				}
@@ -246,8 +258,96 @@ async function main() {
 				promise = vaultManager.burnwALGOs(from, amount, signCallback)
 				break
 			}
+			// Global Status
+			else if (process.argv[idx] == '--status') {
+				let status = await vaultManager.globalStatus()
+				console.log('Global Status: %d', status)
+				return
+			}
+			else if (process.argv[idx] == '--admin-account') {
+				let address = await vaultManager.adminAccount()
+				console.log('Admin Account: %s', address)
+				return
+			}
+			else if (process.argv[idx] == '--mint-account') {
+				let address = await vaultManager.mintAccount()
+				console.log('Mint Account: %s', address)
+				return
+			}
+			else if (process.argv[idx] == '--mint-fee') {
+				let fee = await vaultManager.mintFee()
+				console.log('Mint Fee: %d%', fee/100)
+				return
+			}
+			else if (process.argv[idx] == '--burn-fee') {
+				let fee = await vaultManager.burnFee()
+				console.log('Burn Fee: %d%', fee/100)
+				return
+			}
+			else if (process.argv[idx] == '--creation-fee') {
+				let fee = await vaultManager.creationFee()
+				console.log('Creation Fee: %d algos', fee/1000000)
+				return
+			}
+			// Local Status
+			else if (process.argv[idx] == '--minted') {
+				if(!from) {
+					console.log('Local status operations require --account')
+					usage()
+				}
+				let minted = await vaultManager.minted(from)
+				console.log('Minted: %d wALGOs', minted/1000000)
+				return
+			}
+			else if (process.argv[idx] == '--vault-addr') {
+				if(!from) {
+					console.log('Local status operations require --account')
+					usage()
+				}
+				let address = await vaultManager.vaultAddressByTEAL(from)
+				console.log('Vault address for %s: %s', from, address)
+				return
+			}
+			else if (process.argv[idx] == '--account-status') {
+				if(!from) {
+					console.log('Local status operations require --account')
+					usage()
+				}
+				let status = await vaultManager.accountStatus(from)
+				console.log('Account Status: %d', status)
+				return
+			}
+			else if (process.argv[idx] == '--admin-fees') {
+				if(!from) {
+					console.log('Local status operations require --account')
+					usage()
+				}
+				let fees = await vaultManager.adminVaultFees(from)
+				console.log('Admin fees collected on Account %s: %d', from, fees)
+				return
+			}
+			else if (process.argv[idx] == '--vault-balance') {
+				if(!from) {
+					console.log('Local status operations require --account')
+					usage()
+				}
+				let address = await vaultManager.vaultAddressByTEAL(from)
+				let balance = await vaultManager.vaultBalance(from)
+				console.log('Vault of account %s: %s balance %d', from, address, balance)
+				return
+			}
 		}
 	} catch(err) {
+		let text =  err.error
+
+		if (err.text) {
+			text = err.text
+		}
+		else if (err.message) {
+			text = err.message
+		}
+
+		console.log('ERROR: ' + text)
 		usage()
 	}
 	if(promise) {

@@ -40,14 +40,14 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 	let txId
 	let vaultBalance
 	let withdrawalAmount
-	let mints
+	let minted
 
 	try {
-		console.log('mints')
-		mints = await vaultManager.mints(accountAddr)
+		console.log('minted')
+		minted = await vaultManager.minted(accountAddr)
 		console.log('vaultBalance')
 		vaultBalance = await vaultManager.vaultBalance(accountAddr)
-		if(vaultBalance > vaultManager.minVaultBalance() || mints > 0) {
+		if(vaultBalance > vaultManager.minVaultBalance() || minted > 0) {
 			withdrawalAmount = vaultBalance - vaultManager.minVaultBalance() - vaultManager.minTransactionFee()
 			// just in case it did not opt In
 			console.log('vaultAddressByApp')
@@ -61,9 +61,9 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 				console.log('setAccountStatus')
 				txId = await vaultManager.setAccountStatus(addresses[0], accountAddr, 1, signCallback)
 
-				if(mints) {
+				if(minted) {
 					console.log('burnwALGOs')
-					txId = await vaultManager.burnwALGOs(accountAddr, mints, signCallback)
+					txId = await vaultManager.burnwALGOs(accountAddr, minted, signCallback)
 					await vaultManager.waitForTransactionResponse(txId)
 				}
 			}
@@ -83,7 +83,7 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		let vaultAddrTEAL = await vaultManager.vaultAddressByTEAL(accountAddr)
 		if(vaultAddrApp == vaultAddrTEAL) {
 			console.log('closeOut')
-			ublitxId = await vaultManager.closeOut(accountAddr, signCallback)
+			txId = await vaultManager.closeOut(accountAddr, signCallback)
 			console.log('closeOut: %s', txId)
 		}
 		else if(vaultAddrApp) {
@@ -234,11 +234,11 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 	console.log('burnwALGOs: %s', txId)
 	txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-	console.log('mints')
-	mints = await vaultManager.mints(accountAddr)
-	console.log('Net mints: %d', mints)
-	if(mints !== (mintAmount - burnAmount)) {
-		console.error('ERROR: Net mints should be %d but it is %d', mintAmount - burnAmount, mints)
+	console.log('minted')
+	minted = await vaultManager.minted(accountAddr)
+	console.log('Net minted: %d', minted)
+	if(minted !== (mintAmount - burnAmount)) {
+		console.error('ERROR: Net minted should be %d but it is %d', mintAmount - burnAmount, minted)
 	}
 
 	console.log('adminVaultFees')
@@ -251,8 +251,8 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		console.error('ERROR: Burn fee should be: %d but it was: %d', correctFees, collectedFeesTx)
 	}
 
-	console.log('mints')
-	let minted = await vaultManager.mints(accountAddr)
+	console.log('minted')
+	let minted = await vaultManager.minted(accountAddr)
 	if(minted != (mintAmount - burnAmount)) {
 		console.error('ERROR: minted amount should be: %d', (mintAmount - burnAmount))
 	}
@@ -294,10 +294,10 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 
 	txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-	console.log('mints')
-	minted = await vaultManager.mints(accountAddr)
+	console.log('minted')
+	minted = await vaultManager.minted(accountAddr)
 	if(minted != 0) {
-		console.error('ERROR: mints amount should be: 0')
+		console.error('ERROR: minted amount should be: 0')
 	}
 
 	collectedFeesTx = await vaultManager.adminVaultFees(accountAddr)
@@ -307,6 +307,24 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 	vaultBalance = await vaultManager.vaultBalance(accountAddr)
 	if(vaultBalance > vaultManager.minVaultBalance() && vaultBalance > collectedFeesTx + vaultManager.minTransactionFee()) {
 		console.error('ERROR: vault balance should be very smaller but it is: %d, Pending fees %d', vaultBalance, collectedFeesTx)
+	}
+
+	fees = await vaultManager.adminVaultFees(accountAddr)
+
+	try {
+		console.log('CloseOut')
+		txId = await vaultManager.closeOut(accountAddr, signCallback, undefined, fees-1)
+		console.error('ERROR: closeOut should have failed amount does not cover the pending fees %d: %s', fees, txId)
+	} catch (err) {
+		console.log('closeOut successfully failed: amount does not cover the pending fees %d', fees)
+	}
+
+	try {
+		console.log('CloseOut')
+		txId = await vaultManager.closeOut(accountAddr, signCallback, accountAddr)
+		console.error('ERROR: closeOut should have failed, To should be admin but it is the vault owner: %s', txId)
+	} catch (err) {
+		console.log('closeOut successfully failed: To should be admin but it is the vault owner')
 	}
 
 	console.log('CloseOut')

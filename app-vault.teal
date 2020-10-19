@@ -594,7 +594,7 @@ store 5
 
 // Position 3: Vault address
 // Position 4: Admin address
-// Position 5: tx1.To to cover pending Admin fees
+// Position 5: tx1.Amount to cover pending Admin fees
 // Position 7: Index on the Accounts array of the account to close
 
 close_out_account:
