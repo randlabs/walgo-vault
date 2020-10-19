@@ -1,12 +1,17 @@
 module.exports = {
 	appName: 'StakerDAO Vault',
+	// betanet
 	assetId: 2671688,
+	// testnet
+	//assetId: 12875488,
+
 	appId: 2681760,
 	burnFee: 100,
 	mintFee: 150,
 	creationFee: 1568670,
 
 	algodClient: {
+		//server: 'https://api.testnet.algoexplorer.io',
 		server: 'https://api.betanet.algoexplorer.io',
 		//server: 'localhost:8080',
 		port: '',

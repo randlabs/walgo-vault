@@ -218,7 +218,7 @@ class VaultManager {
 			const txApp = algosdk.makeApplicationCreateTxn(sender, params, onComplete,
 				approvalProgramCompiled, clearProgramCompiled,
 				localInts, localBytes, globalInts, globalBytes)
-			const txId = txn.txID().toString()
+			const txId = txApp.txID().toString()
 
 			// Sign the transaction
 			let txAppSigned = signCallback(sender, txApp)

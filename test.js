@@ -178,20 +178,6 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 	console.log('printAppCallDelta')
 	vaultManager.printAppCallDelta(txResponse)
 
-	// console.log('adminVaultFees')
-	// let collectedFeesTx = await vaultManager.adminVaultFees(accountAddr)
-	// console.log('depositALGOs: %s', txId)
-	// txResponse = await vaultManager.waitForTransactionResponse(txId)
-
-	// console.log('adminMintFees')
-	// collectedFeesTx = await vaultManager.adminVaultFees(accountAddr) - collectedFeesTx
-	// console.log('depositALGOs: %s Collected fees %d', txId, collectedFeesTx)
-
-	// let correctFees = Math.floor(depositAmount * settings.burnFee / 10000)
-	// if(collectedFeesTx !== correctFees) {
-	// 	console.error('ERROR: Deposit fee should be: %d but it was: %d', correctFees, collectedFeesTx)
-	// }
-
 	console.log('adminVaultFees')
 	let oldFees = await vaultManager.adminVaultFees(accountAddr)
 	txId = await vaultManager.mintwALGOs(accountAddr, mintAmount, signCallback)
@@ -334,6 +320,18 @@ async function main () {
 	try {
 		let txId
 		let txResponse
+
+		// txId = await asaTools.destroyASA(settings.algodClient, addresses[0], 2685690, signCallback);
+		// txResponse = await vaultManager.waitForTransactionResponse(txId)
+		// console.log('Asset destroyed at round %d', txResponse['confirmed-round'])
+		// return
+		
+		// // ASA ID Testnet: 11870752
+		// txId = await asaTools.createASA(settings.algodClient, addresses[0], 8000000000000000, 6, signCallback);
+		// txResponse = await vaultManager.waitForTransactionResponse(txId)
+		// console.log('Asset created with index %d', txResponse['asset-index'])
+
+		// return
 
 		//console.log('deleteApp')
 		// txId = await vaultManager.deleteApp(addresses[0])
@@ -548,9 +546,6 @@ async function main () {
 
 		throw new Error('ERROR: ' + text)
 	}
-
-	// ASA ID Testnet: 11870752
-	// let tx = await asaTools.createASA(config.algodClient, managerAccount, 9007199254740991, 6);
 }
 
 settings = config.initialize()
