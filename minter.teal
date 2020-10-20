@@ -1,4 +1,25 @@
 #pragma version 2
+// Minter Delegate Teal
+// Allows App to mint wAlgos to Vault users
+// TMPL_APP_ID: Application ID
+// TMPL_ASA_ID: wALGOs id
 
-int 1
-return
+gtxn 0 ApplicationID // betanet
+int TMPL_APP_ID
+==
+
+global GroupSize
+int 2
+==
+&&
+
+gtxn 1 TypeEnum
+int 4
+==
+&&
+
+// ASA ID
+gtxn 1 XferAsset
+int TMPL_ASA_ID
+==
+&&

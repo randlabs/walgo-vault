@@ -56,11 +56,67 @@ int TMPL_APP_ID
 ==
 //&&
 `
+
 var minterTEAL = 
 `#pragma version 2
-int 1
-return
+// Minter Delegate Teal
+// Allows App to mint wAlgos to Vault users
+// TMPL_APP_ID: Application ID
+// TMPL_ASA_ID: wALGOs id
+
+gtxn 0 ApplicationID // betanet
+int TMPL_APP_ID
+==
+
+global GroupSize
+int 2
+==
+&&
+
+gtxn 1 TypeEnum
+int 4
+==
+&&
+
+// ASA ID
+gtxn 1 XferAsset
+int TMPL_ASA_ID
+==
+&&
 `
+
+// var minterTEAL = 
+// // `#pragma version 2
+// // int 1
+// // return
+// // `
+// `
+// #pragma version 2
+// // Minter Delegate Teal
+// // Allows App to mint wAlgos to Vault users
+// // TMPL_APP_ID: Application ID
+// // TMPL_ASA_ID: wALGOs id
+
+// gtxn 0 ApplicationID // betanet
+// int TMPL_APP_ID
+// ==
+
+// global GroupSize
+// int 2
+// ==
+// &&
+
+// gtxn 1 TypeEnum
+// int 4
+// ==
+// &&
+
+// // ASA ID
+// gtxn 1 XferAsset
+// int TMPL_ASA_ID
+// ==
+// &&
+// `
 
 class VaultManager {
 	constructor (algodClient, appId = 0, adminAddr = undefined, assetId = 0) {
@@ -68,6 +124,7 @@ class VaultManager {
 		this.appId = appId
 		this.adminAddr = adminAddr
 		this.assetId = assetId
+		this.lsigMint
 		this.algodClient = algodClient
 		this.vaultMinBalance = 100000
 		this.minFee = 1000
@@ -128,11 +185,6 @@ class VaultManager {
 
 		this.vaultAddressByTEAL = async function (accountAddr) {
 			let compiledProgram = (await this.vaultCompiledTEALByAddress(accountAddr))
-
-			// const byteCharacters = Buffer.from(compiledProgram.result, 'base64')
-			
-			// console.log('Program bytes %s', tools.uintArray8ToString(byteCharacters))
-
 			return compiledProgram.hash
 		}
 
@@ -227,6 +279,70 @@ class VaultManager {
 			// Submit the transaction
 			await algodClient.sendRawTransaction(txAppSigned).do()
 			return txId;
+		}
+
+		this.generateDelegatedMintAccount = async function(sender, lsigCallback) {
+			let program = minterTEAL
+			
+			
+			// program = program.replace(/TMPL_APP_ID/g, this.appId)
+			// program = program.replace(/TMPL_USER_ADDRESS/g, sender)
+
+			// let encoder = new TextEncoder()
+			// let programBytes = encoder.encode(program);
+
+			program = program.replace(/TMPL_APP_ID/g, this.appId)
+			program = program.replace(/TMPL_ASA_ID/g, this.assetId)
+
+			let encoder = new TextEncoder()
+			let programBytes = encoder.encode(program);
+
+			let compiledProgram = await this.algodClient.compile(programBytes).do()
+
+			let minterProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"));
+
+			let lsigMinter = algosdk.makeLogicSig(minterProgram);
+
+			// let lsigProgram = algosdk.makeLogicSig(compiledProgram);
+
+			lsigCallback(sender, lsigMinter)
+
+			return lsigMinter
+		}
+
+		this.delegateMintAccountFromFile = function(filepath) {
+			let lsiguintArray = fs.readFileSync(filepath)
+			let lsigb64 = lsiguintArray.toString()
+
+			let lsigEncoded = new Uint8Array(Buffer.from(lsigb64, "base64"));
+
+			let lsigDecoded = algosdk.decodeObj(lsigEncoded)
+
+			let lsigDelegatedReconst = algosdk.makeLogicSig(lsigDecoded.l, lsigDecoded.arg);
+			lsigDelegatedReconst.sig = lsigDecoded.sig;
+			lsigDelegatedReconst.msig = lsigDecoded.msig;
+
+			this.delegateMintAccount(lsigDelegatedReconst)
+		}
+
+		this.generateDelegatedMintAccountToFile = async function(filepath, lsigCallback) {
+			let minterAddr = await this.mintAccount()
+			let lsigDelegatedBuf = await this.generateDelegatedMintAccount(minterAddr, lsigCallback)
+
+			let encodedObj = lsigDelegatedBuf.get_obj_for_encoding()
+			let lsigEncoded = algosdk.encodeObj(encodedObj)
+	
+			var lsigb64 = Buffer.from(lsigEncoded).toString('base64');
+	
+			fs.writeFileSync(filepath, lsigb64)
+		}
+
+		this.delegateMintAccount = async function(lsigMint) {
+			// let decodedLsig = algosdk.decodeObj(lsigMintBuf);
+			// this.lsigMint = algosdk.makeLogicSig(decodedLsig.l, decodedLsig.arg);
+			this.lsigMint = lsigMint
+			// this.lsigMint.sig = decodedLsig.sig;
+			// this.lsigMint.msig = decodedLsig.msig;
 		}
 
 		// optIn
@@ -576,18 +692,20 @@ class VaultManager {
 			algosdk.assignGroupID(txns);
 
 			let encoder = new TextEncoder();
-			let programBytes = encoder.encode(minterTEAL);
+			// let programBytes = encoder.encode(minterTEAL);
 
-			const compiledProgram = await this.algodClient.compile(programBytes).do()
+			// const compiledProgram = await this.algodClient.compile(programBytes).do()
 
-			let minterProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"));
+			// let minterProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"));
 
-			let lsigMinter = algosdk.makeLogicSig(minterProgram);
+			// let lsigMinter = algosdk.makeLogicSig(minterProgram);
 
 			let signed = []
 			let txAppSigned = signCallback(sender, txApp)
 			//let txAppSigned = txApp.signTxn(account.sk);
-			let txwALGOTransferSigned = algosdk.signLogicSigTransactionObject(txwALGOTransfer, lsigMinter);
+			// let txwALGOTransferSigned = algosdk.signLogicSigTransactionObject(txwALGOTransfer, lsigMinter);
+			let txwALGOTransferSigned = algosdk.signLogicSigTransactionObject(txwALGOTransfer, this.lsigMint);
+
 			signed.push(txAppSigned);
 			signed.push(txwALGOTransferSigned.blob);
 

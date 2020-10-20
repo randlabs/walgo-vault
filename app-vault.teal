@@ -472,6 +472,7 @@ bnz optin_no_creation_fee
 global GroupSize
 int 2
 ==
+// creation fee != 0
 load 8
 int 0
 >
@@ -479,7 +480,6 @@ int 0
 
 bz failed
 
-// creation fee != 0
 gtxn 1 TypeEnum
 int 1
 ==

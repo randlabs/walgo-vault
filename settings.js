@@ -9,6 +9,7 @@ module.exports = {
 	burnFee: 100,
 	mintFee: 150,
 	creationFee: 1568670,
+	minterDelegateFile: 'minter-delegation.sig',
 
 	algodClient: {
 		//server: 'https://api.testnet.algoexplorer.io',
@@ -50,8 +51,12 @@ module.exports = {
 		publicKey: '2XKEBSAJQJ5WYCYVZ5WNHLVUYJVGLJP3BPJ7PRYWDTEH6N7T742YEP6IX4'
 	},
 	account7: {
-		publicKey: 'ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4'
+		privateKey: 'sadness cradle giraffe famous garbage uniform real catalog horse swift elder trim skill shoe fault lyrics net file brown shop trophy vehicle fitness abstract orphan',
+		publicKey: 'GZILFNLBQ4BURKLJISKDQVNDXOTFGMSP6MAXI76HRB2KDI2PBAA2TKFFIY'
+
+		//publicKey: 'ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4'
 	},
+	
 	debug: {
 		// statsKey: 'some-key-to-enable'
 		// printUrl: true,

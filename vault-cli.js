@@ -46,6 +46,10 @@ function signCallback(sender, tx) {
 	return txSigned
 }
 
+function lsigCallback(sender, lsig) {
+	lsig.sign(settings.signatures[sender].sk)
+}
+
 function getAddress(arg) {
 	// assume an index
 	if(arg.length < 10) {
@@ -85,9 +89,15 @@ async function main() {
 	let addresses = settings.addresses
 	let txId
 	let promise
-	let read
 
 	let vaultManager = new vault.VaultManager(settings.algodClient, settings.appId, addresses[0], settings.assetId)
+
+	try {
+		vaultManager.delegateMintAccountFromFile(settings.minterDelegateFile)
+	} catch(err) {
+		await vaultManager.generateDelegatedMintAccountToFile(settings.minterDelegateFile, lsigCallback)
+		vaultManager.delegateMintAccountFromFile(settings.minterDelegateFile)
+	}
 
 	try {
 		// get general configurations
