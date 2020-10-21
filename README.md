@@ -32,9 +32,9 @@ Local variables stored in the Vault owner accounts:
 * fees: collected fees for the Admin
 
 Remarks:
-Only 1 Vault per account is allowed
-Minimum Withdrawal: 1000 micro Algos
-Mint & Burn Fee: if it is changed, only future mint operations are impacted
+* Only 1 Vault per account is allowed
+* Minimum Withdrawal: 1000 micro Algos
+* Mint & Burn Fee: if it is changed, only future mint operations are impacted
 
 ## Application Calls
 
