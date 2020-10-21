@@ -2,16 +2,21 @@
 
 ## Test Instructions
 
+```bash
 git clone git@github.com:randlabs/stakerdao-vault.git
+cd stakerdao-vault
 npm install
 node test.js
+```
 
 ## Command Line Tool
 
 node vault-cli.js to get the command line options
 
 Command Line usage example:
+```bash
 ./test-cli.sh
+```
 
 ## Vault
 
