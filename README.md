@@ -44,9 +44,8 @@ The admin can enable or disable any vault at any time.
 
 * Tx0: 
 
-Sender: Admin
-
-arg0: integer: new status (0 or 1)
+  * Sender: Admin
+  * arg0: integer: new status (0 or 1)
 
 ### Admin setAccountStatus
 
