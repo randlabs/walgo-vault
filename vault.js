@@ -35,28 +35,18 @@ const SET_CREATION_FEE_OP = 'sCF'
 
 var vaultTEAL = 
 `#pragma version 2
-txn Receiver 
 addr TMPL_USER_ADDRESS
-==
 pop
 
-//global GroupSize
-//int 2
-//>=
-//&&
-
-// Application Call
-//gtxn 0 TypeEnum
-//int 6
-//==
-//&&
-
-gtxn 0 ApplicationID // betanet
+gtxn 0 ApplicationID
 int TMPL_APP_ID
 ==
-//&&
-`
 
+txn RekeyTo
+global ZeroAddress
+==
+&&
+`
 var minterTEAL = 
 `#pragma version 2
 // Minter Delegate Teal
@@ -660,7 +650,7 @@ class VaultManager {
 		}
 
 		// mintwALGOs
-		this.mintwALGOs = async function (sender, amount, signCallback) {
+		this.mintwALGOs = async function (sender, amount, signCallback, forceAppId) {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
@@ -682,8 +672,13 @@ class VaultManager {
 			let appAccounts = []
 			appAccounts.push (vaultAddr)
 
+			let appId = this.appId
+
+			if(forceAppId) {
+				appId = forceAppId
+			}
 			// create unsigned transaction
-			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts)
+			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, appId, appArgs, appAccounts)
 			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(minterAddr, sender, undefined, undefined, amount, new Uint8Array(0), 
 				this.assetId, params)
 			let txns = [txApp, txwALGOTransfer];
@@ -691,7 +686,7 @@ class VaultManager {
 			// Group both transactions
 			algosdk.assignGroupID(txns);
 
-			let encoder = new TextEncoder();
+			// let encoder = new TextEncoder();
 			// let programBytes = encoder.encode(minterTEAL);
 
 			// const compiledProgram = await this.algodClient.compile(programBytes).do()
@@ -760,7 +755,7 @@ class VaultManager {
 		}
 
 		// burnwALGOs
-		this.burnwALGOs = async function (sender, amount, signCallback) {
+		this.burnwALGOs = async function (sender, amount, signCallback, forceAssetId) {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
@@ -768,6 +763,11 @@ class VaultManager {
 
 			let minterAddr = await this.mintAccount()
 			let vaultAddr = await this.vaultAddressByApp(sender)
+			let assetId = this.assetId
+
+			if(forceAssetId) {
+				assetId = forceAssetId
+			}
 
 			if(!minterAddr) {
 				throw new Error('ERROR: Mint account not defined')
@@ -782,7 +782,7 @@ class VaultManager {
 			// create unsigned transaction
 			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs)
 			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, minterAddr, undefined, undefined, amount, new Uint8Array(0), 
-				this.assetId, params)
+				assetId, params)
 			let txns = [txApp, txwALGOTransfer];
 
 			// Group both transactions

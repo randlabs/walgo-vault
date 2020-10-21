@@ -12,9 +12,10 @@ txn ApplicationID
 ==
 bz not_creation
 
-//
+/////////////////////////////////////////////////////////////////////
 // BEGIN: Creation of the app
 // ==========================
+// Admin -> createApp: args []
 //
 
 global GroupSize
@@ -22,13 +23,6 @@ int 1
 ==
 bz failed
 
-// SAVE SPACE: it fails if does not have 2 args so do not ask it 
-//txn NumAppArgs
-//int 0
-//==
-//bz failed
-
-// Admin -> createApp: args []
 // Save Creator
 byte "A" // Admin
 txn Sender
@@ -59,7 +53,7 @@ txn Sender
 ==
 bz no_admin
 
-//
+/////////////////////////////////////////////////////////////////////
 // BEGIN: ADMIN SECTION
 // ====================
 //
@@ -407,6 +401,16 @@ b success
 // End setCreationFee
 /////////////////////////////////////////////////////////////////////
 
+//
+// END: ADMIN SECTION
+// ====================
+/////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////
+// BEGIN: ACCOUNT SECTION
+// ====================
+//
 
 no_admin:
 
@@ -419,7 +423,63 @@ bz failed
 int OptIn
 txn OnCompletion
 ==
-bz no_admin_no_opt_in
+bnz no_admin_opt_in
+
+// Pre-requisites for account operations:
+// all operations have 2 txs and account must be registered
+// Registered(Sender) && GroupSize == 2 && Status(account) == enabled
+
+int 0
+txn ApplicationID
+byte "v" // vault
+app_local_get_ex
+// registered?
+bz failed
+
+// store Vault address
+store 3
+
+global GroupSize
+int 2
+==
+
+// verify if the Account status is enabled
+int 0
+byte "s" // status
+app_local_get
+&&
+
+bz failed 
+
+// CloseOut
+int CloseOut
+txn OnCompletion
+==
+bnz no_admin_close_out
+
+txna ApplicationArgs 0
+byte "mw" // mintwALGOs
+==
+bnz no_admin_mint_walgos
+
+txna ApplicationArgs 0
+byte "wA" // withdrawALGOs
+==
+bnz no_admin_withdraw_algos
+
+txna ApplicationArgs 0
+byte "bw" // burnwALGOs
+==
+bnz no_admin_burn_walgos
+
+
+// unknown operation
+err
+
+// Handle OptIn
+// -----------------
+// account -> optIn: args [] accounts: [vaultAddr]
+no_admin_opt_in:
 
 // GroupSize == 1 && CreationFee == 0 || GroupSize == 2 && CreationFee > 0
 global GroupSize
@@ -470,16 +530,15 @@ int 0
 ==
 bz failed
 
-// account -> optIn: args [] accounts: [vaultAddr]
 byte "Program"
-//byte base64 AiABtrijASYBIA==
 byte base64 AiABoNejASYBIA==
 concat
 
 txn Sender
 concat
 
-byte base64 MQcoEkgzABgiEg==
+//byte base64 MQcoEkgzABgiEg==
+byte base64 KEgzABgiEjEgMgMSEA==
 concat
 
 sha512_256
@@ -505,46 +564,15 @@ int 1
 app_local_put
 
 b success
+
+// End OptIn
 /////////////////////////////////////////////////////////////////////
 
 
-
-
-no_admin_no_opt_in:
-// all operations have 2 txs
-global GroupSize
-int 2
-==
-bz failed
-
-int 0
-txn ApplicationID
-byte "v" // vault
-app_local_get_ex
-// registered?
-bz failed // not registered?
-
-store 3 // Vault address
-
-// CloseOut
-int CloseOut
-txn OnCompletion
-==
-bz no_admin_no_close_out
-
+// Handle CloseOut
+// -----------------
 // account -> CloseOut: args [] accounts: [vaultAddr]
-
-// SAVE SPACE: it fails if does not have 2 args so do not ask it 
-//txn NumAppArgs
-//int 1
-//==
-//bz failed
-
-//txn NumAccounts
-//int 1
-//==
-//bz failed
-
+no_admin_close_out:
 
 int 0
 store 7
@@ -556,13 +584,13 @@ store 8
 gtxn 1 Amount
 store 5
 
-
 // Position 3: Vault address
 // Position 4: Admin address
 // Position 5: tx1.Amount to cover pending Admin fees
 // Position 7: Index on the Accounts array of the account to close
 
 close_out_account:
+
 
 // tx1: App CloseOut
 // tx2: Payment
@@ -573,21 +601,9 @@ gtxn 1 TypeEnum
 int 1
 ==
 
-// SAVE SPACE: it fails if does not have 2 args so do not ask it 
-// ApplicationCall
-//txn TypeEnum
-//int 6
-//==
-//&&
-
 // is the same Vault that corresponds to the account sending the ALGOs
 load 3
 gtxn 1 Sender
-==
-&&
-
-global GroupSize
-int 2
 ==
 &&
 
@@ -619,75 +635,40 @@ app_local_get
 load 5
 ==
 &&
-bz failed
+bnz success
 
-b success
+err
 
-
-
-no_admin_no_close_out:
-// SAVE SPACE: it fails if does not have 2 args so do not ask it 
-// Operations have at least one argument that specifies the operation
-//txn NumAppArgs
-//int 1
-//>=
-
-// verify if the Account status is enabled
-int 0
-byte "s" // status
-app_local_get
-bz failed
+// End CloseOut
+/////////////////////////////////////////////////////////////////////
 
 
-txna ApplicationArgs 0
-byte "mw" // mintwALGOs
-==
-bz no_admin_no_mint
-
-// SAVE SPACE: it fails if does not have 2 args so do not ask it 
-//txn NumAppArgs
-//int 2
-//==
-//bz failed
-
-//txn NumAccounts
-//int 1
-//==
-//bz failed
-
+// Handle mintwALGOs
+// -----------------
 // account -> mintwALGOs: args ['mw'] accounts: [vaultAddr]
+no_admin_mint_walgos:
 
 // is the same Vault that corresponds to the account
+// tx0.Accounts[1] == VaultAddr && tx1.TypeEnum == AssetTransfer && tx1.AssetAmount > 0 && 
+// tx1.Sender == MintAccount && tx1.Fee == MinTxnFee && tx1.AssetCloseTo == ZeroAddress && 
+// tx1.XferAsset == ASA_ID
 load 3
 txn Accounts 1
 ==
-bz failed
 
-// tx1: App MintwALGOs
+// tx1: App mintwALGOs
 // tx2: ASA transfer
 // AssetTransfer
 gtxn 1 TypeEnum
 int 4
 ==
-
-// ApplicationCall
-//txn TypeEnum
-//int 6
-//==
-//&&
+&&
 
 // more than 0
 gtxn 1 AssetAmount
 int 0
 >
 &&
-
-// check account
-// necessary?
-//gtxn 1 AssetReceiver
-//txn Sender
-//==
-//&&
 
 gtxn 1 Sender
 byte "MA" // MintAccount
@@ -706,7 +687,7 @@ global ZeroAddress
 ==
 &&
 
-// ASA ID
+// ASA_ID
 gtxn 1 XferAsset
 int 2671688
 ==
@@ -714,7 +695,7 @@ int 2671688
 
 bz failed
 
-
+// Minted = Minted + tx1.AssetAmount
 int 0
 byte "m" // minted
 app_local_get
@@ -753,50 +734,30 @@ store 7
 // Position 9: mint fee, tax
 b charge_fees
 
+// End mintwALGOs: Go to charge_fees
+/////////////////////////////////////////////////////////////////////
 
 
 
-no_admin_no_mint:
-
-txna ApplicationArgs 0
-byte "wA" // withdrawALGOs
-==
-bz no_admin_no_withdraw
-
-// SAVE SPACE: it fails if does not have 2 args so do not ask it 
-//txn NumAppArgs
-//int 2
-//==
-//bz failed
-
-//txn NumAccounts
-//int 1
-//==
-//bz failed
-
-
+// Handle withdrawALGOs
+// -----------------
 // account -> withdrawALGOs: args: ['wA'] accounts: [vaultAddr]
+no_admin_withdraw_algos:
 
 // tx1: App withdrawALGOs
 // tx2: Payment
 
-// is the same Vault that corresponds to the Accounts[1]
+// tx0.Accounts[1] == VaultAddr && tx1.Sender == VaultAddr && tx1.TypeEnum == Payment && 
+// tx1.Amount >= 1000 && tx1.Fee == MinTxnFee && tx1.CloseRemainderTo == ZeroAddress
 load 3 // vault address
 txna Accounts 1
 ==
-//&&
 
 // is the same Vault that corresponds to the account sending the ALGOs
 load 3
 gtxn 1 Sender
 ==
 &&
-
-// ApplicationCall
-//txn TypeEnum
-//int 6
-//==
-//&&
 
 // Payment
 gtxn 1 TypeEnum
@@ -813,12 +774,6 @@ load 7
 int 1000
 >=
 &&
-
-// check account: it is not necessary, the user can withdraw to any account
-//gtxn 1 Receiver
-//txn Sender
-//==
-//&&
 
 gtxn 1 Fee
 global MinTxnFee
@@ -850,20 +805,12 @@ store 6
 
 b verify_balance
 
+// End withdrawALGOs: Go to verify_balance
+/////////////////////////////////////////////////////////////////////
 
-no_admin_no_withdraw:
 
+no_admin_burn_walgos:
 
-txna ApplicationArgs 0
-byte "bw" // burnwALGOs
-==
-bz no_admin_no_burn
-
-// SAVE SPACE: it fails if does not have 2 args so do not ask it 
-//txn NumAppArgs
-//int 2
-//==
-//bz failed
 
 // account -> burnwALGOs: args: ['bw']
 
@@ -939,10 +886,18 @@ store 8
 int 0
 store 6
 
+// End burnwALGOs: Go to charge_fees
+/////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////
+//
+// BEGIN: charge_fees
+// ==========================
 // Position 6: 0 Do not verify balances, 1 verify balances
 // Position 7: balance to verify if Position 6 != 0
 // Position 8: mint/burn amount, amount to tax
 // Position 9: fee to tax
+//
 
 charge_fees:
 
@@ -973,8 +928,15 @@ int 0
 ==
 bnz success
 
+// End charge_fees: Go to verify_balance
+/////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////
+// BEGIN: verify_balance
+// ==========================
 // Position 6: use this amount as minted
 // Position 7: amount to Withdraw/Burn. It must be less than the balance - AdminFees. Withdraw amount must include tx fees
+//
 
 verify_balance:
 
@@ -1019,16 +981,14 @@ app_local_get
 bz failed
 
 b success
+
+// End verify_balance
 /////////////////////////////////////////////////////////////////////
 
-
-no_admin_no_burn:
-
-// unknown call
-//b failed
+//
+// END: ACCOUNT SECTION
+// ====================
 /////////////////////////////////////////////////////////////////////
-
-
 
 failed:
 int 0

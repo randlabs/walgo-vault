@@ -1,18 +1,7 @@
 #pragma version 2
-
-// Vault Teal
-// Allows users to deposit their Algos and withdraw wAlgos
-// TMPL_USER_ADDRESS:	public key of the user
-// TMPL_APP_ID: Application ID
-
-
-// do not test the Receiver here because the Admin also withdraw ALGOs
-txn Receiver 
 addr TMPL_USER_ADDRESS
-==
 pop
 
 gtxn 0 ApplicationID // betanet
 int TMPL_APP_ID
 ==
-
