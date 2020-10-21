@@ -192,11 +192,15 @@ User sends ALGOs to the Vault address directly from any account.
 
 ## Run Test
 
-* Use settings.js.example as a base of the configuration
-* Create 
+* settings.js contains pre-created accounts for betanet
+* The App is also pre-created because the TEAL code contains a reference to the App Id that can not be automized.
 
+```bash
+node test.js
+```
 
 ## TODO
 
-* Implement app-vault-opt-out.teal
+* Add test to burn any token instead of wALGOs
+* Add test to mint wALGOs from a different App
 * Develop minter.teal to allow only Vaults mint wALGOs
