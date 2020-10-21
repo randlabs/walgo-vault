@@ -809,22 +809,20 @@ b verify_balance
 /////////////////////////////////////////////////////////////////////
 
 
-no_admin_burn_walgos:
-
-
+// Handle burnwALGOs
+// -----------------
 // account -> burnwALGOs: args: ['bw']
+no_admin_burn_walgos:
 
 // tx1: App BurnwALGOs
 // tx2: ASA transfer to Minter
-// ApplicationCall
-//txn 0 TypeEnum
-//int 6
-//==
+
+// tx1.TypeEnum == AssetTransfer && tx1.AssetAmount > 0 && tx1.AssetReceiver == MintAccount && 
+// tx1.XferAsset == ASA_ID == ASA_ID
 // AssetTransfer
 gtxn 1 TypeEnum
 int 4
 ==
-//&&
 
 // more than 0
 gtxn 1 AssetAmount
@@ -839,7 +837,7 @@ app_global_get
 ==
 &&
 
-// ASA ID
+// ASA_ID
 gtxn 1 XferAsset
 int 2671688
 ==
