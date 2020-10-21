@@ -196,7 +196,7 @@ User sends ALGOs to the Vault address directly from any account.
 * The App is also pre-created because the TEAL code contains a reference to the App Id that can not be automized.
 
 ```bash
-node test.js
+node test
 ```
 
 ## TODO

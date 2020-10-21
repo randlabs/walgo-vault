@@ -2,7 +2,6 @@
 
 // Global Vars:
 // position 0: isAdmin
-// position 1: GlobalStatus
 // position 2: is registered
 // position 3: Vault address (no Admin operations)
 // position 4: Admin address
@@ -13,6 +12,11 @@ int 0
 txn ApplicationID
 ==
 bz not_creation
+
+//
+// BEGIN: Creation of the app
+// ==========================
+//
 
 global GroupSize
 int 1
@@ -39,6 +43,10 @@ app_global_put
 // GS (GlobalStatus) starts disabled
 
 b success
+
+//
+// END: Creation of the app
+//
 /////////////////////////////////////////////////////////////////////
 
 not_creation:
@@ -48,54 +56,73 @@ app_global_get
 
 dup
 store 4
-
 txn Sender
 ==
-
-// position 0 == isAdmin
-store 0
-
-byte "GS" // GlobalStatus
-app_global_get
-
-// position 1 == GlobalStatus
-store 1
-
-load 0
 bz no_admin
 
-// check if this is deletion ---
+
+
+
+
+
+
+
+
+//
+// BEGIN: ADMIN SECTION
+// ====================
+//
+
+// Handle each possible OnCompletion type for admin
+
+txn OnCompletion
 int DeleteApplication
+==
+bnz admin_handle_delete
+
 txn OnCompletion
-==
-bz admin_no_delete
-
-global GroupSize
-int 1
-==
-bz failed
-
-b success
-
-// Admin -> deleteApp: args []
-
-admin_no_delete:
-//---
-// check if this is update ---
 int UpdateApplication
-txn OnCompletion
 ==
-bz admin_no_update
+bnz admin_handle_update
 
-// Admin -> updateApp: args []
+txn OnCompletion
+int NoOp
+==
+bnz admin_handle_noop
+
+// OnCompletion value is either OptIn, CloseOut, or ClearState
+// This is forbidden as admin, as admin is the creator
+err
+
+// Handle Admin Delete
+// -------------------
+// Admin -> deleteApp: args []
+admin_handle_delete:
+
 global GroupSize
 int 1
 ==
-bz failed
+bnz success
 
-b success
+err
 
-admin_no_update:
+// Handle Admin Update
+// -------------------
+// Admin -> updateApp: args []
+admin_handle_update:
+
+global GroupSize
+int 1
+==
+bnz success
+
+err
+
+// Handle Admin NoOp
+// -----------------
+admin_handle_noop:
+
+
 // SAVE SPACE: it fails if does not have 2 args so do not ask it 
 // All the other admin actions require at least one arg
 // If it is the admin account but 0 args -> admin account as a user
@@ -438,8 +465,9 @@ admin_no_creation_fee:
 
 no_admin:
 
-// test GlobalStatus
-load 1
+// Fail is GlobalStatus = 0
+byte "GS" // GlobalStatus
+app_global_get
 bz failed
 
 
