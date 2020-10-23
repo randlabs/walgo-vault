@@ -487,28 +487,25 @@ b success
 // account -> CloseOut: args [] accounts: [vaultAddr]
 no_admin_close_out:
 
+// Tx0.Accounts[0] is the user account
 int 0
 store 7
 
 txna Accounts 0
 store 8
 
-// Amount should be == pending Admin fees
-gtxn 1 Amount
-store 5
-
 // Position 3: Vault address
 // Position 4: Admin address
-// Position 5: tx1.Amount to cover pending Admin fees
 // Position 7: Index on the Accounts array of the account to close
 
 close_out_account:
 
-
 // tx1: App CloseOut
 
-// tx0.TypeEnum == AppCall && GroupSize == 2 && tx0.TypeEnum == Payment && tx1.Sender == VaultAddr && GroupSize == 2 && tx1.Fee == MinTxnFee && tx1.Receiver == Admin && 
-// Minted == 0 && tx1.To == pendingFees
+// tx1.TypeEnum == Payment && GroupSize == 2 && tx1.Sender == VaultAddr && tx1.Fee == MinTxnFee && 
+// tx1.CloseRemainderTo != ZeroAddress && Minted == 0 
+// tx1.Receiver == Admin && 
+// 
 // Payment
 gtxn 1 TypeEnum
 int 1
@@ -622,7 +619,7 @@ load 9
 int 10000
 /
 
-//int 68175
+// fees == tx2.Amount
 gtxn 2 Amount
 ==
 &&
@@ -717,7 +714,7 @@ no_admin_withdraw_algos:
 // tx0.Accounts[1] == VaultAddr && GroupSize == 2 && tx1.Sender == VaultAddr && 
 // tx1.TypeEnum == Payment && tx1.Amount >= 1000 && tx1.Fee == MinTxnFee && 
 // tx1.CloseRemainderTo == ZeroAddress
-load 3 // vault address
+load 3 // Vault address
 txna Accounts 1
 ==
 
@@ -740,10 +737,10 @@ int 1
 
 // check amounts
 gtxn 1 Amount
+dup
 store 7
 
 // more than 1000 (Minimum Withdrawal)
-load 7
 int 1000
 >=
 &&
@@ -804,7 +801,8 @@ store 9
 // GroupSize == 3 && BurnFee > 0 && tx2.TypeEnum == Payment && 
 // tx2.Amount == MintFee*tx1.AssetAmount/10000 && tx2.Receiver == AdminAddr && tx2.CloseRemainderTo == ZeroAddress) && 
 // tx1.AssetAmount > 0 && 
-// tx1.AssetReceiver == MintAccount && tx1.XferAsset == ASA_ID == ASA_ID
+// tx1.AssetReceiver == MintAccount && tx1.XferAsset == ASA_ID
+
 // AssetTransfer
 gtxn 1 TypeEnum
 int 4
@@ -890,7 +888,8 @@ app_local_get
 dup
 store 8
 
-// amount to burn less or equal to amount minted. If it is not verified the next substraction generates an error if the 
+// Minted >= tx1.AssetAmount
+// If it is not verified the next substraction generates an error if the 
 // the amount burned is greater than the minted. 
 gtxn 1 AssetAmount
 //txna ApplicationArgs 1
@@ -898,6 +897,7 @@ gtxn 1 AssetAmount
 >=
 bz failed
 
+// Minted = Minted - tx1.AssetAmount
 load 8
 gtxn 1 AssetAmount
 //txna ApplicationArgs 1
