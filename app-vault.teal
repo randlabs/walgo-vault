@@ -107,11 +107,6 @@ err
 // -----------------
 admin_handle_noop:
 
-txna ApplicationArgs 0
-byte "wAF" // withdrawAdminFees
-==
-bnz admin_withdraw_admin_fees
-
 // all the rest admin operations require only 1 tx
 global GroupSize
 int 1
@@ -185,83 +180,6 @@ app_global_put
 b success
 
 // End setGlobalStatus
-/////////////////////////////////////////////////////////////////////
-
-
-// Handle withdrawAdminFees
-// -----------------
-// admin -> withdrawAdminFees: args: ['waf'] accounts: [account]
-admin_withdraw_admin_fees:
-
-int 1
-txn ApplicationID
-byte "v" // vault
-app_local_get_ex
-// registered?
-bz failed
-store 3 // Vault address
-
-// tx1: App withdrawAdminFee
-// tx2: Payment
-global GroupSize
-int 2
-==
-
-// is the same Vault that corresponds to the account sending the ALGOs
-load 3
-gtxn 1 Sender
-==
-&&
-
-// Payment
-gtxn 1 TypeEnum
-int 1
-==
-&&
-
-// check account: tx1 Receiver == txn Sender == Admin
-gtxn 1 Receiver
-txn Sender
-==
-&&
-
-gtxn 1 Fee
-global MinTxnFee
-==
-&&
-
-// no Close
-gtxn 1 CloseRemainderTo 
-global ZeroAddress
-==
-&&
-
-bz failed
-
-// store amount to verify
-gtxn 1 Amount
-//txna ApplicationArgs 1
-//btoi
-
-store 7
-
-// substract to fees
-int 1
-byte "fees"
-app_local_get
-
-load 7
--
-store 8
-
-int 1
-byte "fees" // fees = fees - amountWithdrew - txFee
-load 8
-app_local_put
-
-b success
-
-// End withdrawAdminFees
 /////////////////////////////////////////////////////////////////////
 
 
@@ -427,7 +345,7 @@ bnz no_admin_opt_in
 
 // Pre-requisites for account operations:
 // all operations have 2 txs and account must be registered
-// Registered(Sender) && GroupSize == 2 && Status(account) == enabled
+// Registered(Sender) && Status(account) == enabled
 
 int 0
 txn ApplicationID
@@ -439,15 +357,10 @@ bz failed
 // store Vault address
 store 3
 
-global GroupSize
-int 2
-==
-
 // verify if the Account status is enabled
 int 0
 byte "s" // status
 app_local_get
-&&
 
 bz failed 
 
@@ -593,13 +506,18 @@ close_out_account:
 
 
 // tx1: App CloseOut
-// tx2: Payment
 
-// tx0.TypeEnum == AppCall && tx0.TypeEnum == Payment && tx1.Sender == VaultAddr && GroupSize == 2 && tx1.Fee == MinTxnFee && tx1.Receiver == Admin && Minted == 0 && tx1.To == pendingFees
+// tx0.TypeEnum == AppCall && GroupSize == 2 && tx0.TypeEnum == Payment && tx1.Sender == VaultAddr && GroupSize == 2 && tx1.Fee == MinTxnFee && tx1.Receiver == Admin && 
+// Minted == 0 && tx1.To == pendingFees
 // Payment
 gtxn 1 TypeEnum
 int 1
 ==
+
+global GroupSize
+int 2
+==
+&&
 
 // is the same Vault that corresponds to the account sending the ALGOs
 load 3
@@ -612,10 +530,10 @@ global MinTxnFee
 ==
 &&
 
-// Receiver account == Admin
-gtxn 1 Receiver 
-load 4
-==
+// the Vault is closed so CloseRemainderTo != ZeroAddress
+gtxn 1 CloseRemainderTo
+global ZeroAddress
+!=
 &&
 
 // user should burn the algos before CloseOut
@@ -627,14 +545,6 @@ int 0
 ==
 &&
 
-load 7
-byte "fees" // fees owed
-app_local_get
-
-// Receiver (Admin) amount == pending Admin fees
-load 5
-==
-&&
 bnz success
 
 err
@@ -648,16 +558,90 @@ err
 // account -> mintwALGOs: args ['mw'] accounts: [vaultAddr]
 no_admin_mint_walgos:
 
+// tx0: App mintwALGOs
+// tx1: ASA transfer from Minter
+// tx2: Pay fee to Admin in algos (if MintFee > 0)
+
+// add the fee to owner account
+byte "MF"
+app_global_get
+
+// store MintFee in Position 9
+store 9
+
+// Amount to mint Position 8
+gtxn 1 AssetAmount
+//txna ApplicationArgs 1
+//btoi
+store 8
+
 // is the same Vault that corresponds to the account
-// tx0.Accounts[1] == VaultAddr && tx1.TypeEnum == AssetTransfer && tx1.AssetAmount > 0 && 
-// tx1.Sender == MintAccount && tx1.Fee == MinTxnFee && tx1.AssetCloseTo == ZeroAddress && 
-// tx1.XferAsset == ASA_ID
+// tx0.Accounts[1] == VaultAddr && 
+// No fee so no 3rd tx
+// (GroupSize == 2 && MintFee == 0 || 
+// 3rd tx paying the fees. It can be paid from the Vault or from another account
+// GroupSize == 3 && MintFee > 0 && tx2.TypeEnum == Payment && 
+// tx2.Amount == MintFee*tx1.AssetAmount/10000 && tx2.Receiver == AdminAddr && tx2.CloseRemainderTo == ZeroAddress) && 
+// tx1.TypeEnum == AssetTransfer && 
+// tx1.AssetAmount > 0 && tx1.Sender == MintAccount && tx1.Fee == MinTxnFee && 
+// tx1.AssetCloseTo == ZeroAddress && tx1.XferAsset == ASA_ID
 load 3
 txn Accounts 1
 ==
 
-// tx1: App mintwALGOs
-// tx2: ASA transfer
+// (
+global GroupSize
+int 2
+==
+
+load 9
+int 0
+==
+&&
+bnz no_admin_mint_walgos_no_fee
+
+global GroupSize
+int 3
+==
+&&
+
+load 9
+int 0
+>
+&& 
+
+gtxn 2 TypeEnum 
+int 1
+== 
+&&
+
+// calculate Admin fees: AssetAmount * MintFee / 10000
+load 8
+load 9
+*
+int 10000
+/
+
+//int 68175
+gtxn 2 Amount
+==
+&&
+
+// tx2.Receiver == AdminAddr
+gtxn 2 Receiver
+load 4
+==
+&&
+
+gtxn 2 CloseRemainderTo 
+global ZeroAddress
+==
+&&
+
+// )
+
+no_admin_mint_walgos_no_fee:
+
 // AssetTransfer
 gtxn 1 TypeEnum
 int 4
@@ -700,15 +684,7 @@ int 0
 byte "m" // minted
 app_local_get
 
-//txna ApplicationArgs 1
-//btoi
-gtxn 1 AssetAmount
-dup
-dup
-// amount to tax
-store 8
-// amount minting to verify 
-store 7
+load 8
 +
 store 6
 
@@ -717,24 +693,15 @@ byte "m" // minted
 load 6
 app_local_put
 
-// add the fee to owner account
-byte "MF"
-app_global_get
+int 1
+balance
+load 6
+>=
+bnz success
 
-store 9
-int 1 
-store 6
+err
 
-int 0
-store 7
-
-// Position 6: verify balance == 1 (true)
-// Position 7: 0 because "m" has the amount to mint included 
-// Position 8: mint amount, amount to tax
-// Position 9: mint fee, tax
-b charge_fees
-
-// End mintwALGOs: Go to charge_fees
+// End mintwALGOs
 /////////////////////////////////////////////////////////////////////
 
 
@@ -747,11 +714,17 @@ no_admin_withdraw_algos:
 // tx1: App withdrawALGOs
 // tx2: Payment
 
-// tx0.Accounts[1] == VaultAddr && tx1.Sender == VaultAddr && tx1.TypeEnum == Payment && 
-// tx1.Amount >= 1000 && tx1.Fee == MinTxnFee && tx1.CloseRemainderTo == ZeroAddress
+// tx0.Accounts[1] == VaultAddr && GroupSize == 2 && tx1.Sender == VaultAddr && 
+// tx1.TypeEnum == Payment && tx1.Amount >= 1000 && tx1.Fee == MinTxnFee && 
+// tx1.CloseRemainderTo == ZeroAddress
 load 3 // vault address
 txna Accounts 1
 ==
+
+global GroupSize
+int 2
+==
+&&
 
 // is the same Vault that corresponds to the account sending the ALGOs
 load 3
@@ -788,22 +761,23 @@ global ZeroAddress
 
 bz failed
 
-// the total amount to validate is withdrawal amount + txFee
-load 7
-dup
-store 8
-gtxn 1 Fee
-//int 1000
-+
-store 7
+// minted <= Balance - Amount - tx1.Fee
+int 0
+byte "m" // minted
+app_local_get
 
 int 1
-store 6
+balance
+load 7
+-
+gtxn 1 Fee
+//int 1000
+-
 
-// Position 6: verify balance == 1
-// Position 7: verify amount to withdraw/mint (Mint/Withdraw) or 0 if it is not necessary (Burn/Deposit)
+<=
+bnz success
 
-b verify_balance
+err
 
 // End withdrawALGOs: Go to verify_balance
 /////////////////////////////////////////////////////////////////////
@@ -814,15 +788,79 @@ b verify_balance
 // account -> burnwALGOs: args: ['bw']
 no_admin_burn_walgos:
 
-// tx1: App BurnwALGOs
-// tx2: ASA transfer to Minter
+// tx0: App BurnwALGOs
+// tx1: ASA transfer to Minter
+// tx2: Pay fee to Admin in algos (if BurnFee > 0)
 
-// tx1.TypeEnum == AssetTransfer && tx1.AssetAmount > 0 && tx1.AssetReceiver == MintAccount && 
-// tx1.XferAsset == ASA_ID == ASA_ID
+// add the fee to owner account
+byte "BF"
+app_global_get
+
+store 9
+
+// tx1.TypeEnum == AssetTransfer && 
+// (GroupSize == 2 && BurnFee == 0 ||
+// 3rd tx paying the fees. It can be paid from the Vault or from another account
+// GroupSize == 3 && BurnFee > 0 && tx2.TypeEnum == Payment && 
+// tx2.Amount == MintFee*tx1.AssetAmount/10000 && tx2.Receiver == AdminAddr && tx2.CloseRemainderTo == ZeroAddress) && 
+// tx1.AssetAmount > 0 && 
+// tx1.AssetReceiver == MintAccount && tx1.XferAsset == ASA_ID == ASA_ID
 // AssetTransfer
 gtxn 1 TypeEnum
 int 4
 ==
+
+// (
+global GroupSize
+int 2
+==
+
+load 9
+int 0
+==
+&&
+bnz no_admin_burn_walgos_no_fee
+
+global GroupSize
+int 3
+==
+&&
+
+load 9
+int 0
+>
+&& 
+
+gtxn 2 TypeEnum 
+int 1
+== 
+&&
+
+// calculate Admin fees: AssetAmount * MintFee / 10000
+gtxn 1 AssetAmount
+load 9
+*
+int 10000
+/
+
+gtxn 2 Amount
+==
+&&
+
+// tx2.Receiver == AdminAddr
+gtxn 2 Receiver
+load 4
+==
+&&
+
+gtxn 2 CloseRemainderTo 
+global ZeroAddress
+==
+&&
+
+// )
+
+no_admin_burn_walgos_no_fee:
 
 // more than 0
 gtxn 1 AssetAmount
@@ -872,116 +910,11 @@ byte "m" // minted
 load 8
 app_local_put
 
-// add the fee to owner account
-byte "BF"
-app_global_get
-
-store 9
-gtxn 1 AssetAmount
-//txna ApplicationArgs 1
-//btoi
-store 8
-int 0
-store 6
-
-// End burnwALGOs: Go to charge_fees
-/////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////
-//
-// BEGIN: charge_fees
-// ==========================
-// Position 6: 0 Do not verify balances, 1 verify balances
-// Position 7: balance to verify if Position 6 != 0
-// Position 8: mint/burn amount, amount to tax
-// Position 9: fee to tax
-//
-
-charge_fees:
-
-load 8
-load 9
-*
-int 10000
-/
-// Position 8: fees to add
-store 8
-
-int 0
-byte "fees" // fees = fees + newFees
-app_local_get
-
-// tax fee
-load 8
-+
-store 8
-
-int 0
-byte "fees"
-load 8
-app_local_put
-
-load 6
-int 0
-==
-bnz success
-
-// End charge_fees: Go to verify_balance
-/////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////
-// BEGIN: verify_balance
-// ==========================
-// Position 6: use this amount as minted
-// Position 7: amount to Withdraw/Burn. It must be less than the balance - AdminFees. Withdraw amount must include tx fees
-//
-
-verify_balance:
-
-// Balance - withdraw/mint amount - fees >= amount minted
-int 0
-byte "fees" 
-app_local_get
-dup
-store 8
-int 0
->
-bz verify_balance_no_fees
-
-// keep a tx fee to withdraw/close
-load 8
-global MinTxnFee
-+
-store 8
-
-verify_balance_no_fees:
-
-// Balance - WithdrawalAmount - AdminFees >= Minted
-// Keep also MinTxFee in the account to withdraw/close it
-
-// Vault Balance
-int 1
-balance
-
-// Withdraw amount
-load 7
--
-
-// admin fees
-load 8
--
-
-int 0
-byte "m" // minted
-app_local_get
-
->=
-bz failed
-
 b success
 
-// End verify_balance
+// End burnwALGOs
 /////////////////////////////////////////////////////////////////////
+
 
 //
 // END: ACCOUNT SECTION

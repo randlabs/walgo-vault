@@ -1,25 +1,17 @@
 const algosdk = require('algosdk')
 
-async function createASA (algodClient, sender, totalSupply, decimals, signCallback) {
+async function createASA(algodClient, sender, totalSupply, decimals, unitName, name, url, signCallback) {
   try {
     const params = await algodClient.getTransactionParams().do()
 
 		params.fee = 1000
 		params.flatFee = true
 
-    // const suggestedParams = {
-    //   genesisHash: params.genesishashb64,
-    //   genesisID: params.genesisID,
-    //   firstRound: params.lastRound,
-    //   lastRound: params.lastRound + 10,
-    //   fee: params.minFee,
-    //   flatFee: true
-    // }
-
 		const createAssetTx = algosdk.makeAssetCreateTxnWithSuggestedParams(sender, new Uint8Array(Buffer.from('Wrapped ALGO Asset', 'utf8')), 
-			totalSupply, decimals, false, sender, sender, sender, sender, 'wALGO', 'Wrapped ALGO', 'https://stakerdao', undefined,
+			totalSupply, decimals, false, sender, sender, sender, sender, unitName, name, url, undefined,
       params)
 		const txId = createAssetTx.txID().toString()
+
 		// Sign the transaction
 		let createAssetTxSigned = signCallback(sender, createAssetTx)
 
@@ -27,9 +19,13 @@ async function createASA (algodClient, sender, totalSupply, decimals, signCallba
     return txId
   } catch (e) {
     if (e && e.error && e.error.message) {
-      console.log(e.error.message)
+			let text = e.error.message
+			if(e.error.text) {
+				text += ': ' + e.error.text
+			}
+      console.log('Error createASA: %s', text)
     } else {
-      console.log('Error: ' + e)
+      console.log('Error createASA: ' + e)
     }
   }
 }

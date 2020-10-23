@@ -15,7 +15,6 @@ const CREATION_FEE_GLOBAL_KEY = 'CF'
 
 const VAULT_ACCOUNT_LOCAL_KEY = 'v'
 const MINTED_LOCAL_KEY = 'm'
-const PENDING_ADMIN_FEES_LOCAL_KEY = 'fees'
 const VAULT_STATUS_LOCAL_KEY = 's'
 
 const MINT_WALGOS_OP = 'mw'
@@ -54,14 +53,9 @@ var minterTEAL =
 // TMPL_APP_ID: Application ID
 // TMPL_ASA_ID: wALGOs id
 
-gtxn 0 ApplicationID // betanet
+gtxn 0 ApplicationID
 int TMPL_APP_ID
 ==
-
-global GroupSize
-int 2
-==
-&&
 
 gtxn 1 TypeEnum
 int 4
@@ -73,40 +67,12 @@ gtxn 1 XferAsset
 int TMPL_ASA_ID
 ==
 &&
+
+txn RekeyTo
+global ZeroAddress
+==
+&&
 `
-
-// var minterTEAL = 
-// // `#pragma version 2
-// // int 1
-// // return
-// // `
-// `
-// #pragma version 2
-// // Minter Delegate Teal
-// // Allows App to mint wAlgos to Vault users
-// // TMPL_APP_ID: Application ID
-// // TMPL_ASA_ID: wALGOs id
-
-// gtxn 0 ApplicationID // betanet
-// int TMPL_APP_ID
-// ==
-
-// global GroupSize
-// int 2
-// ==
-// &&
-
-// gtxn 1 TypeEnum
-// int 4
-// ==
-// &&
-
-// // ASA ID
-// gtxn 1 XferAsset
-// int TMPL_ASA_ID
-// ==
-// &&
-// `
 
 class VaultManager {
 	constructor (algodClient, appId = 0, adminAddr = undefined, assetId = 0) {
@@ -167,10 +133,6 @@ class VaultManager {
 
 		this.vaultAddressByApp = async function (accountAddr) {
 			return await this.readLocalStateByKey(accountAddr, VAULT_ACCOUNT_LOCAL_KEY)
-		}		
-
-		this.vaultAdminFees = async function (accountAddr) {
-			return await this.readLocalStateByKey(accountAddr, PENDING_ADMIN_FEES_LOCAL_KEY)
 		}		
 
 		this.vaultAddressByTEAL = async function (accountAddr) {
@@ -238,7 +200,9 @@ class VaultManager {
 		}
 
 		// create new application
-		this.createApp = async function (sender, signCallback) {
+		// @approvalCodeFile
+		// @clearCodeFile
+		this.createApp = async function (sender, signCallback, approvalCodeFile, clearCodeFile) {
 			const localInts = 10
 			const localBytes = 2
 			const globalInts = 10
@@ -253,8 +217,21 @@ class VaultManager {
 			params.fee = this.minFee
 			params.flatFee = true
 
-			let approvalProgramCompiled = await this.compileApprovalProgram()
-			let clearProgramCompiled = await this.compileClearProgram()
+			let approvalProgramCompiled
+			let clearProgramCompiled
+
+			if(approvalCodeFile) {
+				approvalProgramCompiled = await this.compileProgram(approvalCodeFile)
+			}
+			else {
+				approvalProgramCompiled = await this.compileApprovalProgram()
+			}
+			if(clearCodeFile) {
+				clearProgramCompiled = await this.compileProgram(clearCodeFile)
+			}
+			else {
+				clearProgramCompiled = await this.compileClearProgram()
+			}
 
 			// create unsigned transaction
 			const txApp = algosdk.makeApplicationCreateTxn(sender, params, onComplete,
@@ -336,7 +313,9 @@ class VaultManager {
 		}
 
 		// optIn
-		this.optIn = async function (sender, signCallback) {
+		// @forceCreationFee: force the amount of fees to pay to admin. Used to test.
+		// @forceFeeTo: force To address instead of using the Admin. Used to test.
+		this.optIn = async function (sender, signCallback, forceCreationFee, forceFeeTo) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -345,6 +324,14 @@ class VaultManager {
 
 			let vaultAddr = await this.vaultAddressByTEAL(sender)
 			let fee = await this.creationFee()
+			let toAddr = this.adminAddr
+
+			if(forceFeeTo) {
+				toAddr = forceFeeTo
+			}
+			if(forceCreationFee) {
+				fee = forceCreationFee
+			}
 
 			let appAccounts = []
 			appAccounts.push (vaultAddr)
@@ -354,7 +341,7 @@ class VaultManager {
 
 			if(fee !== 0) {
 				// pay the fees
-				let txPayment = algosdk.makePaymentTxnWithSuggestedParams(sender, this.adminAddr, fee, undefined, new Uint8Array(0), params)
+				let txPayment = algosdk.makePaymentTxnWithSuggestedParams(sender, toAddr, fee, undefined, new Uint8Array(0), params)
 				let txns = [txApp, txPayment];
 	
 				// Group both transactions
@@ -364,8 +351,6 @@ class VaultManager {
 				let txAppSigned = signCallback(sender, txApp)
 				let txPaymentSigned = signCallback(sender, txPayment)
 
-				//let txAppSigned = txApp.signTxn(account.sk);
-				//let txPaymentSigned = txPayment.signTxn(account.sk);
 				signed.push(txAppSigned);
 				signed.push(txPaymentSigned);
 	
@@ -387,46 +372,64 @@ class VaultManager {
 			}
 		}
 
-		this.assetBalance = async function(accountAddr) {
+		// @forceAssetId: force assetId. Used to test.
+		this.assetBalance = async function(accountAddr, forceAssetId) {
 			let response = await this.algodClient.accountInformation(accountAddr).do()
+			let assetId = this.assetId
+
+			if(forceAssetId) {
+				assetId = forceAssetId
+			}
 
 			for(let i = 0; i < response.assets.length; i++) {
-				if(response.assets[i]["asset-id"] == this.assetId) {
+				if(response.assets[i]["asset-id"] == assetId) {
 					return response.assets[i]["amount"]
 				}
 			}
 			return 0
 		}
 
-		this.transferAsset = async function (sender, destAddr, amount, closeAddr, signCallback) {
+		// @forceAssetId: force assetId. Used to test.
+		this.transferAsset = async function (sender, destAddr, amount, closeAddr, signCallback, forceAssetId) {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
 			params.flatFee = true
 
+			let assetId = this.assetId
+
+			if(forceAssetId) {
+				assetId = forceAssetId
+			}
+
 			// create unsigned transaction
 			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, destAddr, closeAddr, 
-				undefined, amount, new Uint8Array(0), this.assetId, params)
+				undefined, amount, new Uint8Array(0), assetId, params)
 			let txwALGOTransferSigned = signCallback(sender, txwALGOTransfer)
-			//let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk)
 
 			let tx = (await this.algodClient.sendRawTransaction(txwALGOTransferSigned).do())
 
 			return tx.txId
 		}
 
-		this.optInASA = async function (sender, signCallback) {
+		// @forceAssetId: force assetId. Used to test.
+		this.optInASA = async function (sender, signCallback, forceAssetId) {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
 			params.flatFee = true
 
+			let assetId = this.assetId
+
+			if(forceAssetId) {
+				assetId = forceAssetId
+			}
+
 			// create unsigned transaction
 			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, sender, undefined, 
-				undefined, 0, new Uint8Array(0), this.assetId, params)
+				undefined, 0, new Uint8Array(0), assetId, params)
 			
 			let txwALGOTransferSigned = signCallback(sender, txwALGOTransfer)
-			//let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk)
 
 			let tx = (await this.algodClient.sendRawTransaction(txwALGOTransferSigned).do())
 
@@ -563,27 +566,12 @@ class VaultManager {
 			return ret
 		}
 
-		// adminVaultFees: get Vault's Admin unclaimed fees 
-		this.adminVaultFees = async function (accountAddr) {
-			let ret = await this.readLocalStateByKey(accountAddr, PENDING_ADMIN_FEES_LOCAL_KEY)
-			if(!ret) {
-				return 0
-			}
-			return ret
-		}
-
 		// maxWithdrawAmount: get the total rewards fees generated by the Vault
 		this.maxWithdrawAmount = async function (accountAddr) {
 			let vaultBalance = await this.vaultBalance(accountAddr)
 			let minted = await this.minted(accountAddr)
-			let pendingFees = await this.vaultAdminFees(accountAddr)
 
-			// add the tx fee to the minimum balance to reserve it to CloseOut
-			if(pendingFees > 0) {
-				pendingFees += this.minTransactionFee()
-			}
-
-			let amount = vaultBalance - minted - pendingFees - this.minTransactionFee()
+			let amount = vaultBalance - minted - this.minTransactionFee()
 			if(amount < 0) {
 				return 0
 			}
@@ -598,15 +586,9 @@ class VaultManager {
 		this.maxMintAmount = async function (accountAddr) {
 			let vaultBalance = await this.vaultBalance(accountAddr)
 			let minted = await this.minted(accountAddr)
-			let pendingFees = await this.vaultAdminFees(accountAddr)
 			let fee = await this.mintFee()
 
-			// newMintOperationFee = (vaultBalance - prevFees - newMintOperationFee)*mintFee
-			// newMintOperationFee = vaultBalance*mintFee - prevFee*mintFee - newMintOperationFee*mintFee
-			// newMintOperationFee + newMintOperationFee*mintFee = vaultBalance*mintFee - prevFee*mintFee
-			// (1+mintFee)*newMintOperationFee = vaultBalance*mintFee - prevFee*mintFee
-			// newMintOperationFee = (vaultBalance*mintFee - prevFee*mintFee) / (1+mintFee)
-			let totalFees = Math.floor((vaultBalance - pendingFees)*fee / (1+fee) + pendingFees)
+			let totalFees = Math.floor((vaultBalance)*fee / (1+fee))
 
 			let amount = vaultBalance - minted - totalFees
 			return amount
@@ -624,6 +606,15 @@ class VaultManager {
 			return await this.algodClient.compile(programBytes).do()
 		}
 
+		this.signVaultTx = async function(sender, tx) {
+			const compiledProgram = await this.vaultCompiledTEALByAddress(sender)
+			
+			let vaultProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"))
+			let lsigVault = algosdk.makeLogicSig(vaultProgram)
+			let txSigned = algosdk.signLogicSigTransactionObject(tx, lsigVault)
+
+			return txSigned
+		}
 		// depositALGOs
 		this.depositALGOs = async function (sender, amount, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
@@ -641,7 +632,6 @@ class VaultManager {
 
 			let signed = []
 			let txPaymentSigned = signCallback(sender, txPayment)
-			//let txPaymentSigned = txPayment.signTxn(account.sk);
 			signed.push(txPaymentSigned);
 
 			let tx = (await this.algodClient.sendRawTransaction(signed).do())
@@ -650,7 +640,9 @@ class VaultManager {
 		}
 
 		// mintwALGOs
-		this.mintwALGOs = async function (sender, amount, signCallback, forceAppId) {
+		// @forceAppId: force appId to be the specified instead of the vault. Used to test.
+		// @forceAssetId: force assetId to be the specified instead of wALGO. Used to test.
+		this.mintwALGOs = async function (sender, amount, signCallback, forceAppId, forceAssetId) {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
@@ -658,6 +650,7 @@ class VaultManager {
 
 			let minterAddr = await this.mintAccount()
 			let vaultAddr = await this.vaultAddressByApp(sender)
+			let mintFee = await this.mintFee()
 
 			if(!minterAddr) {
 				throw new Error('ERROR: Mint account not defined')
@@ -673,36 +666,43 @@ class VaultManager {
 			appAccounts.push (vaultAddr)
 
 			let appId = this.appId
+			let assetId = this.assetId
 
 			if(forceAppId) {
 				appId = forceAppId
 			}
+			if(forceAssetId) {
+				assetId = forceAssetId
+			}
+
+			let txPayFees
+
 			// create unsigned transaction
 			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, appId, appArgs, appAccounts)
 			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(minterAddr, sender, undefined, undefined, amount, new Uint8Array(0), 
-				this.assetId, params)
+				assetId, params)
 			let txns = [txApp, txwALGOTransfer];
+
+			if(mintFee > 0) {
+				let fees = Math.floor(mintFee * amount / 10000)
+				txPayFees = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, this.adminAddr, fees, undefined, new Uint8Array(0), params)
+				txns.push(txPayFees)
+			}
 
 			// Group both transactions
 			algosdk.assignGroupID(txns);
 
-			// let encoder = new TextEncoder();
-			// let programBytes = encoder.encode(minterTEAL);
-
-			// const compiledProgram = await this.algodClient.compile(programBytes).do()
-
-			// let minterProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"));
-
-			// let lsigMinter = algosdk.makeLogicSig(minterProgram);
-
 			let signed = []
 			let txAppSigned = signCallback(sender, txApp)
-			//let txAppSigned = txApp.signTxn(account.sk);
-			// let txwALGOTransferSigned = algosdk.signLogicSigTransactionObject(txwALGOTransfer, lsigMinter);
-			let txwALGOTransferSigned = algosdk.signLogicSigTransactionObject(txwALGOTransfer, this.lsigMint);
+			let txwALGOTransferSigned = algosdk.signLogicSigTransactionObject(txwALGOTransfer, this.lsigMint);			
 
 			signed.push(txAppSigned);
 			signed.push(txwALGOTransferSigned.blob);
+
+			if(txPayFees) {
+				let txPayFeesSigned = await this.signVaultTx(sender, txPayFees)
+				signed.push(txPayFeesSigned.blob);
+			}
 
 			let tx = (await this.algodClient.sendRawTransaction(signed).do())
 
@@ -736,16 +736,12 @@ class VaultManager {
 			// Group both transactions
 			algosdk.assignGroupID(txns);
 
-			const compiledProgram = await this.vaultCompiledTEALByAddress(sender)
-
-			let vaultProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"));
-
-			let lsigVault = algosdk.makeLogicSig(vaultProgram);
 
 			let signed = []
 			let txAppSigned = signCallback(sender, txApp)
-			//let txAppSigned = txApp.signTxn(account.sk);
-			let txWithdrawSigned = algosdk.signLogicSigTransactionObject(txWithdraw, lsigVault);
+
+			let txWithdrawSigned = await this.signVaultTx(sender, txWithdraw)
+
 			signed.push(txAppSigned);
 			signed.push(txWithdrawSigned.blob);
 
@@ -764,6 +760,7 @@ class VaultManager {
 			let minterAddr = await this.mintAccount()
 			let vaultAddr = await this.vaultAddressByApp(sender)
 			let assetId = this.assetId
+			let burnFee = await this.burnFee()
 
 			if(forceAssetId) {
 				assetId = forceAssetId
@@ -779,73 +776,39 @@ class VaultManager {
 			let appArgs = [];
 			appArgs.push(new Uint8Array(Buffer.from(BURN_ALGOS_OP)))
 
+			let txPayFees
+
 			// create unsigned transaction
 			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs)
 			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, minterAddr, undefined, undefined, amount, new Uint8Array(0), 
 				assetId, params)
 			let txns = [txApp, txwALGOTransfer];
 
+			if(burnFee > 0) {
+				let fees = Math.floor(burnFee * amount / 10000)
+				txPayFees = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, this.adminAddr, fees, undefined, new Uint8Array(0), params)
+				txns.push(txPayFees)
+			}
+
 			// Group both transactions
 			algosdk.assignGroupID(txns);
 
 			let signed = []
 			let txAppSigned = signCallback(sender, txApp)
-			//let txAppSigned = txApp.signTxn(account.sk);
 			let txwALGOTransferSigned = signCallback(sender, txwALGOTransfer)
-			//let txwALGOTransferSigned = txwALGOTransfer.signTxn(account.sk);
 			signed.push(txAppSigned);
 			signed.push(txwALGOTransferSigned);
 
-			let tx = (await this.algodClient.sendRawTransaction(signed).do())
-
-			return tx.txId
-		}
-
-		// withdrawAdminFees
-		this.withdrawAdminFees = async function (sender, accountAddr, amount, signCallback) {
-			const params = await this.algodClient.getTransactionParams().do()
-
-			params.fee = this.minFee
-			params.flatFee = true
-
-			let vaultAddr = await this.vaultAddressByApp(accountAddr)
-			if(!vaultAddr) {
-				throw new Error('ERROR: Account not opted in')
+			if(txPayFees) {
+				let txPayFeesSigned = await this.signVaultTx(sender, txPayFees)
+				signed.push(txPayFeesSigned.blob);
 			}
 
-			let appArgs = [];
-			appArgs.push(new Uint8Array(Buffer.from(WITHDRAW_ADMIN_FEES_OP)))
-			appArgs.push(new Uint8Array(tools.getInt64Bytes(amount)))
-
-			let appAccounts = []
-			appAccounts.push (accountAddr)
-
-			// create unsigned transaction
-			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts)
-			let txWithdraw = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, sender, amount, undefined, new Uint8Array(0), params)
-
-			let txns = [txApp, txWithdraw];
-
-			// Group both transactions
-			algosdk.assignGroupID(txns);
-
-			const compiledProgram = await this.vaultCompiledTEALByAddress(accountAddr)
-
-			let vaultProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"));
-
-			let lsigVault = algosdk.makeLogicSig(vaultProgram);
-
-			let signed = []
-			let txAppSigned = signCallback(sender, txApp)
-			//let txAppSigned = txApp.signTxn(adminAccount.sk);
-			let txWithdrawSigned = algosdk.signLogicSigTransactionObject(txWithdraw, lsigVault);
-			signed.push(txAppSigned);
-			signed.push(txWithdrawSigned.blob);
-
 			let tx = (await this.algodClient.sendRawTransaction(signed).do())
 
 			return tx.txId
 		}
+
 		// closeOut
 		// @forceTo: force To address to be the specified instead of the vault admin. Used to test.
 		// @forceClose: force Close address to be the specified instead of the vault admin. Used to test.
@@ -861,7 +824,7 @@ class VaultManager {
 				throw new Error('ERROR: Account not opted in')
 			}
 
-			let toAmount = await this.vaultAdminFees(sender)
+			let toAmount = 0
 			let vaultBalance = await this.vaultBalance(sender)
 			
 			// if there is no balance just ClearApp
@@ -874,7 +837,7 @@ class VaultManager {
 				toAmount = forceToAmount
 			}
 
-			let toAddr = this.adminAddr
+			let toAddr = sender
 			let closeAddr = sender
 
 			if(forceTo) {
@@ -897,16 +860,10 @@ class VaultManager {
 			// Group both transactions
 			algosdk.assignGroupID(txns);
 
-			const compiledProgram = await this.vaultCompiledTEALByAddress(sender)
-
-			let vaultProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"));
-
-			let lsigVault = algosdk.makeLogicSig(vaultProgram);
-
 			let signed = []
 			let txAppSigned = signCallback(sender, txApp)
-			//let txAppSigned = txApp.signTxn(account.sk);
-			let txWithdrawSigned = algosdk.signLogicSigTransactionObject(txWithdraw, lsigVault);
+			let txWithdrawSigned = await this.signVaultTx(sender, txWithdraw)
+
 			signed.push(txAppSigned);
 			signed.push(txWithdrawSigned.blob);
 
@@ -929,7 +886,6 @@ class VaultManager {
 
 			// Sign the transaction
 			let txAppSigned = signCallback(sender, txApp)
-			//const txAppSigned = txApp.signTxn(account.sk)
 
 			// Submit the transaction
 			await this.algodClient.sendRawTransaction(txAppSigned).do()
@@ -976,7 +932,6 @@ class VaultManager {
 
 			let signed = []
 			let txAppSigned = signCallback(sender, txApp)
-			//let txAppSigned = txApp.signTxn(account.sk);
 			let txWithdrawSigned = algosdk.signLogicSigTransactionObject(txWithdraw, lsigVault);
 			signed.push(txAppSigned);
 			signed.push(txWithdrawSigned.blob);
@@ -999,7 +954,6 @@ class VaultManager {
 
 			// Sign the transaction
 			let txAppSigned = signCallback(sender, txApp)
-			//const txAppSigned = txApp.signTxn(account.sk)
 
 			// Submit the transaction
 			await this.algodClient.sendRawTransaction(txAppSigned).do()
@@ -1023,7 +977,6 @@ class VaultManager {
 
 			// Sign the transaction
 			let txAppSigned = signCallback(sender, txApp)
-			//const txAppSigned = txApp.signTxn(adminAccount.sk)
 
 			// Submit the transaction
 			await this.algodClient.sendRawTransaction(txAppSigned).do()
@@ -1045,7 +998,6 @@ class VaultManager {
 
 			// Sign the transaction
 			let txAppSigned = signCallback(sender, txApp)
-			//const txAppSigned = txApp.signTxn(adminAccount.sk)
 
 			// Submit the transaction
 			await this.algodClient.sendRawTransaction(txAppSigned).do()
@@ -1057,22 +1009,5 @@ class VaultManager {
 }
 
 module.exports = { 
-	VaultManager,
-	MINT_ACCOUNT_GLOBAL_KEY,
-	MINT_FEE_GLOBAL_KEY,
-	BURN_FEE_GLOBAL_KEY,
-	PENDING_ADMIN_FEES_LOCAL_KEY,
-	
-	VAULT_ACCOUNT_LOCAL_KEY,
-	MINTED_LOCAL_KEY,
-	PENDING_ADMIN_FEES_LOCAL_KEY,
-		
-	WITHDRAW_ADMIN_FEES_OP,
-	MINT_WALGOS_OP,
-	WITHDRAW_ALGOS_OP,
-	BURN_ALGOS_OP,
-	
-	SET_ACCOUNT_STATUS_OP,
-	SET_GLOBAL_STATUS_OP,
-	SET_MINT_ACCOUNT_OP
+	VaultManager
 }
