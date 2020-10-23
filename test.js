@@ -209,10 +209,27 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		console.log('withdrawALGOs successfully failed GlobalStatus == 0: %s', errorText(err))
 	}
 
+	try {
+		console.log('setGlobalStatus: try incorrect number')
+		txId = await vaultManager.setGlobalStatus(addresses[0], 2, signCallback)
+		console.error('setGlobalStatus: should have failed, incorrect argument: %s', txId)
+	} catch (err) {
+		console.log('setGlobalStatus successfully failed incorrect argument: %s', errorText(err))
+	}
+
+
 	console.log('setGlobalStatus')
 	txId = await vaultManager.setGlobalStatus(addresses[0], 1, signCallback)
 	console.log('setGlobalStatus to 1: %s', txId)
-	
+
+	try {
+		console.log('setAccountStatus: try incorrect number')
+		txId = await vaultManager.setAccountStatus(addresses[0], accountAddr, 10, signCallback)
+		console.error('setAccountStatus: should have failed, incorrect argument: %s', txId)
+	} catch (err) {
+		console.log('setAccountStatus successfully failed incorrect argument: %s', errorText(err))
+	}
+
 	console.log('setAccountStatus')
 	txId = await vaultManager.setAccountStatus(addresses[0], accountAddr, 0, signCallback)
 	console.log('setAccountStatus to 0: %s', txId)
@@ -490,182 +507,182 @@ async function main () {
 		txId = await vaultManager.updateApp(addresses[0], signCallback)
 		console.log('updateApp: %s', txId)
 
-		// console.log('setGlobalStatus')
-		// txId = await vaultManager.setGlobalStatus(addresses[0], 1, signCallback)
-		// console.log('setGlobalStatus to 1: %s', txId)		
+		console.log('setGlobalStatus')
+		txId = await vaultManager.setGlobalStatus(addresses[0], 1, signCallback)
+		console.log('setGlobalStatus to 1: %s', txId)		
 	
-		// txResponse = await vaultManager.waitForTransactionResponse(txId)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-		// console.log('setMintAccount')
-		// txId = await vaultManager.setMintAccount(addresses[0], addresses[1], signCallback)
-		// console.log('setMintAccount %s: %s', addresses[1], txId)
+		console.log('setMintAccount')
+		txId = await vaultManager.setMintAccount(addresses[0], addresses[1], signCallback)
+		console.log('setMintAccount %s: %s', addresses[1], txId)
 
-		// console.log('setAdminAccount')
-		// txId = await vaultManager.setAdminAccount(addresses[0], addresses[2], signCallback)
-		// console.log('setAdminAccount %s: %s', addresses[2], txId)
-		// txResponse = await vaultManager.waitForTransactionResponse(txId)
+		console.log('setAdminAccount')
+		txId = await vaultManager.setAdminAccount(addresses[0], addresses[2], signCallback)
+		console.log('setAdminAccount %s: %s', addresses[2], txId)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-		// // use the new admin to set mint account
-		// console.log('setMintAccount')
-		// txId = await vaultManager.setMintAccount(addresses[2], mintAddr, signCallback)
-		// console.log('setMintAccount %s: %s', mintAddr, txId)
+		// use the new admin to set mint account
+		console.log('setMintAccount')
+		txId = await vaultManager.setMintAccount(addresses[2], mintAddr, signCallback)
+		console.log('setMintAccount %s: %s', mintAddr, txId)
 
-		// console.log('setGlobalStatus')
-		// txId = await vaultManager.setGlobalStatus(addresses[2], 1, signCallback)
-		// console.log('setGlobalStatus to 1: %s', txId)
-		// // restore admin account
-		// console.log('setAdminAccount')
-		// txId = await vaultManager.setAdminAccount(addresses[2], addresses[0], signCallback)
-		// console.log('setAdminAccount %s: %s', addresses[0], txId)
+		console.log('setGlobalStatus')
+		txId = await vaultManager.setGlobalStatus(addresses[2], 1, signCallback)
+		console.log('setGlobalStatus to 1: %s', txId)
+		// restore admin account
+		console.log('setAdminAccount')
+		txId = await vaultManager.setAdminAccount(addresses[2], addresses[0], signCallback)
+		console.log('setAdminAccount %s: %s', addresses[0], txId)
 
-		// txResponse = await vaultManager.waitForTransactionResponse(txId)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-		// // fails if it the account opted in before
-		// try {
-		// 	txId = await vaultManager.optIn(addresses[0], signCallback)
-		// } catch(err) {
-		// 	console.log('optIn %s: has already opted in', addresses[0])
-		// }
+		// fails if it the account opted in before
+		try {
+			txId = await vaultManager.optIn(addresses[0], signCallback)
+		} catch(err) {
+			console.log('optIn: successfully failed Admin account cannot optIn %s', errorText(err))
+		}
 
-		// try {
-		// 	console.log('setMintFee: should fail')
-		// 	txId = await vaultManager.setMintFee(addresses[2], 300, signCallback)
-		// 	console.error('ERROR: setMintFee should have failed non admin account: %s', txId)
+		try {
+			console.log('setMintFee: should fail')
+			txId = await vaultManager.setMintFee(addresses[2], 300, signCallback)
+			console.error('ERROR: setMintFee should have failed non admin account: %s', txId)
 	
-		// } catch (err) {
-		// 	console.log('setMintFee successfully failed: %s', errorText(err))
-		// }
+		} catch (err) {
+			console.log('setMintFee successfully failed: %s', errorText(err))
+		}
 
-		// try {
-		// 	console.log('setMintFee: should fail')
-		// 	txId = await vaultManager.setMintFee(addresses[0], 5001, signCallback)
-		// 	console.error('ERROR: setMintFee should have failed above maximum (5000): %s', txId)
+		try {
+			console.log('setMintFee: should fail')
+			txId = await vaultManager.setMintFee(addresses[0], 5001, signCallback)
+			console.error('ERROR: setMintFee should have failed above maximum (5000): %s', txId)
 	
-		// } catch (err) {
-		// 	console.log('setMintFee successfully failed: %s', errorText(err))
-		// }
+		} catch (err) {
+			console.log('setMintFee successfully failed: %s', errorText(err))
+		}
 
-		// try {
-		// 	console.log('setBurnFee: should fail')
-		// 	txId = await vaultManager.setBurnFee(addresses[1], 300, signCallback)
-		// 	console.error('ERROR: setBurnFee should have failed non admin account: %s', txId)
+		try {
+			console.log('setBurnFee: should fail')
+			txId = await vaultManager.setBurnFee(addresses[1], 300, signCallback)
+			console.error('ERROR: setBurnFee should have failed non admin account: %s', txId)
 	
-		// } catch (err) {
-		// 	console.log('setBurnFee successfully failed: %s', errorText(err))
-		// }
+		} catch (err) {
+			console.log('setBurnFee successfully failed: %s', errorText(err))
+		}
 
-		// try {
-		// 	console.log('setBurnFee: should fail')
-		// 	txId = await vaultManager.setBurnFee(addresses[0], 5001, signCallback)
-		// 	console.error('ERROR: setBurnFee should have failed above maximum (5000): %s', txId)
+		try {
+			console.log('setBurnFee: should fail')
+			txId = await vaultManager.setBurnFee(addresses[0], 5001, signCallback)
+			console.error('ERROR: setBurnFee should have failed above maximum (5000): %s', txId)
 	
-		// } catch (err) {
-		// 	console.log('setBurnFee successfully failed: %s', errorText(err))
-		// }
+		} catch (err) {
+			console.log('setBurnFee successfully failed: %s', errorText(err))
+		}
 
-		// // Reset Withdraw Fee
-		// console.log('Reset Fees')
-		// console.log('setBurnFee')
-		// txId = await vaultManager.setBurnFee(addresses[0], 0, signCallback)
-		// console.log('setBurnFee: %s', txId)
+		// Reset Withdraw Fee
+		console.log('Reset Fees')
+		console.log('setBurnFee')
+		txId = await vaultManager.setBurnFee(addresses[0], 0, signCallback)
+		console.log('setBurnFee: %s', txId)
 
-		// // Reset Mint Fee 
-		// console.log('setMintFee')
-		// txId = await vaultManager.setMintFee(addresses[0], 0, signCallback)
-		// console.log('setMintFee: %s', txId)
+		// Reset Mint Fee 
+		console.log('setMintFee')
+		txId = await vaultManager.setMintFee(addresses[0], 0, signCallback)
+		console.log('setMintFee: %s', txId)
 		
-		// // Reset Creation Fee 
-		// console.log('setCreationFee')
-		// txId = await vaultManager.setCreationFee(addresses[0], 0, signCallback)
-		// console.log('setCreationFee: %s', txId)
+		// Reset Creation Fee 
+		console.log('setCreationFee')
+		txId = await vaultManager.setCreationFee(addresses[0], 0, signCallback)
+		console.log('setCreationFee: %s', txId)
 
-		// txResponse = await vaultManager.waitForTransactionResponse(txId)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-		// console.log('Retrieving burnFee')
-		// let fee = await vaultManager.burnFee()
-		// if(fee !== 0) {
-		// 	console.error('ERROR: Burn Fee should be %d but it is %d', 0, fee)
-		// }
+		console.log('Retrieving burnFee')
+		let fee = await vaultManager.burnFee()
+		if(fee !== 0) {
+			console.error('ERROR: Burn Fee should be %d but it is %d', 0, fee)
+		}
 
-		// console.log('Retrieving mintFee')
-		// fee = await vaultManager.mintFee()
-		// if(fee !== 0) {
-		// 	console.error('ERROR: Mint Fee should be %d but it is %d', 0, fee)
-		// }
+		console.log('Retrieving mintFee')
+		fee = await vaultManager.mintFee()
+		if(fee !== 0) {
+			console.error('ERROR: Mint Fee should be %d but it is %d', 0, fee)
+		}
 
-		// console.log('Retrieving creationFee')
-		// fee = await vaultManager.creationFee()
-		// if(fee !== 0) {
-		// 	console.error('ERROR: creation Fee should be %d but it is %d', 0, fee)
-		// }
-		// try {
-		// 	console.log('setCreationFee: should fail')
-		// 	txId = await vaultManager.setCreationFee(addresses[2], 300, signCallback)
-		// 	console.error('ERROR: setCreationFee should have failed non admin account: %s', txId)
+		console.log('Retrieving creationFee')
+		fee = await vaultManager.creationFee()
+		if(fee !== 0) {
+			console.error('ERROR: creation Fee should be %d but it is %d', 0, fee)
+		}
+		try {
+			console.log('setCreationFee: should fail')
+			txId = await vaultManager.setCreationFee(addresses[2], 300, signCallback)
+			console.error('ERROR: setCreationFee should have failed non admin account: %s', txId)
 	
-		// } catch (err) {
-		// 	console.log('setCreationFee successfully failed: %s', errorText(err))
-		// }
+		} catch (err) {
+			console.log('setCreationFee successfully failed: %s', errorText(err))
+		}
 
-		// // Burn Fee
-		// console.log('setBurnFee')
-		// txId = await vaultManager.setBurnFee(addresses[0], burnFee, signCallback)
-		// console.log('setBurnFee: %s', txId)
+		// Burn Fee
+		console.log('setBurnFee')
+		txId = await vaultManager.setBurnFee(addresses[0], burnFee, signCallback)
+		console.log('setBurnFee: %s', txId)
 
-		// // Mint Fee 
-		// txId = await vaultManager.setMintFee(addresses[0], mintFee, signCallback)
-		// console.log('setMintFee: %s', txId)
+		// Mint Fee 
+		txId = await vaultManager.setMintFee(addresses[0], mintFee, signCallback)
+		console.log('setMintFee: %s', txId)
 
-		// // Mint Fee 
-		// txId = await vaultManager.setCreationFee(addresses[0], creationFee, signCallback)
-		// console.log('setMintFee: %s', txId)
+		// Mint Fee 
+		txId = await vaultManager.setCreationFee(addresses[0], creationFee, signCallback)
+		console.log('setMintFee: %s', txId)
 
-		// txResponse = await vaultManager.waitForTransactionResponse(txId)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-		// console.log('Retrieving burnFee')
-		// fee = await vaultManager.burnFee()
-		// if(fee !== burnFee) {
-		// 	console.error('ERROR: Burn Fee should be %d but it is %d', burnFee, fee)
-		// }
+		console.log('Retrieving burnFee')
+		fee = await vaultManager.burnFee()
+		if(fee !== burnFee) {
+			console.error('ERROR: Burn Fee should be %d but it is %d', burnFee, fee)
+		}
 
-		// console.log('Retrieving mintFee')
-		// fee = await vaultManager.mintFee()
-		// if(fee !== mintFee) {
-		// 	console.error('ERROR: Mint Fee should be %d but it is %d', mintFee, fee)
-		// }
+		console.log('Retrieving mintFee')
+		fee = await vaultManager.mintFee()
+		if(fee !== mintFee) {
+			console.error('ERROR: Mint Fee should be %d but it is %d', mintFee, fee)
+		}
 
-		// console.log('Retrieving creationFee')
-		// fee = await vaultManager.creationFee()
-		// if(fee !== creationFee) {
-		// 	console.error('ERROR: creation Fee should be %d but it is %d', creationFee, fee)
-		// }
+		console.log('Retrieving creationFee')
+		fee = await vaultManager.creationFee()
+		if(fee !== creationFee) {
+			console.error('ERROR: creation Fee should be %d but it is %d', creationFee, fee)
+		}
 
-		// if(addresses[6]) {
-		// 	// try to optIn an address whose Vault balance != 0. It should fail, allowing non-zero balance vaults can be attacked by
-		// 	// malicius users: ClearState a vault with minted wALGOs and then re-create it
-		// 	let vaultAddr = await vaultManager.vaultAddressByTEAL(addresses[6])
-		// 	let vaultBalance = await vaultManager.vaultBalance(addresses[6])
-		// 	if(vaultBalance == 0) {
-		// 		const params = await algodClient.getTransactionParams().do()
-		// 		params.fee = vaultManager.minFee
-		// 		params.flatFee = true
+		if(addresses[6]) {
+			// try to optIn an address whose Vault balance != 0. It should fail, allowing non-zero balance vaults can be attacked by
+			// malicius users: ClearState a vault with minted wALGOs and then re-create it
+			let vaultAddr = await vaultManager.vaultAddressByTEAL(addresses[6])
+			let vaultBalance = await vaultManager.vaultBalance(addresses[6])
+			if(vaultBalance == 0) {
+				const params = await algodClient.getTransactionParams().do()
+				params.fee = vaultManager.minFee
+				params.flatFee = true
 
-		// 		let txPay = algosdk.makePaymentTxnWithSuggestedParams(addresses[1], vaultAddr, 110000, undefined, new Uint8Array(0), params)
-		// 		let txSigned = signCallback(addresses[1], txPay)
-		// 		let tx = (await algodClient.sendRawTransaction(txSigned).do())
-		// 		txPay = algosdk.makePaymentTxnWithSuggestedParams(addresses[1], addresses[6], 110000, undefined, new Uint8Array(0), params)
-		// 		txSigned = signCallback(addresses[1], txPay)
-		// 		tx = (await algodClient.sendRawTransaction(txSigned).do())
-		// 		await vaultManager.waitForTransactionResponse(tx.txId)
-		// 	}
+				let txPay = algosdk.makePaymentTxnWithSuggestedParams(addresses[1], vaultAddr, 110000, undefined, new Uint8Array(0), params)
+				let txSigned = signCallback(addresses[1], txPay)
+				let tx = (await algodClient.sendRawTransaction(txSigned).do())
+				txPay = algosdk.makePaymentTxnWithSuggestedParams(addresses[1], addresses[6], 110000, undefined, new Uint8Array(0), params)
+				txSigned = signCallback(addresses[1], txPay)
+				tx = (await algodClient.sendRawTransaction(txSigned).do())
+				await vaultManager.waitForTransactionResponse(tx.txId)
+			}
 
-		// 	try {
-		// 		txId = await vaultManager.optIn(addresses[6], signCallback)
-		// 		console.error('Error: optIn to non-zero balance Vault should fail Account %s Vault %s txId %s', addresses[6], vaultAddr, txId)
-		// 	} catch (err) {
-		// 		console.log('optIn to non-zero balance Vault successfully failed: %s', errorText(err))
-		// 	}
-		// }
+			try {
+				txId = await vaultManager.optIn(addresses[6], signCallback)
+				console.error('Error: optIn to non-zero balance Vault should fail Account %s Vault %s txId %s', addresses[6], vaultAddr, txId)
+			} catch (err) {
+				console.log('optIn to non-zero balance Vault successfully failed: %s', errorText(err))
+			}
+		}
 
 		await testAccount(addresses[1], 12000405, 4545000, 5500000, 2349000)
 		await testAccount(addresses[2], 6000405, 5545000, 300000, 4349000)

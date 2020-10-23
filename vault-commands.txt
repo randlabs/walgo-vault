@@ -22,6 +22,7 @@ goal app create --creator W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMB
 
 // Clear App
 goal app clear --app-id 2681760 --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
+goal app clear --app-id 2681760 --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
 
 // Delete App
 goal app delete --app-id 2658496 --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
@@ -70,17 +71,6 @@ goal app call --app-id 2681760 --app-arg "str:global-status" --app-arg "int:0" -
 
 // setAccountStatus
 goal app call --app-id 2681760 --app-arg "str:status" --app-arg "int:0" --app-account 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --from W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q
-
-// depositALGOs
-goal app call --app-id 2681760 --app-arg "str:dA" --app-arg "int:100998" --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=deposit-unsigned.tx 
-goal clerk send --from=4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --to=5HXZZ3MWITYUHOLMUZULKUY5AH5XREIVEEKQP5YHNAS2AZ54ZELJVPFCTQ --fee=1000 --amount=100998 --out=send-unsigned.tx
-cat deposit-unsigned.tx send-unsigned.tx > combinedtransactions.tx
-goal clerk group -i combinedtransactions.tx -o groupedtransactions.tx 
-goal clerk sign -i groupedtransactions.tx -o signout.tx --signer 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24
-goal clerk rawsend -f signout.tx
-
-goal app call --app-id 2681760 --app-arg "str:dA" --app-arg "int:12000405" --from 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24 --out=mint-unsigned.tx --dryrun-dump
-goal clerk dryrun-remote -D mint-unsigned.tx --verbose
 
 
 
