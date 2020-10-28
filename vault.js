@@ -588,10 +588,14 @@ class VaultManager {
 			let minted = await this.minted(accountAddr)
 			let fee = await this.mintFee()
 
-			let totalFees = Math.floor((vaultBalance)*fee / (1+fee))
+			// feesToPay = maxAmount*fee/10000
+			// maxAmount = vaultBalance - minted - feesToPay
+			// maxAmount = vaultBalance - minted - maxAmount*fee/10000
+			// maxAmount*(1+fee/10000) = vaultBalance - minted
+			// maxAmount = (vaultBalance - minted) / (1+fee/10000)
+			let maxAmount = Math.floor((vaultBalance - minted) / (1+fee/10000))
 
-			let amount = vaultBalance - minted - totalFees
-			return amount
+			return maxAmount
 		}
 
 		this.vaultCompiledTEALByAddress = async function(accountAddr) {
@@ -663,7 +667,7 @@ class VaultManager {
 			appArgs.push(new Uint8Array(Buffer.from(MINT_WALGOS_OP)))
 
 			let appAccounts = []
-			appAccounts.push (vaultAddr)
+			appAccounts.push(vaultAddr)
 
 			let appId = this.appId
 			let assetId = this.assetId
@@ -776,10 +780,13 @@ class VaultManager {
 			let appArgs = [];
 			appArgs.push(new Uint8Array(Buffer.from(BURN_ALGOS_OP)))
 
+			let appAccounts = []
+			appAccounts.push(vaultAddr)
+
 			let txPayFees
 
 			// create unsigned transaction
-			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs)
+			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts)
 			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, minterAddr, undefined, undefined, amount, new Uint8Array(0), 
 				assetId, params)
 			let txns = [txApp, txwALGOTransfer];
@@ -848,7 +855,7 @@ class VaultManager {
 			}
 			
 			let appAccounts = []
-			appAccounts.push (vaultAddr)
+			appAccounts.push(vaultAddr)
 
 			// create unsigned transaction
 			const txApp = algosdk.makeApplicationCloseOutTxn(sender, params, this.appId, undefined, appAccounts)
