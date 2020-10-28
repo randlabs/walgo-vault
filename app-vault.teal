@@ -260,12 +260,9 @@ dup
 store 8
 
 // mint fee between 0 and 5000 (0%-50%)
-int 0
->=
 load 8
 int 5000
 <=
-&&
 bz failed
 
 byte "MF" // MintFee
@@ -291,12 +288,9 @@ dup
 store 8
 
 // burn fee between 0 and 5000 (0%-50%)
-int 0
->=
 load 8
 int 5000
 <=
-&&
 bz failed
 
 byte "BF" // BurnFee
