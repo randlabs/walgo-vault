@@ -51,6 +51,12 @@ gtxn 0 Accounts 1
 txn Sender
 ==
 &&
+
+txn RekeyTo
+global ZeroAddress
+==
+&&
+
 `
 var minterTEAL = 
 `#pragma version 2
@@ -76,6 +82,12 @@ int TMPL_ASA_ID
 
 txn RekeyTo
 global ZeroAddress
+==
+&&
+
+// do not allow to call the App from the Vault, only allow calls in index 1 that are XferAsset
+txn GroupIndex
+int 1
 ==
 &&
 `
