@@ -4,6 +4,10 @@
 // position 2: is registered
 // position 3: Vault address (no Admin operations)
 // position 4: Admin address
+// position 6: temporary variable
+// position 7: temporary variable
+// position 8: temporary variable
+// position 9: temporary variable
 
 // check if the app is being created
 // if so save creator
@@ -492,9 +496,6 @@ no_admin_close_out:
 // Tx0.Accounts[0] is the user account
 int 0
 store 7
-
-txna Accounts 0
-store 8
 
 // Position 3: Vault address
 // Position 4: Admin address
