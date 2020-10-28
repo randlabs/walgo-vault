@@ -1,5 +1,7 @@
 # StakerDAO Vault
 
+__TOC__
+
 ## Test Instructions
 
 ```bash
