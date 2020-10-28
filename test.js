@@ -303,7 +303,7 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 
 	try {
 		console.log('mintwALGOs: try to mint more than allowed')
-		txId = await vaultManager.mintwALGOs(accountAddr, maxMintAmount + 100000, signCallback)
+		txId = await vaultManager.mintwALGOs(accountAddr, maxMintAmount + 1, signCallback)
 		console.error('ERROR: mintwALGOs should have failed amount exceeds maximum: %s', txId)
 	} catch (err) {
 		console.log('mintwALGOs successfully failed: amount exceeds maximum: %s', errorText(err))
@@ -333,10 +333,35 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		console.log('burnwALGOs successfully failed incorrect asset: %s', errorText(err))
 	}
 
+	console.log('minted pre maxMintAmount')
+	minted = await vaultManager.minted(accountAddr)
+	console.log('Net minted pre maxMintAmount: %d', minted)
+
+	console.log('mintwALGOs maxMintAmount')
+	txId = await vaultManager.mintwALGOs(accountAddr, maxMintAmount, signCallback)
+	console.log('mintwALGOs maxMintAmount: %s', txId)
+
+	txResponse = await vaultManager.waitForTransactionResponse(txId)
+
+	let mintedPost = await vaultManager.minted(accountAddr)
+	if(mintedPost !== (minted + maxMintAmount)) {
+		console.error('ERROR: Net minted maxMintAmount should be %d but it is %d', minted + maxMintAmount, mintedPost)
+	}
+
+	console.log('burnwALGOs rollback maxBurnAmount')
+	txId = await vaultManager.burnwALGOs(accountAddr, maxMintAmount, signCallback)
+	console.log('burnwALGOs rollback maxBurnAmount: %s', txId)
+
+	txResponse = await vaultManager.waitForTransactionResponse(txId)
+
+	mintedPost = await vaultManager.minted(accountAddr)
+	if(mintedPost !== minted) {
+		console.error('ERROR: Net minted maxMintAmount should go back to %d but it is %d', minted, mintedPost)
+	}
+
 	console.log('burnwALGOs with Fee')
 	txId = await vaultManager.burnwALGOs(accountAddr, Math.floor(burnAmount/2), signCallback)
 	console.log('burnwALGOs: %s', txId)
-
 	
 	txId = await vaultManager.setBurnFee(addresses[0], 0, signCallback)
 

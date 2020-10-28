@@ -605,13 +605,24 @@ class VaultManager {
 			let vaultBalance = await this.vaultBalance(accountAddr)
 			let minted = await this.minted(accountAddr)
 			let fee = await this.mintFee()
+			let maxAmount
 
-			// feesToPay = maxAmount*fee/10000
-			// maxAmount = vaultBalance - minted - feesToPay
-			// maxAmount = vaultBalance - minted - maxAmount*fee/10000
-			// maxAmount*(1+fee/10000) = vaultBalance - minted
-			// maxAmount = (vaultBalance - minted) / (1+fee/10000)
-			let maxAmount = Math.floor((vaultBalance - minted) / (1+fee/10000))
+			if(fee !== 0) {
+				// feesToPay = maxAmount*fee/10000
+				// maxAmount = vaultBalance - minted - feesToPay - minFee
+				// maxAmount = vaultBalance - minted - maxAmount*fee/10000 - minFee
+				// maxAmount*(1+fee/10000) = vaultBalance - minted
+				// maxAmount = (vaultBalance - minted - minFee) / (1+fee/10000)
+				maxAmount = Math.floor((vaultBalance - minted - this.minTransactionFee()) / (1+fee/10000))
+				// rounding error can generate an error above 1 so the real maxAmount is a bit higher
+				while(vaultBalance - minted - maxAmount - Math.floor(maxAmount * fee / 10000) - this.minTransactionFee() >= 1) {
+					maxAmount++
+				}
+
+			}
+			else {
+				maxAmount = vaultBalance - minted
+			}
 
 			return maxAmount
 		}

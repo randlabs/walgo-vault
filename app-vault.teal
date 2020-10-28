@@ -435,6 +435,9 @@ load 8
 bz failed
 
 optin_no_creation_fee:
+
+// if balance > 0 is allowed on creation, the user can call ClearState, reset the amount minted and withdraw the Algos without
+// returning the wALGOs
 int 1
 balance
 int 0
@@ -570,6 +573,10 @@ gtxn 1 AssetAmount
 //btoi
 store 8
 
+// Admin fees
+int 0
+store 7
+
 // is the same Vault that corresponds to the account
 // tx0.Accounts[1] == VaultAddr && 
 // No fee so no 3rd tx
@@ -616,6 +623,23 @@ load 9
 *
 int 10000
 /
+dup
+store 6
+
+// calculate the total spend in the third tx by the Vault. Verify if the Vault is paying the fees first.
+gtxn 2 Sender
+load 3
+==
+bz no_admin_mint_walgos_fee_sender_not_vault
+
+// balanceVaultAfter = balance - tx2.Amount - tx2.Fee
+// position 7: tx2.Amount + tx2.Fee
+load 6
+gtxn 2 Fee
++
+store 7
+
+no_admin_mint_walgos_fee_sender_not_vault:
 
 // fees == tx2.Amount
 gtxn 2 Amount
@@ -690,6 +714,8 @@ app_local_put
 
 int 1
 balance
+load 7
+-
 load 6
 >=
 bnz success
