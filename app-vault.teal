@@ -727,7 +727,7 @@ gtxn 1 Sender
 
 // Payment
 gtxn 1 TypeEnum
-TypeEnum.pay
+int 1
 ==
 &&
 
@@ -888,23 +888,14 @@ int 0
 byte "m" // minted
 app_local_get
 
-dup
 store 8
 
 // Minted >= tx1.AssetAmount
-// If it is not verified the next substraction generates an error if the 
-// the amount burned is greater than the minted. 
-gtxn 1 AssetAmount
-//txna ApplicationArgs 1
-//btoi
->=
-bz failed
+// it is not necessary to verify it because if it is the case, the next substraction generates an error 
 
 // Minted = Minted - tx1.AssetAmount
 load 8
 gtxn 1 AssetAmount
-//txna ApplicationArgs 1
-//btoi
 -
 store 8
 
