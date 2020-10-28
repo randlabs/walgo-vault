@@ -4,7 +4,7 @@ const tools = require('./tools')
 const { Console } = require('console');
 
 const approvalProgramFilename = 'app-vault.teal'
-const clearProgramFilename = 'app-vault-opt-out.teal'
+const clearProgramFilename = 'app-vault-clear-state.teal'
 
 const GLOBAL_STATUS_GLOBAL_KEY = 'GS'
 const ADMIN_ACCOUNT_GLOBAL_KEY = 'A'
