@@ -34,7 +34,6 @@ Local variables stored in the Vault owner accounts:
 * s (status): 1 if the Vault is enabled and 0 if it is not
 * m (minted): net amount of wALGOs minted
 * v (vault): Vault account corresponding to Vault owner account. This address is calculated from vault.teal specialized with the Vault owner account
-* fees: collected fees for the Admin
 
 Remarks:
 * Only 1 Vault per account is allowed
@@ -89,24 +88,6 @@ Set the fee in ALGOs that is required to send to Admin to optin to the App
   * arg0: integer: new fee in microALGOs
   * Application Call tx
 
-### Admin withdrawAdminFees
-
-Admin withdraws the pending fees in the especified vault. 
-
-* Tx0: 
-  * Sender: Admin
-  * arg0: str:waf
-  * acc0: Vault address
-  * Application Call tx
-
-* Tx1: 
-  * Sender: Vault account
-  * Receiver: any account
-  * Fee: MinTxnFee
-  * Amount: amount of ALGOs to withdraw, it should be less or equal to the total of the pending fees
-  * CloseTo: ZeroAddress
-  * Payment tx
-
 ### User optIn
 
 User opts in to the Vault App. The App creates the local data for the account. Vault balance must be 0. If the user calls ClearState with some Vault balance and minted wALGOs, then he could use the balance and avoid returning the wALGOs. So, we need to punish anyone calling ClearState without using CloseOut.
@@ -133,15 +114,31 @@ Closes the Vault, recover the ALGOs and pay pending fees. After this operation, 
 
 * Tx1: 
   * Sender: Vault account
-  * Receiver: Admin
-  * Amount: The pending fees owed to Admin.
-  * CloseTo: Any account. The remaining ALGOs sent to this account. 
+  * Receiver: any
+  * Amount: any
+  * CloseRemainderTo: any
   * Fee: MinTxnFee
   * Payment tx
 
 ### User depositALGOs
 
 User sends ALGOs to the Vault address directly from any account.
+
+### User withdrawALGOs
+
+* Tx0: 
+  * Sender: Vault owner
+  * arg0: str:wA
+  * acc0: Vault address
+  * Application Call tx
+
+* Tx1: 
+  * Sender: Vault account
+  * Receiver: any account. The remaining Vault balance must be greater than the amount of wALGOs minted less the pending fees and 2 tx cost (one for this tx and one for the CloseOut)
+  * Fee: MinTxnFee
+  * Amount: amount of ALGOs to withdraw
+  * CloseRemainderTo: ZeroAddress
+  * Payment tx
 
 ### User mintwALGOs
 
@@ -160,20 +157,12 @@ User sends ALGOs to the Vault address directly from any account.
   * XferAsset: 2671688 (betanet)
   * AssetTransfer tx
 
-### User withdrawALGOs
-
-* Tx0: 
-  * Sender: Vault owner
-  * arg0: str:wA
-  * acc0: Vault address
-  * Application Call tx
-
-* Tx1: 
-  * Sender: Vault account
-  * Receiver: any account. The remaining Vault balance must be greater than the amount of wALGOs minted less the pending fees and 2 tx cost (one for this tx and one for the CloseOut)
-  * Fee: MinTxnFee
-  * Amount: amount of ALGOs to withdraw
-  * CloseTo: ZeroAddress
+If MintFee > 0, a third tx is needed
+* Tx2: 
+	* Sender: any
+	* Receiver: Admin
+	* Amount: Tx1.AssetAmount * MintFee / 10000
+  * CloseRemainderTo: ZeroAddress
   * Payment tx
 
 ### User burnwALGOs
@@ -190,6 +179,14 @@ User sends ALGOs to the Vault address directly from any account.
   * XferAsset: 2671688 (betanet)
   * AssetTransfer tx
 
+If BurnFee > 0, a third tx is needed
+* Tx2: 
+	* Sender: any
+	* Receiver: Admin
+	* Amount: Tx1.AssetAmount * BurnFee / 10000
+  * CloseRemainderTo: ZeroAddress
+  * Payment tx
+
 ## Run Test
 
 * settings.js contains pre-created accounts for betanet
@@ -201,6 +198,3 @@ node test
 
 ## TODO
 
-* Add test to burn any token instead of wALGOs
-* Add test to mint wALGOs from a different App
-* Develop minter.teal to allow only Vaults mint wALGOs
