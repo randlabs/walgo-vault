@@ -41,8 +41,14 @@ gtxn 0 ApplicationID
 int TMPL_APP_ID
 ==
 
-txn RekeyTo
-global ZeroAddress
+// do not allow to call the App from the Vault
+txn GroupIndex
+int 0
+!=
+&&
+
+gtxn 0 Accounts 1
+txn Sender
 ==
 &&
 `

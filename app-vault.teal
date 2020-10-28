@@ -444,14 +444,16 @@ int 0
 bz failed
 
 byte "Program"
-byte base64 AiABoNejASYBIA==
+//byte base64 AiABoNejASYBIA==
+byte base64 AiACoNejAQAmASA=
 concat
 
 txn Sender
 concat
 
 //byte base64 MQcoEkgzABgiEg==
-byte base64 KEgzABgiEjEgMgMSEA==
+//byte base64 KEgzABgiEjEgMgMSEA==
+byte base64 KEgzABgiEjEWIxMQNwAcATEAEhA=
 concat
 
 sha512_256
@@ -795,6 +797,8 @@ app_global_get
 
 store 9
 
+// is the same Vault that corresponds to the account
+// tx0.Accounts[1] == VaultAddr && 
 // tx1.TypeEnum == AssetTransfer && 
 // (GroupSize == 2 && BurnFee == 0 ||
 // 3rd tx paying the fees. It can be paid from the Vault or from another account
@@ -807,6 +811,11 @@ store 9
 gtxn 1 TypeEnum
 int 4
 ==
+
+load 3
+txn Accounts 1
+==
+&&
 
 // (
 global GroupSize
