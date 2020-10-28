@@ -196,5 +196,23 @@ If BurnFee > 0, a third tx is needed
 node test
 ```
 
+## Change vault.teal
+
+Chaging the vault.teal requires to adjust the code in app-vault.teal that verifies the Vault code:
+* Copy new vault.teal to the the content of var vaultTEAL in vault.js
+* Compile the code specialized in 2 different addresses and keep the base64 code of each compilation.
+** 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24: AiACoNejAQAmASDmB0CNbWVHyQWqyGtCeDtQOhsyLVAHyVs5BZrHCFqXMihIMwAYIhIxFiMTEDcAHAExABIQMSAyAxIQ
+** W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q: AiACoNejAQAmASC26V67VZpwLifDwSQAA9Bp4YGeiyOJdxSLBP5SHn+UtihIMwAYIhIxFiMTEDcAHAExABIQMSAyAxIQ
+* Conver the base64 to Hex (https://base64.guru/converter/decode/hex)
+** 022002a0d7a30100260120e607408d6d6547c905aac86b42783b503a1b322d5007c95b39059ac7085a973228483300182212311623131037001c0131001210312032031210
+** 022002a0d7a30100260120b6e95ebb559a702e27c3c1240003d069e1819e8b238977148b04fe521e7f94b628483300182212311623131037001c0131001210312032031210
+* Identify the part at the beginning and at the end that are exactly the same in both bytestreams:
+** First part: 022002a0d7a30100260120
+** Last part: 28483300182212311623131037001c0131001210312032031210
+* Convert them again to base64 (https://base64.guru/converter/encode/hex):
+** First part: AiACoNejAQAmASA=
+** Last part: KEgzABgiEjEWIxMQNwAcATEAEhAxIDIDEhA=
+* Use these base64 strings in app-vault.teal code replacing previous Prefix and Suffix 
+
 ## TODO
 

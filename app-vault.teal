@@ -444,13 +444,15 @@ bz failed
 // Calculate the TEAL code Address generated with the vault.teal specialized in the Sender address that 
 // corresponds to the Sender account Vault
 byte "Program"
+// Prefix (see README.md)
 byte base64 AiACoNejAQAmASA=
 concat
 
 txn Sender
 concat
 
-byte base64 KEgzABgiEjEWIxMQNwAcATEAEhA=
+// Suffix (see README.md)
+byte base64 KEgzABgiEjEWIxMQNwAcATEAEhAxIDIDEhA=
 concat
 
 sha512_256
