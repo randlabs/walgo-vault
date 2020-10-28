@@ -441,16 +441,15 @@ int 0
 ==
 bz failed
 
+// Calculate the TEAL code Address generated with the vault.teal specialized in the Sender address that 
+// corresponds to the Sender account Vault
 byte "Program"
-//byte base64 AiABoNejASYBIA==
 byte base64 AiACoNejAQAmASA=
 concat
 
 txn Sender
 concat
 
-//byte base64 MQcoEkgzABgiEg==
-//byte base64 KEgzABgiEjEgMgMSEA==
 byte base64 KEgzABgiEjEWIxMQNwAcATEAEhA=
 concat
 
@@ -728,7 +727,7 @@ gtxn 1 Sender
 
 // Payment
 gtxn 1 TypeEnum
-int 1
+TypeEnum.pay
 ==
 &&
 
