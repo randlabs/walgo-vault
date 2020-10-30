@@ -555,13 +555,16 @@ async function main () {
 			txResponse = await vaultManager.waitForTransactionResponse(txId)
 		}
 		if(balance < 1000000000000) {
+			console.log('transferAsset')
 			txId = await vaultManager.transferAsset(addresses[0], mintAddr, 1000000000000, undefined, signCallback)
 			console.log('transferAsset: %s', txId)
 		}
 	
-		// fails if it the account opted in before
+		// Can not optIn with Admin account
 		try {
+			console.log('optIn')
 			txId = await vaultManager.optIn(addresses[0], signCallback)
+			console.log('optIn: %s', txId)
 		} catch(err) {
 			console.log('optIn: successfully failed Admin account cannot optIn %s', errorText(err))
 		}

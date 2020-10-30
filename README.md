@@ -244,7 +244,7 @@ Waiting for transaction...
 Transaction successfully submitted: U5YIPJDUZ4WGT3FOVSDG4KMLWPDQ4WHAY6CR33EM6AATLH6KICHQ.
 Create App: New AppId: 2694110
 ```
-* Put the new AppId in settings.js in appId field
+* Put the new AssetId in settings.js in assetId field
 * Delete minter delegation file:
 ```bash
 rm -f minter-delegation.sig

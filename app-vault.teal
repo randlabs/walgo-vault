@@ -692,7 +692,7 @@ global ZeroAddress
 
 // ASA_ID
 gtxn 1 XferAsset
-int 2694358
+int 2671688
 ==
 &&
 
@@ -906,7 +906,7 @@ app_global_get
 
 // ASA_ID
 gtxn 1 XferAsset
-int 2694358
+int 2671688
 ==
 &&
 

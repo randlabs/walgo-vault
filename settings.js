@@ -1,7 +1,7 @@
 module.exports = {
 	appName: 'StakerDAO Vault',
 	// betanet
-	assetId: 2694358,
+	assetId: 2671688,
 	fakeAssetId: 2690115,
 	// testnet
 	//assetId: 12875488,
