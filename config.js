@@ -37,7 +37,7 @@ function initialize() {
 
 		settings = require(filename)
 
-		recoverManagerAccount()
+		recoverAccounts()
 		setupClient()
 
 		settings.algodClient = algodClient
@@ -55,7 +55,7 @@ function initialize() {
 	return settings
 }
 
-function recoverManagerAccount () {
+function recoverAccounts () {
 	for(let i = 0; i < 20; i++) {
 		if(settings["account" + i]) {
 			addresses[i] = settings["account" + i].publicKey
@@ -66,6 +66,10 @@ function recoverManagerAccount () {
 		else {
 			break;
 		}
+	}
+	if(settings["minterAccount"]) {
+		settings.minterAddress = settings["minterAccount"].publicKey
+		signatures[settings.minterAddress] = algosdk.mnemonicToSecretKey(settings["minterAccount"].privateKey)
 	}
 }
 

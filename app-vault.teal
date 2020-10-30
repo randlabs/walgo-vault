@@ -448,7 +448,7 @@ bz failed
 // corresponds to the Sender account Vault
 byte "Program"
 // Prefix (see README.md)
-byte base64 AiACoNejAQAmASA=
+byte base64 AiAC3rekAQAmASA=
 concat
 
 txn Sender
@@ -586,7 +586,7 @@ store 7
 // tx2.Amount == MintFee*tx1.AssetAmount/10000 && tx2.Receiver == AdminAddr && tx2.CloseRemainderTo == ZeroAddress) && 
 // tx1.TypeEnum == AssetTransfer && 
 // tx1.AssetAmount > 0 && tx1.Sender == MintAccount && tx1.Fee == MinTxnFee && 
-// tx1.AssetCloseTo == ZeroAddress && tx1.XferAsset == ASA_ID
+// tx1.AssetCloseTo == ZeroAddress && tx1.XferAsset == ASA ID
 load 3
 txn Accounts 1
 ==
@@ -692,7 +692,7 @@ global ZeroAddress
 
 // ASA_ID
 gtxn 1 XferAsset
-int 2671688
+int 2694358
 ==
 &&
 
@@ -827,7 +827,7 @@ store 9
 // GroupSize == 3 && BurnFee > 0 && tx2.TypeEnum == Payment && 
 // tx2.Amount == MintFee*tx1.AssetAmount/10000 && tx2.Receiver == AdminAddr && tx2.CloseRemainderTo == ZeroAddress) && 
 // tx1.AssetAmount > 0 && 
-// tx1.AssetReceiver == MintAccount && tx1.XferAsset == ASA_ID
+// tx1.AssetReceiver == MintAccount && tx1.XferAsset == ASA ID
 
 // AssetTransfer
 gtxn 1 TypeEnum
@@ -906,7 +906,7 @@ app_global_get
 
 // ASA_ID
 gtxn 1 XferAsset
-int 2671688
+int 2694358
 ==
 &&
 

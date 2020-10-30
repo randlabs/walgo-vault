@@ -274,13 +274,6 @@ class VaultManager {
 		this.generateDelegatedMintAccount = async function(sender, lsigCallback) {
 			let program = minterTEAL
 			
-			
-			// program = program.replace(/TMPL_APP_ID/g, this.appId)
-			// program = program.replace(/TMPL_USER_ADDRESS/g, sender)
-
-			// let encoder = new TextEncoder()
-			// let programBytes = encoder.encode(program);
-
 			program = program.replace(/TMPL_APP_ID/g, this.appId)
 			program = program.replace(/TMPL_ASA_ID/g, this.assetId)
 
@@ -321,9 +314,7 @@ class VaultManager {
 
 			let encodedObj = lsigDelegatedBuf.get_obj_for_encoding()
 			let lsigEncoded = algosdk.encodeObj(encodedObj)
-	
 			var lsigb64 = Buffer.from(lsigEncoded).toString('base64');
-	
 			fs.writeFileSync(filepath, lsigb64)
 		}
 
@@ -1026,15 +1017,18 @@ class VaultManager {
 		}
 
 
-		this.deleteApp = async function (sender, signCallback) {
+		this.deleteApp = async function (sender, signCallback, appId) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
 			params.flatFee = true
 
+			if(!appId) {
+				appId = this.appId
+			}
 			// create unsigned transaction
-			const txApp = algosdk.makeApplicationDeleteTxn(sender, params, this.appId)
+			const txApp = algosdk.makeApplicationDeleteTxn(sender, params, appId)
 			const txId = txApp.txID().toString()
 
 			// Sign the transaction

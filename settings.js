@@ -1,12 +1,12 @@
 module.exports = {
 	appName: 'StakerDAO Vault',
 	// betanet
-	assetId: 2671688,
+	assetId: 2694358,
 	fakeAssetId: 2690115,
 	// testnet
 	//assetId: 12875488,
 
-	appId: 2681760,
+	appId: 2694110,
 	fakeAppId: 2690332,
 	burnFee: 100,
 	mintFee: 150,
@@ -16,7 +16,7 @@ module.exports = {
 	algodClient: {
 		//server: 'https://api.testnet.algoexplorer.io',
 		server: 'https://api.betanet.algoexplorer.io',
-		//server: 'localhost:8080',
+		//server: 'localhost:8090',
 		port: '',
 		apiToken: {
 			//'X-Algo-API-Token': '133e2f3f4c6058f59930aed3df861948c2e85a21afa733080af2b06e668ccdf7',
@@ -52,7 +52,7 @@ module.exports = {
 		privateKey: 'lazy enforce shock brain twice box slender sea any drink tip coconut suit maid dilemma abandon antenna work kit kiss unaware six aspect about crew',
 		publicKey: '2XKEBSAJQJ5WYCYVZ5WNHLVUYJVGLJP3BPJ7PRYWDTEH6N7T742YEP6IX4'
 	},
-	account7: {
+	minterAccount: {
 		privateKey: 'sadness cradle giraffe famous garbage uniform real catalog horse swift elder trim skill shoe fault lyrics net file brown shop trophy vehicle fitness abstract orphan',
 		publicKey: 'GZILFNLBQ4BURKLJISKDQVNDXOTFGMSP6MAXI76HRB2KDI2PBAA2TKFFIY'
 

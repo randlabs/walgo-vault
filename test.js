@@ -22,7 +22,7 @@ function setupClient() {
 	algodClient = settings.algodClient
 	signatures = settings.signatures
 	addresses = settings.addresses
-	mintAddr = addresses[7]
+	mintAddr = settings.minterAddress
 
 	vaultManager = new vault.VaultManager(algodClient, settings.appId, addresses[0], settings.assetId)
 	if(settings.burnFee !== undefined) {
@@ -469,22 +469,6 @@ async function main () {
 		let txId
 		let txResponse
 
-		// txId = await vaultManager.optInASA('RIL2VQQH45L4VM6QQIFTRTLC5ZVEVLJFRUJBCJEI4NBJX77ZVQJFVCG34Y', signCallback)
-
-		// let lsigDelegatedBuf = await vaultManager.generateDelegatedMintAccount(addresses[7], lsigCallback)
-
-		// let encodedObj = lsigDelegatedBuf.get_obj_for_encoding()
-		// let lsigEncoded = algosdk.encodeObj(encodedObj)
-
-		// let lsigDecoded = algosdk.decodeObj(lsigEncoded)
-
-		// let lsigDelegatedReconst = algosdk.makeLogicSig(lsigDecoded.l, lsigDecoded.arg);
-		// lsigDelegatedReconst.sig = lsigDecoded.sig;
-		// lsigDelegatedReconst.msig = lsigDecoded.msig;
-
-		// await vaultManager.delegateMintAccount(lsigDelegatedReconst)
-
-
 		try {
 			vaultManager.delegateMintAccountFromFile(settings.minterDelegateFile)
 		} catch(err) {
@@ -562,6 +546,19 @@ async function main () {
 
 		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
+		// optIn minterAddr if did not optIn
+		let balance = await vaultManager.assetBalance(mintAddr)
+		if(balance === 0) {
+			console.log('optInASA')
+			txId = await vaultManager.optInASA(mintAddr, signCallback)
+			console.log('optInASA: %s', txId)	
+			txResponse = await vaultManager.waitForTransactionResponse(txId)
+		}
+		if(balance < 1000000000000) {
+			txId = await vaultManager.transferAsset(addresses[0], mintAddr, 1000000000000, undefined, signCallback)
+			console.log('transferAsset: %s', txId)
+		}
+	
 		// fails if it the account opted in before
 		try {
 			txId = await vaultManager.optIn(addresses[0], signCallback)
