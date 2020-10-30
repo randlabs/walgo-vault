@@ -11,7 +11,10 @@ node test.js
 
 ## Command Line Tool
 
-node vault-cli.js to get the command line options
+Get the command line options:
+```bash
+node vault-cli.js to 
+```
 
 Command Line usage example:
 ```bash
@@ -200,7 +203,7 @@ node test
 
 Chaging the vault.teal requires to adjust the code in app-vault.teal that verifies the Vault code:
 * Copy new vault.teal to the the content of var vaultTEAL in vault.js
-* Compile the code specialized in 2 different addresses and keep the base64 code of each compilation.
+* [Compile](https://algodesk.io/teal/#/portal/teal) the code specialized in 2 different addresses and keep the base64 code of each compilation.
 	* 4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24: **AiACoNejAQAmASDmB0CNbWVHyQWqyGtCeDtQOhsyLVAHyVs5BZrHCFqXMihIMwAYIhIxFiMTEDcAHAExABIQMSAyAxIQ**
 	* W3UV5O2VTJYC4J6DYESAAA6QNHQYDHULEOEXOFELAT7FEHT7SS3NMBKW2Q: **AiACoNejAQAmASC26V67VZpwLifDwSQAA9Bp4YGeiyOJdxSLBP5SHn+UtihIMwAYIhIxFiMTEDcAHAExABIQMSAyAxIQ**
 * [Convert the base64 to Hex](https://base64.guru/converter/decode/hex)
@@ -214,3 +217,39 @@ Chaging the vault.teal requires to adjust the code in app-vault.teal that verifi
 	* Last part: **KEgzABgiEjEWIxMQNwAcATEAEhAxIDIDEhA=**
 * Use these base64 strings in app-vault.teal code replacing previous Prefix and Suffix 
 
+## Create App
+
+* To create the App, use the vault-cli.sh tool:
+```bash
+node vault-cli --create-asa 1000000000000000 6 wTEST WrapTest www.wraptest.io --account 0
+
+Waiting for transaction...
+Transaction successfully submitted: QJI2BS4FJDYIPADMRAAICRDWYIAHEZ5KQY2XCNFBQFBFA7WKDV3A.
+Asset created with index 2694358
+```
+* Put the new ASA index in settings.js in assetId field
+* Delete minter delegation file:
+```bash
+rm -f minter-delegation.sig
+```
+* Change vault.teal as it is explained above changing the ApplicationID to the new generated (in the example 2694110)
+
+## Change the ASA
+
+* To create a new ASA, use the vault-cli.sh tool:
+```bash
+node vault-cli.js --create-app --account 0
+
+Waiting for transaction...
+Transaction successfully submitted: U5YIPJDUZ4WGT3FOVSDG4KMLWPDQ4WHAY6CR33EM6AATLH6KICHQ.
+Create App: New AppId: 2694110
+```
+* Put the new AppId in settings.js in appId field
+* Delete minter delegation file:
+```bash
+rm -f minter-delegation.sig
+```
+* Replace in app-vault.teal 2 times that refers to the old asset with the new asset id (search for ASA_ID). 
+* If you are not using test.js (the tests assume that the owner of the ASA is account[0]):
+	* Opt-in the new ASA for minter account (minterAccount field in settings.js)
+	* Send enough a large amount of this new ASA to the minter account
