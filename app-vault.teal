@@ -417,7 +417,7 @@ int 0
 bz failed
 
 gtxn 1 TypeEnum
-int 1
+int pay
 ==
 
 // Receiver account == Admin
@@ -509,7 +509,7 @@ close_out_account:
 // 
 // Payment
 gtxn 1 TypeEnum
-int 1
+int pay
 ==
 
 global GroupSize
@@ -613,7 +613,7 @@ int 0
 && 
 
 gtxn 2 TypeEnum 
-int 1
+int pay
 == 
 &&
 
@@ -663,7 +663,7 @@ no_admin_mint_walgos_no_fee:
 
 // AssetTransfer
 gtxn 1 TypeEnum
-int 4
+int axfer
 ==
 &&
 
@@ -755,7 +755,7 @@ gtxn 1 Sender
 
 // Payment
 gtxn 1 TypeEnum
-int 1
+int pay
 ==
 &&
 
@@ -831,7 +831,7 @@ store 9
 
 // AssetTransfer
 gtxn 1 TypeEnum
-int 4
+int axfer
 ==
 
 load 3
@@ -861,7 +861,7 @@ int 0
 && 
 
 gtxn 2 TypeEnum 
-int 1
+int pay
 == 
 &&
 
