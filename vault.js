@@ -226,10 +226,10 @@ class VaultManager {
 		// @approvalCodeFile
 		// @clearCodeFile
 		this.createApp = async function (sender, signCallback, approvalCodeFile, clearCodeFile) {
-			const localInts = 10
+			const localInts = 3
 			const localBytes = 2
-			const globalInts = 10
-			const globalBytes = 2
+			const globalInts = 5
+			const globalBytes = 3
 
 			// declare onComplete as NoOp
 			const onComplete = algosdk.OnApplicationComplete.NoOpOC
