@@ -368,6 +368,12 @@ txn OnCompletion
 ==
 bnz no_admin_close_out
 
+// avoid users to call any other operations that are not NoOp, especially admin operations such as Update and Delete
+txn OnCompletion
+int NoOp
+==
+bz failed
+
 txna ApplicationArgs 0
 byte "mw" // mintwALGOs
 ==

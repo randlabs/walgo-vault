@@ -19,7 +19,6 @@ const VAULT_STATUS_LOCAL_KEY = 's'
 
 const MINT_WALGOS_OP = 'mw'
 const WITHDRAW_ALGOS_OP = 'wA'
-const WITHDRAW_ADMIN_FEES_OP = 'wAF'
 const BURN_ALGOS_OP = 'bw'
 
 const SET_ADMIN_ACCOUNT_OP = 'sAA'
@@ -30,7 +29,34 @@ const SET_MINT_FEE_OP = 'sMF'
 const SET_BURN_FEE_OP = 'sBF'
 const SET_CREATION_FEE_OP = 'sCF'
 
+// #pragma version 2
+// addr TMPL_USER_ADDRESS
+// pop
 
+// gtxn 0 ApplicationID
+// int TMPL_APP_ID
+// ==
+
+// gtxn 0 OnCompletion
+// int NoOp
+// ==
+// &&
+
+// // do not allow to call the App from the Vault
+// txn GroupIndex
+// int 0
+// !=
+// &&
+
+// gtxn 0 Accounts 1
+// txn Sender
+// ==
+// &&
+
+// txn RekeyTo
+// global ZeroAddress
+// ==
+// &&
 
 var vaultTEAL = 
 `#pragma version 2
@@ -934,6 +960,71 @@ class VaultManager {
 			return await this.testCallAppAttack(sender, appArgs, appAccounts, accountAddr, signCallback)
 		}
 		
+		// updateAppAttack: simulate a mintwALGO operation and update the code.
+		// @forceAppId: force appId to be the specified instead of the vault. Used to test.
+		// @forceAssetId: force assetId to be the specified instead of wALGO. Used to test.
+		this.updateAppAttack = async function (sender, amount, signCallback) {
+			const params = await this.algodClient.getTransactionParams().do()
+
+			params.fee = this.minFee
+			params.flatFee = true
+
+			let minterAddr = await this.mintAccount()
+			let vaultAddr = await this.vaultAddressByApp(sender)
+			let mintFee = await this.mintFee()
+
+			if(!minterAddr) {
+				throw new Error('ERROR: Mint account not defined')
+			}
+			if(!vaultAddr) {
+				throw new Error('ERROR: Account not opted in')
+			}
+
+			let appArgs = [];
+			appArgs.push(new Uint8Array(Buffer.from(MINT_WALGOS_OP)))
+
+			let appAccounts = []
+			appAccounts.push(vaultAddr)
+
+			let assetId = this.assetId
+
+			let txPayFees
+
+			let approvalProgramCompiled = await this.compileApprovalProgram()
+			let clearProgramCompiled = await this.compileClearProgram()
+
+			// create unsigned transaction
+			const txApp = algosdk.makeApplicationUpdateTxn(sender, params, this.appId, approvalProgramCompiled, clearProgramCompiled, appArgs, appAccounts)
+			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(minterAddr, sender, undefined, undefined, amount, new Uint8Array(0), 
+				assetId, params)
+			let txns = [txApp, txwALGOTransfer];
+
+			if(mintFee > 0) {
+				let fees = Math.floor(mintFee * amount / 10000)
+				txPayFees = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, this.adminAddr, fees, undefined, new Uint8Array(0), params)
+				txns.push(txPayFees)
+			}
+
+			// Group both transactions
+			algosdk.assignGroupID(txns);
+
+			let signed = []
+			let txAppSigned = signCallback(sender, txApp)
+			let txwALGOTransferSigned = algosdk.signLogicSigTransactionObject(txwALGOTransfer, this.lsigMint);			
+
+			signed.push(txAppSigned);
+			signed.push(txwALGOTransferSigned.blob);
+
+			if(txPayFees) {
+				let txPayFeesSigned = await this.signVaultTx(sender, txPayFees)
+				signed.push(txPayFeesSigned.blob);
+			}
+
+			let tx = (await this.algodClient.sendRawTransaction(signed).do())
+
+			return tx.txId
+		}
+
 		// setMintAccountAttack: attach an additional transaction to the App Call to try to withdraw algos from a Vault.
 		// if the TEAL code does not verify the GroupSize correctly the Vault TEAL will approve the tx 
 		this.testCallAppAttack = async function (sender, appArgs, appAccounts, attackAccountAddr, signCallback) {

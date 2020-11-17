@@ -191,15 +191,6 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 	console.log('depositALGOs')
 	txId = await vaultManager.depositALGOs(accountAddr, depositAmount, signCallback)
 
-	try {
-		console.log('setMintAccountAttack')
-		// try to send 2 txs in a group to withdraw algos from a Vault using admin account 
-		txId = await vaultManager.setMintAccountAttack(addresses[0], mintAddr, accountAddr, signCallback)
-		console.error('ERROR: setMintAccountAttack should have failed: %s', txId)
-	} catch (err) {
-		console.log('setMintAccountAttack successfully failed: %s', errorText(err))
-	}
-
 	// it should fail: GlobalStatus == 0
 	try {
 		console.log('withdrawALGOs')
@@ -254,6 +245,25 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 
 	console.log('printAppCallDelta')
 	vaultManager.printAppCallDelta(txResponse)
+
+	try {
+		console.log('setMintAccountAttack')
+		// try to send 2 txs in a group to withdraw algos from a Vault using admin account 
+		txId = await vaultManager.setMintAccountAttack(addresses[0], mintAddr, accountAddr, signCallback)
+		console.error('ERROR: setMintAccountAttack should have failed: %s', txId)
+	} catch (err) {
+		console.log('setMintAccountAttack successfully failed: %s', errorText(err))
+	}
+
+	try {
+		console.log('updateAppAttack')
+		// try to update the app doing an user op with the correct arguments. Reported by Audit.
+		txId = await vaultManager.updateAppAttack(accountAddr, 10000, signCallback)
+
+		console.error('ERROR: updateAppAttack should have failed: %s', txId)
+	} catch (err) {
+		console.log('updateAppAttack successfully failed: %s', errorText(err))
+	}
 
 	try {
 		console.log('mintwALGOs: try to mint another asset')
