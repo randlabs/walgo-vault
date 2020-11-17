@@ -29,34 +29,6 @@ const SET_MINT_FEE_OP = 'sMF'
 const SET_BURN_FEE_OP = 'sBF'
 const SET_CREATION_FEE_OP = 'sCF'
 
-// #pragma version 2
-// addr TMPL_USER_ADDRESS
-// pop
-
-// gtxn 0 ApplicationID
-// int TMPL_APP_ID
-// ==
-
-// gtxn 0 OnCompletion
-// int NoOp
-// ==
-// &&
-
-// // do not allow to call the App from the Vault
-// txn GroupIndex
-// int 0
-// !=
-// &&
-
-// gtxn 0 Accounts 1
-// txn Sender
-// ==
-// &&
-
-// txn RekeyTo
-// global ZeroAddress
-// ==
-// &&
 
 var vaultTEAL = 
 `#pragma version 2
