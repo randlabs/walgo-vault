@@ -454,14 +454,14 @@ bz failed
 // corresponds to the Sender account Vault
 byte "Program"
 // Prefix (see README.md)
-byte base64 AiAC3rekAQAmASA=
+byte base64 AiAD3rekAQACJgEg
 concat
 
 txn Sender
 concat
 
 // Suffix (see README.md)
-byte base64 KEgzABgiEjEWIxMQNwAcATEAEhAxIDIDEhA=
+byte base64 KEgzABgiEjMAGSMSMwAZJBIREDEWIxMQNwAcATEAEhAxIDIDEhA=
 concat
 
 sha512_256

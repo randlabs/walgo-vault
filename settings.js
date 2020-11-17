@@ -29,8 +29,8 @@ module.exports = {
 	},
 
 	account1: {
-		privateKey: 'jazz crumble coil simple clip quote flee unaware simple fresh casual awesome salute shove anger liberty grape invite sunset fence faculty soap royal about rare',
-		publicKey: '4YDUBDLNMVD4SBNKZBVUE6B3KA5BWMRNKAD4SWZZAWNMOCC2S4ZDKRTC24'
+		privateKey: 'lonely right song cross clump great camp club model physical palm pottery usage bottom noodle survey fall private spray bitter found crouch paddle absent tail',
+		publicKey: 'JWH3LBRIUB7HHDHFOQWRRLQ4XF2TAU5E6P5YUBYXXNIXK2QBSV7XATEPTI'
 	},
 	account2: {
 		privateKey: 'crack object grape over belt win blast ostrich lumber swear limb trust large what pottery borrow foil auto neither valve delay audit long able fire',
@@ -55,8 +55,10 @@ module.exports = {
 	minterAccount: {
 		privateKey: 'sadness cradle giraffe famous garbage uniform real catalog horse swift elder trim skill shoe fault lyrics net file brown shop trophy vehicle fitness abstract orphan',
 		publicKey: 'GZILFNLBQ4BURKLJISKDQVNDXOTFGMSP6MAXI76HRB2KDI2PBAA2TKFFIY'
-
-		//publicKey: 'ZYI7YTWEXF6FGMRDOJNAGIID5M7OKO554TJOVU2RCA7Z2QWQEBTGDOLOU4'
+	},
+	clearStateAttackAccount: {
+		privateKey: 'hello lesson dad camp squeeze screen ensure question concert never trash when soda wool smart genre humor verb vote insect abandon tide defense about soccer',
+		publicKey: '3CMRUAF4U7P2GOGVXXEKXAUZCCVUTTQTKYEAA75CGFDG4H3L66SBPYAI3A'
 	},
 	
 	debug: {
