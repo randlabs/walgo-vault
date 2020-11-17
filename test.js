@@ -14,6 +14,8 @@ let fakeAppId
 let signatures = {}
 let addresses
 let algodClient
+let mintAddr
+let clearStateAttackAddr
 
 const testApprovalProgramFilename = 'true-program.teal'
 const testClearStateProgramFilename = 'true-program.teal'
@@ -23,6 +25,7 @@ function setupClient() {
 	signatures = settings.signatures
 	addresses = settings.addresses
 	mintAddr = settings.minterAddress
+	clearStateAttackAddr = settings.clearStateAttackAddr
 
 	vaultManager = new vault.VaultManager(algodClient, settings.appId, addresses[0], settings.assetId)
 	if(settings.burnFee !== undefined) {
@@ -88,9 +91,9 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 			console.log('vaultAddressByApp')
 			let vaultAddr = await vaultManager.vaultAddressByApp(accountAddr)
 			if(!vaultAddr) {
-				console.log('optIn')
-				txId = await vaultManager.optIn(accountAddr, signCallback)
-				await vaultManager.waitForTransactionResponse(txId)
+				vaultAddr = await vaultManager.vaultAddressByTEAL(accountAddr)
+				console.error('Cannot use account %s becuase the Vault %s has a balance != 0', accountAddr, vaultAddr)
+				return
 			}
 			else {
 				console.log('setAccountStatus')
@@ -128,6 +131,14 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		}
 	} catch (err) {
 		console.error('ERROR: rolling back vault: %s', errorText(err))
+	}
+
+	let vaultAddrApp = await vaultManager.vaultAddressByApp(clearStateAttackAddr)
+	let vaultAddrTEAL = await vaultManager.vaultAddressByTEAL(clearStateAttackAddr)
+	if(vaultAddrApp == vaultAddrTEAL) {
+		console.log('closeOut')
+		txId = await vaultManager.closeOut(clearStateAttackAddr, signCallback)
+		console.log('closeOut: %s', txId)
 	}
 
 	console.log('assetBalance')
@@ -245,6 +256,26 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 
 	console.log('printAppCallDelta')
 	vaultManager.printAppCallDelta(txResponse)
+
+	console.log('optIn clearStateAttackAddr')
+	txId = await vaultManager.optIn(clearStateAttackAddr, signCallback)
+	console.log('optIn clearStateAttackAddr: %s', txId)
+
+	txResponse = await vaultManager.waitForTransactionResponse(txId)
+
+	try {
+		console.log('clearStateAttack')
+		// try to send 2 txs in a group to drain algos from a Vault creating a clearState from the sender and 
+		// withdrawing algos from a Vault that the sender does not own.
+		txId = await vaultManager.clearStateAttack(clearStateAttackAddr, accountAddr, 100000, signCallback)
+		console.error('ERROR: clearStateAttack should have failed: %s', txId)
+	} catch (err) {
+		console.log('clearStateAttack successfully failed: %s', errorText(err))
+
+		console.log('closeOut clearStateAttackAddr')
+		txId = await vaultManager.closeOut(clearStateAttackAddr, signCallback)
+		console.log('closeOut clearStateAttackAddr: %s', txId)
+	}
 
 	try {
 		console.log('setMintAccountAttack')
