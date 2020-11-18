@@ -422,6 +422,7 @@ int 0
 
 bz failed
 
+// tx1.TypeEnum == pay && tx1.Receiver == Admin && tx1.Amount >= CreationFee
 gtxn 1 TypeEnum
 int pay
 ==
@@ -509,7 +510,7 @@ close_out_account:
 
 // tx0: App CloseOut
 
-// tx1.TypeEnum == Payment && GroupSize == 2 && tx1.Sender == VaultAddr && tx1.RekeyTo == ZeroAddress && 
+// tx1.TypeEnum == pay && GroupSize == 2 && tx1.Sender == VaultAddr && tx1.RekeyTo == ZeroAddress && 
 // tx1.Fee == MinTxnFee && 
 // tx1.CloseRemainderTo != ZeroAddress && Minted == 0 
 // tx1.Receiver == Admin && 
@@ -594,9 +595,9 @@ store 7
 // No fee so no 3rd tx
 // (GroupSize == 2 && MintFee == 0 || 
 // 3rd tx paying the fees. It can be paid from the Vault or from another account
-// GroupSize == 3 && MintFee > 0 && tx2.TypeEnum == Payment && 
+// GroupSize == 3 && MintFee > 0 && tx2.TypeEnum == pay && 
 // tx2.Amount == MintFee*tx1.AssetAmount/10000 && tx2.Receiver == AdminAddr && tx2.CloseRemainderTo == ZeroAddress) && 
-// tx1.TypeEnum == AssetTransfer && 
+// tx1.TypeEnum == AssetTransfer &&
 // tx1.AssetAmount > 0 && tx1.Sender == MintAccount && tx1.Fee == MinTxnFee && 
 // tx1.AssetCloseTo == ZeroAddress && tx1.XferAsset == ASA ID
 load 3
@@ -753,7 +754,7 @@ no_admin_withdraw_algos:
 // tx2: Payment
 
 // tx0.Accounts[1] == VaultAddr && GroupSize == 2 && tx1.Sender == VaultAddr && tx1.Rekey == ZeroAddress
-// tx1.TypeEnum == Payment && tx1.Amount >= 1000 && tx1.Fee == MinTxnFee && 
+// tx1.TypeEnum == pay && tx1.Amount >= 1000 && tx1.Fee == MinTxnFee && 
 // tx1.CloseRemainderTo == ZeroAddress
 load 3 // Vault address
 txna Accounts 1
@@ -846,7 +847,7 @@ store 9
 // tx1.TypeEnum == AssetTransfer && 
 // (GroupSize == 2 && BurnFee == 0 ||
 // 3rd tx paying the fees. It can be paid from the Vault or from another account
-// GroupSize == 3 && BurnFee > 0 && tx2.TypeEnum == Payment && 
+// GroupSize == 3 && BurnFee > 0 && tx2.TypeEnum == pay &&
 // tx2.Amount == MintFee*tx1.AssetAmount/10000 && tx2.Receiver == AdminAddr && tx2.CloseRemainderTo == ZeroAddress) && 
 // tx1.AssetAmount > 0 && 
 // tx1.AssetReceiver == MintAccount && tx1.XferAsset == ASA ID
