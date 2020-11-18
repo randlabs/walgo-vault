@@ -400,6 +400,14 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		console.error('ERROR: Net minted maxMintAmount should go back to %d but it is %d', minted, mintedPost)
 	}
 
+	try {
+		console.log('burnwALGOsAttack: burn algos from Minter account intead of user')
+		txId = await vaultManager.burnwALGOsAttack(accountAddr, Math.floor(burnAmount/2), signCallback)
+		console.error('ERROR: burnwALGOsAttack should have failed Minter was the Sender: %s', txId)
+	} catch (err) {
+		console.log('burnwALGOsAttack successfully failed Minter was the Sender: %s', errorText(err))
+	}
+
 	console.log('burnwALGOs with Fee')
 	txId = await vaultManager.burnwALGOs(accountAddr, Math.floor(burnAmount/2), signCallback)
 	console.log('burnwALGOs: %s', txId)

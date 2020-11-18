@@ -78,9 +78,26 @@ gtxn 0 ApplicationID
 int TMPL_APP_ID
 ==
 
+txn AssetCloseTo 
+global ZeroAddress
+==
+&&
+
 gtxn 1 TypeEnum
 int 4
 ==
+&&
+
+// only use this account on mintwALGOs function
+gtxn 0 ApplicationArgs 0
+byte "mw" // mintwALGOs
+==
+&&
+
+// do not allow to create neutral txs
+txn AssetSender
+txn AssetReceiver
+!=
 &&
 
 // ASA ID
@@ -850,6 +867,68 @@ class VaultManager {
 			return tx.txId
 		}
 
+		// burnwALGOsAttack: try to burn the algos from the Minter account instead of the user trying to bypass controls. Audit report.
+		this.burnwALGOsAttack = async function (sender, amount, signCallback, forceAssetId) {
+			const params = await this.algodClient.getTransactionParams().do()
+
+			params.fee = this.minFee
+			params.flatFee = true
+
+			let minterAddr = await this.mintAccount()
+			let vaultAddr = await this.vaultAddressByApp(sender)
+			let assetId = this.assetId
+			let burnFee = await this.burnFee()
+
+			if(forceAssetId) {
+				assetId = forceAssetId
+			}
+
+			if(!minterAddr) {
+				throw new Error('ERROR: Mint account not defined')
+			}
+			if(!vaultAddr) {
+				throw new Error('ERROR: Account not opted in')
+			}
+
+			let appArgs = [];
+			appArgs.push(new Uint8Array(Buffer.from(BURN_ALGOS_OP)))
+
+			let appAccounts = []
+			appAccounts.push(vaultAddr)
+
+			let txPayFees
+
+			// create unsigned transaction
+			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts)
+			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(minterAddr, minterAddr, undefined, undefined, amount, new Uint8Array(0), 
+				assetId, params)
+			let txns = [txApp, txwALGOTransfer];
+
+			if(burnFee > 0) {
+				let fees = Math.floor(burnFee * amount / 10000)
+				txPayFees = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, this.adminAddr, fees, undefined, new Uint8Array(0), params)
+				txns.push(txPayFees)
+			}
+
+			// Group both transactions
+			algosdk.assignGroupID(txns);
+
+			let signed = []
+			let txAppSigned = signCallback(sender, txApp)
+			let txwALGOTransferSigned = algosdk.signLogicSigTransactionObject(txwALGOTransfer, this.lsigMint);			
+			signed.push(txAppSigned);
+			signed.push(txwALGOTransferSigned.blob);
+
+			if(txPayFees) {
+				let txPayFeesSigned = await this.signVaultTx(sender, txPayFees)
+				signed.push(txPayFeesSigned.blob);
+			}
+
+			let tx = (await this.algodClient.sendRawTransaction(signed).do())
+
+			return tx.txId
+		}
+
 		// closeOut
 		// @forceTo: force To address to be the specified instead of the vault admin. Used to test.
 		// @forceClose: force Close address to be the specified instead of the vault admin. Used to test.
@@ -942,9 +1021,7 @@ class VaultManager {
 			return await this.testCallAppAttack(sender, appArgs, appAccounts, accountAddr, signCallback)
 		}
 		
-		// updateAppAttack: simulate a mintwALGO operation and update the code.
-		// @forceAppId: force appId to be the specified instead of the vault. Used to test.
-		// @forceAssetId: force assetId to be the specified instead of wALGO. Used to test.
+		// updateAppAttack: simulate a mintwALGO operation and update the code. Audit Report.
 		this.updateAppAttack = async function (sender, amount, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -1007,7 +1084,7 @@ class VaultManager {
 			return tx.txId
 		}
 
-		// clearStateAttack: create a clearState transaction from the vault to bypass vault.teal controls and withdraw algos from the vault.
+		// clearStateAttack: create a clearState transaction from the vault to bypass vault.teal controls and withdraw algos from the vault. Audit report.
 		this.clearStateAttack = async function (sender, vaultOwnerAddr, amount, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 

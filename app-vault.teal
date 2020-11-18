@@ -850,7 +850,7 @@ store 9
 // GroupSize == 3 && BurnFee > 0 && tx2.TypeEnum == pay &&
 // tx2.Amount == MintFee*tx1.AssetAmount/10000 && tx2.Receiver == AdminAddr && tx2.CloseRemainderTo == ZeroAddress) && 
 // tx1.AssetAmount > 0 && 
-// tx1.AssetReceiver == MintAccount && tx1.XferAsset == ASA ID
+// tx1.AssetReceiver == MintAccount && tx1.AssetSender != MintAccount && tx1.XferAsset == ASA ID
 
 // AssetTransfer
 gtxn 1 TypeEnum
@@ -924,7 +924,14 @@ int 0
 gtxn 1 AssetReceiver
 byte "MA" // MintAccount
 app_global_get
+dup
+store 9
 ==
+&&
+
+gtxn 1 AssetSender
+load 9
+!=
 &&
 
 // ASA_ID
