@@ -3,7 +3,7 @@ const fs = require('fs')
 const tools = require('./tools')
 const { Console } = require('console');
 
-const approvalProgramFilename = 'app-vault.teal'
+const approvalProgramFilename = 'app-vault.teal.tmpl'
 const clearProgramFilename = 'app-vault-clear-state.teal'
 
 const GLOBAL_STATUS_GLOBAL_KEY = 'GS'
@@ -264,8 +264,6 @@ class VaultManager {
 
 
 			program = program.replace(/TMPL_ASA_ID/g, this.assetId)
-			// program = program.replace(/TMPL_VAULT_TEAL_PREFIX/g, "AiAD3rekAQACJgEg")
-			// program = program.replace(/TMPL_VAULT_TEAL_SUFFIX/g, "KEgzABgiEjMAGSMSMwAZJBIREDEWIxMQNwAcATEAEhAxIDIDEhA=")
 			program = program.replace(/TMPL_VAULT_TEAL_PREFIX/g, prefixBase64)
 			program = program.replace(/TMPL_VAULT_TEAL_SUFFIX/g, suffixBase64)
 
