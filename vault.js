@@ -88,6 +88,11 @@ int 4
 ==
 &&
 
+gtxn 0 OnCompletion
+int NoOp
+==
+&&
+
 // only use this account on mintwALGOs function
 gtxn 0 ApplicationArgs 0
 byte "mw" // mintwALGOs
