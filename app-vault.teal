@@ -1,5 +1,10 @@
 #pragma version 2
 
+// Parameters
+// - TMPL_ASA_ID: asset id of wALGO
+// - TMPL_VAULT_TEAL_PREFIX: initial part of the vault.teal Program (see Readme.md)
+// - TMPL_VAULT_TEAL_SUFFIX: ending part of the vault.teal Program (see Readme.md)
+
 // Global Vars:
 // position 2: is registered
 // position 3: Vault address (no Admin operations)
@@ -455,14 +460,14 @@ bz failed
 // corresponds to the Sender account Vault
 byte "Program"
 // Prefix (see README.md)
-byte base64 AiAD3rekAQACJgEg
+byte base64 TMPL_VAULT_TEAL_PREFIX
 concat
 
 txn Sender
 concat
 
 // Suffix (see README.md)
-byte base64 KEgzABgiEjMAGSMSMwAZJBIREDEWIxMQNwAcATEAEhAxIDIDEhA=
+byte base64 TMPL_VAULT_TEAL_SUFFIX
 concat
 
 sha512_256
@@ -710,7 +715,7 @@ global ZeroAddress
 
 // ASA_ID
 gtxn 1 XferAsset
-int 2671688
+int TMPL_ASA_ID
 ==
 &&
 
@@ -936,7 +941,7 @@ load 9
 
 // ASA_ID
 gtxn 1 XferAsset
-int 2671688
+int TMPL_ASA_ID
 ==
 &&
 

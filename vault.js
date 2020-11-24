@@ -246,7 +246,35 @@ class VaultManager {
 		}
 
 		this.compileApprovalProgram = async function () {
-			return await this.compileProgram(approvalProgramFilename)
+			// use any address to replace in the template
+			const compiledVaultProgram = await this.vaultCompiledTEALByAddress(this.adminAddr)
+			
+			let buffer = Buffer.from(compiledVaultProgram.result, 'base64');
+			let compiledVaultProgramHex = buffer.toString('hex');
+
+			let prefix = compiledVaultProgramHex.substring(0, 24)
+			let suffix = compiledVaultProgramHex.substring(88)
+
+			buffer = Buffer.from(prefix, 'hex');
+			let prefixBase64 = buffer.toString('base64');
+			buffer = Buffer.from(suffix, 'hex');
+			let suffixBase64 = buffer.toString('base64');
+
+			let program = fs.readFileSync(approvalProgramFilename, 'utf8')
+
+
+			program = program.replace(/TMPL_ASA_ID/g, this.assetId)
+			// program = program.replace(/TMPL_VAULT_TEAL_PREFIX/g, "AiAD3rekAQACJgEg")
+			// program = program.replace(/TMPL_VAULT_TEAL_SUFFIX/g, "KEgzABgiEjMAGSMSMwAZJBIREDEWIxMQNwAcATEAEhAxIDIDEhA=")
+			program = program.replace(/TMPL_VAULT_TEAL_PREFIX/g, prefixBase64)
+			program = program.replace(/TMPL_VAULT_TEAL_SUFFIX/g, suffixBase64)
+
+			let encoder = new TextEncoder()
+			let programBytes = encoder.encode(program);
+
+			const compileResponse = await this.algodClient.compile(programBytes).do()
+			const compiledBytes = new Uint8Array(Buffer.from(compileResponse.result, 'base64'))
+			return compiledBytes
 		}
 
 		this.appIdFromCreateAppResponse = function(txResponse) {
