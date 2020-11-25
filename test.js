@@ -830,7 +830,7 @@ async function main () {
 	
 	try {
 		if(settings.createASA) {
-			txId = await asaTools.destroyASA(algodClient, addresses[0], this.assetId, signCallback);
+			txId = await asaTools.destroyASA(algodClient, mintAddr, settings.assetId, signCallback);
 			console.log('destroyASA: %s', txId)
 		}
 	} catch(err) {
@@ -839,7 +839,7 @@ async function main () {
 
 	try {
 		if(fakeAssetId) {
-			txId = await asaTools.destroyASA(algodClient, addresses[0], fakeAssetId, signCallback);
+			txId = await asaTools.destroyASA(algodClient, mintAddr, fakeAssetId, signCallback);
 			console.log('destroyASA: Fake Asset %s', txId)
 		}
 	} catch(err) {
