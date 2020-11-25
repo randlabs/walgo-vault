@@ -559,12 +559,8 @@ async function main () {
 		let txId
 		let txResponse
 
-		try {
-			vaultManager.delegateMintAccountFromFile(settings.minterDelegateFile)
-		} catch(err) {
-			await vaultManager.generateDelegatedMintAccountToFile(settings.minterDelegateFile, lsigCallback)
-			vaultManager.delegateMintAccountFromFile(settings.minterDelegateFile)
-		}
+		await vaultManager.generateDelegatedMintAccountToFile(settings.minterDelegateFile, lsigCallback)
+		vaultManager.delegateMintAccountFromFile(settings.minterDelegateFile)
 
 		// txId = await vaultManager.optInASA(addresses[7], signCallback)
 
