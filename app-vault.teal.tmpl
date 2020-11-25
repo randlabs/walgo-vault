@@ -730,20 +730,7 @@ load 8
 +
 store 6
 
-int 0
-byte "m" // minted
-load 6
-app_local_put
-
-int 1
-balance
-load 7
--
-load 6
->=
-bnz success
-
-err
+b put_minted_verify_balance
 
 // End mintwALGOs
 /////////////////////////////////////////////////////////////////////
@@ -915,6 +902,17 @@ global ZeroAddress
 ==
 &&
 
+// Position 7: store the fee if the Sender == VaultAddr 
+gtxn 2 Sender
+load 3
+==
+bz no_admin_burn_walgos_no_fee
+
+gtxn 2 Fee
+gtxn 2 Amount
++
+store 7
+
 // )
 
 no_admin_burn_walgos_no_fee:
@@ -951,23 +949,37 @@ int 0
 byte "m" // minted
 app_local_get
 
-store 8
 
 // Minted >= tx1.AssetAmount
 // it is not necessary to verify it because if it is the case, the next substraction generates an error 
 
 // Minted = Minted - tx1.AssetAmount
-load 8
 gtxn 1 AssetAmount
 -
-store 8
+store 6
+
+// Handle put_minted_verify_balance
+// -----------------
+// Position 6: new minted value
+// Position 7: algos to remove from Vault (fees and payments)
+put_minted_verify_balance:
 
 int 0
 byte "m" // minted
-load 8
+load 6
 app_local_put
 
-b success
+// newBalance >= minted
+int 1
+balance
+load 7
+-
+load 6
+>=
+bnz success
+
+err
+
 
 // End burnwALGOs
 /////////////////////////////////////////////////////////////////////

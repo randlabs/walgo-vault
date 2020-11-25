@@ -667,17 +667,18 @@ class VaultManager {
 				// maxAmount*(1+fee/10000) = vaultBalance - minted
 				// maxAmount = (vaultBalance - minted - minFee) / (1+fee/10000)
 				maxAmount = Math.floor((vaultBalance - minted - this.minTransactionFee()) / (1+fee/10000))
-				// rounding error can generate an error above 1 so the real maxAmount is a bit higher
-				while(vaultBalance - minted - maxAmount - Math.floor(maxAmount * fee / 10000) - this.minTransactionFee() >= 1) {
-					maxAmount++
+				if(maxAmount > 0) {
+					// rounding error can generate an error above 1 so the real maxAmount is a bit higher
+					while(vaultBalance - minted - maxAmount - Math.floor(maxAmount * fee / 10000) - this.minTransactionFee() >= 1) {
+						maxAmount++
+					}
 				}
-
 			}
 			else {
 				maxAmount = vaultBalance - minted
 			}
 
-			return maxAmount
+			return (maxAmount > 0 ? maxAmount : 0)
 		}
 
 		this.vaultCompiledTEALByAddress = async function(accountAddr) {

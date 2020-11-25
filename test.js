@@ -72,15 +72,16 @@ function lsigCallback(sender, lsig) {
 }
 
 async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmount, burnAmount) {
-	console.log('\nTesting account %s\n', accountAddr)
+	console.log('\n********* Testing account %s *********\n', accountAddr)
 
 	let txId
 	let vaultBalance
 	let withdrawalAmount
 	let minted
 	let txResponse
+	let curBurnFee
 
-	try {
+	try {	
 		console.log('minted')
 		minted = await vaultManager.minted(accountAddr)
 		console.log('vaultBalance')
@@ -98,8 +99,14 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 			else {
 				console.log('setAccountStatus')
 				txId = await vaultManager.setAccountStatus(addresses[0], accountAddr, 1, signCallback)
+				await vaultManager.waitForTransactionResponse(txId)
 
 				if(minted) {
+					// just in case it does not have enough balance to pay fees
+					curBurnFee = await vaultManager.burnFee()
+					txId = await vaultManager.depositALGOs(accountAddr, Math.ceil(minted*curBurnFee/10000) + vaultManager.minTransactionFee(), signCallback)
+					await vaultManager.waitForTransactionResponse(txId)
+
 					console.log('burnwALGOs')
 					txId = await vaultManager.burnwALGOs(accountAddr, Math.floor(minted), signCallback)
 					await vaultManager.waitForTransactionResponse(txId)
@@ -188,6 +195,31 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 	console.log('transfer Fake asset to try to cheat')
 	txId = await vaultManager.transferAsset(mintAddr, accountAddr, mintAmount, undefined, signCallback, fakeAssetId)
 	console.log('transferAsset Fake: %s', txId)
+
+	txResponse = await vaultManager.waitForTransactionResponse(txId)
+
+	// Audit attack. Deposit 2000 malgos, mint 2000 microwalgos and burn 1 microwalgo paying the fee from the vault. Ends with 1999 microwalgos minted
+	// and the Vault with 1000 microalgos balance
+	console.log('depositALGOs Burn Fee attack')
+	txId = await vaultManager.depositALGOs(accountAddr, 202000, signCallback)
+	txResponse = await vaultManager.waitForTransactionResponse(txId)
+
+	console.log('mintwALGOs: Burn Fee attack')
+	maxMintAmount = await vaultManager.maxMintAmount(accountAddr)
+	txId = await vaultManager.mintwALGOs(accountAddr, maxMintAmount, signCallback)
+	txResponse = await vaultManager.waitForTransactionResponse(txId)
+
+	try {
+		console.log('burnwALGOs Burn Fee attack: burn operation does not take into account fees paid from Vault')
+		txId = await vaultManager.burnwALGOs(accountAddr, 1, signCallback)
+		console.error('ERROR: burnwALGOs should have failed it burn operation does not take into account fees paid from Vault: %s', txId)
+	} catch (err) {
+		console.log('burnwALGOs successfully failed burn operation does not take into account fees paid from Vault: %s', errorText(err))
+	}
+
+	// rollback
+	txId = await vaultManager.burnwALGOs(accountAddr, maxMintAmount, signCallback)
+	txResponse = await vaultManager.waitForTransactionResponse(txId)
 
 	console.log('setGlobalStatus')
 	txId = await vaultManager.setGlobalStatus(addresses[0], 0, signCallback)
@@ -340,7 +372,7 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 
 	txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-	let maxMintAmount = await vaultManager.maxMintAmount(accountAddr)
+	maxMintAmount = await vaultManager.maxMintAmount(accountAddr)
 
 	try {
 		console.log('mintwALGOs: try to mint more than allowed')
@@ -411,7 +443,8 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 	console.log('burnwALGOs with Fee')
 	txId = await vaultManager.burnwALGOs(accountAddr, Math.floor(burnAmount/2), signCallback)
 	console.log('burnwALGOs: %s', txId)
-	
+
+	curBurnFee = await vaultManager.burnFee()
 	txId = await vaultManager.setBurnFee(addresses[0], 0, signCallback)
 
 	txResponse = await vaultManager.waitForTransactionResponse(txId)
@@ -428,6 +461,9 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 	txId = await vaultManager.burnwALGOs(accountAddr, burnAmount - Math.floor(burnAmount/2), signCallback)
 	console.log('burnwALGOs: %s', txId)
 
+	txResponse = await vaultManager.waitForTransactionResponse(txId)
+
+	txId = await vaultManager.setBurnFee(addresses[0], curBurnFee, signCallback)
 	txResponse = await vaultManager.waitForTransactionResponse(txId)
 
 	console.log('minted')
@@ -469,13 +505,18 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		console.log('withdrawALGOs successfully failed: amount exceeds maximum: %s', errorText(err))
 	}
 
+	console.log('burnwALGOs')
+	txId = await vaultManager.burnwALGOs(accountAddr, mintAmount - burnAmount, signCallback)
+	console.log('burnwALGOs %s: %s', accountAddr, txId)
+
+	txResponse = await vaultManager.waitForTransactionResponse(txId)
+
+	restoreAmount = await vaultManager.maxWithdrawAmount(accountAddr)
+
 	console.log('withdrawALGOs')
 	txId = await vaultManager.withdrawALGOs(accountAddr, restoreAmount, signCallback)
 	console.log('withdrawALGOs %s: %s', accountAddr, txId)
 
-	console.log('burnwALGOs')
-	txId = await vaultManager.burnwALGOs(accountAddr, mintAmount - burnAmount, signCallback)
-	console.log('burnwALGOs %s: %s', accountAddr, txId)
 	txResponse = await vaultManager.waitForTransactionResponse(txId)
 
 	restoreAmount = await vaultManager.maxWithdrawAmount(accountAddr)
