@@ -1,0 +1,58 @@
+#pragma version 2
+// Minter Delegate Teal
+// Allows App to mint wAlgos to Vault users
+// TMPL_APP_ID: Application ID
+// TMPL_ASA_ID: wALGOs id
+
+gtxn 0 ApplicationID
+int TMPL_APP_ID
+==
+
+txn AssetCloseTo 
+global ZeroAddress
+==
+&&
+
+gtxn 1 TypeEnum
+int 4
+==
+&&
+
+gtxn 0 OnCompletion
+int NoOp
+==
+&&
+
+// only use this account on mintwALGOs function
+gtxn 0 ApplicationArgs 0
+byte "mw" // mintwALGOs
+==
+&&
+
+// do not allow to create neutral txs
+txn AssetSender
+txn AssetReceiver
+!=
+&&
+
+// ASA ID
+gtxn 1 XferAsset
+int TMPL_ASA_ID
+==
+&&
+
+txn RekeyTo
+global ZeroAddress
+==
+&&
+
+txn AssetCloseTo 
+global ZeroAddress
+==
+&&
+
+// do not allow to call the App from the Vault, only allow calls in index 1 that are XferAsset
+txn GroupIndex
+int 1
+==
+&&

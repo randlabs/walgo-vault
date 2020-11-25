@@ -6,6 +6,9 @@ const { Console } = require('console');
 const approvalProgramFilename = 'app-vault.teal.tmpl'
 const clearProgramFilename = 'app-vault-clear-state.teal'
 
+const vaultProgramFilename = 'vault.teal.tmpl'
+const minterProgramFilename = 'minter.teal.tmpl'
+
 const GLOBAL_STATUS_GLOBAL_KEY = 'GS'
 const ADMIN_ACCOUNT_GLOBAL_KEY = 'A'
 const MINT_ACCOUNT_GLOBAL_KEY = 'MA'
@@ -29,104 +32,11 @@ const SET_MINT_FEE_OP = 'sMF'
 const SET_BURN_FEE_OP = 'sBF'
 const SET_CREATION_FEE_OP = 'sCF'
 
+var vaultTEAL
+var minterTEAL
 
-var vaultTEAL = 
-`#pragma version 2
-addr TMPL_USER_ADDRESS
-pop
 
-gtxn 0 ApplicationID
-int TMPL_APP_ID
-==
 
-gtxn 0 OnCompletion
-int NoOp
-==
-
-gtxn 0 OnCompletion
-int CloseOut
-==
-||
-
-&&
-
-// do not allow to call the App from the Vault
-txn GroupIndex
-int 0
-!=
-&&
-
-gtxn 0 Accounts 1
-txn Sender
-==
-&&
-
-txn RekeyTo
-global ZeroAddress
-==
-&&
-
-`
-var minterTEAL = 
-`#pragma version 2
-// Minter Delegate Teal
-// Allows App to mint wAlgos to Vault users
-// TMPL_APP_ID: Application ID
-// TMPL_ASA_ID: wALGOs id
-
-gtxn 0 ApplicationID
-int TMPL_APP_ID
-==
-
-txn AssetCloseTo 
-global ZeroAddress
-==
-&&
-
-gtxn 1 TypeEnum
-int 4
-==
-&&
-
-gtxn 0 OnCompletion
-int NoOp
-==
-&&
-
-// only use this account on mintwALGOs function
-gtxn 0 ApplicationArgs 0
-byte "mw" // mintwALGOs
-==
-&&
-
-// do not allow to create neutral txs
-txn AssetSender
-txn AssetReceiver
-!=
-&&
-
-// ASA ID
-gtxn 1 XferAsset
-int TMPL_ASA_ID
-==
-&&
-
-txn RekeyTo
-global ZeroAddress
-==
-&&
-
-txn AssetCloseTo 
-global ZeroAddress
-==
-&&
-
-// do not allow to call the App from the Vault, only allow calls in index 1 that are XferAsset
-txn GroupIndex
-int 1
-==
-&&
-`
 
 class VaultManager {
 	constructor (algodClient, appId = 0, adminAddr = undefined, assetId = 0) {
@@ -138,7 +48,7 @@ class VaultManager {
 		this.algodClient = algodClient
 		this.vaultMinBalance = 100000
 		this.minFee = 1000
-
+	
 		this.setAppId = function (appId) {
 			this.appId = appId
 		}
@@ -262,7 +172,6 @@ class VaultManager {
 
 			let program = fs.readFileSync(approvalProgramFilename, 'utf8')
 
-
 			program = program.replace(/TMPL_ASA_ID/g, this.assetId)
 			program = program.replace(/TMPL_VAULT_TEAL_PREFIX/g, prefixBase64)
 			program = program.replace(/TMPL_VAULT_TEAL_SUFFIX/g, suffixBase64)
@@ -329,6 +238,10 @@ class VaultManager {
 		}
 
 		this.generateDelegatedMintAccount = async function(sender, lsigCallback) {
+			if(!minterTEAL) {
+				minterTEAL = fs.readFileSync(minterProgramFilename, 'utf8')
+			}
+
 			let program = minterTEAL
 			
 			program = program.replace(/TMPL_APP_ID/g, this.appId)
@@ -342,8 +255,6 @@ class VaultManager {
 			let minterProgram = new Uint8Array(Buffer.from(compiledProgram.result, "base64"));
 
 			let lsigMinter = algosdk.makeLogicSig(minterProgram);
-
-			// let lsigProgram = algosdk.makeLogicSig(compiledProgram);
 
 			lsigCallback(sender, lsigMinter)
 
@@ -682,6 +593,10 @@ class VaultManager {
 		}
 
 		this.vaultCompiledTEALByAddress = async function(accountAddr) {
+			if(!vaultTEAL) {
+				vaultTEAL = fs.readFileSync(vaultProgramFilename, 'utf8')
+			}
+
 			let program = vaultTEAL
 			
 			program = program.replace(/TMPL_APP_ID/g, this.appId)
