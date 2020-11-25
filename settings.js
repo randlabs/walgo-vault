@@ -3,6 +3,7 @@ module.exports = {
 	// betanet
 	assetId: 2671688,
 	fakeAssetId: 2690115,
+
 	// testnet
 	//assetId: 12875488,
 
@@ -12,6 +13,11 @@ module.exports = {
 	mintFee: 150,
 	creationFee: 1568670,
 	minterDelegateFile: 'minter-delegation.sig',
+
+	// if true, the appId is ignore
+	createApp: true,
+	// if true, the assetId is ignore
+	createASA: true,
 
 	algodClient: {
 		//server: 'https://api.testnet.algoexplorer.io',
@@ -29,24 +35,24 @@ module.exports = {
 	},
 
 	account1: {
-		privateKey: 'lonely right song cross clump great camp club model physical palm pottery usage bottom noodle survey fall private spray bitter found crouch paddle absent tail',
-		publicKey: 'JWH3LBRIUB7HHDHFOQWRRLQ4XF2TAU5E6P5YUBYXXNIXK2QBSV7XATEPTI'
+		privateKey: 'south quick valid slab defy conduct absorb captain borrow bulb drive box wall again orchard express ensure mail venue deputy negative radar violin about cousin',
+		publicKey: 'M7VGND73KDBHIKB3KB7GT3PHVORFPGVOEOY6TZFA25DDVJ5WRLV7S5KQ7E'
 	},
 	account2: {
-		privateKey: 'crack object grape over belt win blast ostrich lumber swear limb trust large what pottery borrow foil auto neither valve delay audit long able fire',
-		publicKey: '252PVVY7LK4R5IUJ7AKSJYMAA5FI7A6NUORM4WKOJEJMQHZYXELRJZJZYE'
+		privateKey: 'immune gloom foil disorder furnace bleak attack huge risk resemble phone choose minute priority shop grow jewel armor air exact real hurry arrange ability picnic',
+		publicKey: 'P4QKUHU4ZWR7IVF3DXHWFC34ZLI3EZ7JWT6YCPGJ6RQNNHF5RJ2LADTSXE'
 	},
 	account3: {
-		privateKey: 'mandate observe example human uncover supreme submit refuse unfold dice move crime moon dinosaur potato easy voice roast ship jaguar galaxy network pattern abandon shell',
-		publicKey: 'P3WYJMZR3WV6XCJ3UQA26LTRX23X7TWWROJ54X4RXJTLNG2MJAXLQGRX5Y'
+		privateKey: 'reason rigid ranch shock portion blouse miracle barrel balcony option curious quarter possible stick true sting lake recycle nest junior horn veteran copy about alien',
+		publicKey: 'DDA62FAYHSPYBSGKXQPUFNL2IG5WPMYQNPQS44YW5X4NER7ABNUOVHL4M4'
 	},
 	account4: {
-		privateKey: 'hub celery mass guitar multiply bicycle trash vacant candy spice cradle involve example carpet potato squirrel quick nominee debate square trim allow wasp above exotic',
-		publicKey: 'ZAICRIHSHWI7GGDC44ICCYFKTRORD373HZ3VZAJ45PJEUM3LMNIS5WRVLI'
+		privateKey: 'twelve chunk clay rally balcony debris raw only library tenant auction discover error hammer economy visit frog bridge wheel slogan caution remain alone ability magnet',
+		publicKey: 'XTZVAH6FPQDX2VOVHBOCTWP3YSNFK5PFFN76YLBI7HMJS7TSWLQKU6DKOA'
 	},
 	account5: {
-		privateKey: 'battle destroy horse picture invest dust year sister annual huge pitch champion knife shop pole ill bottom bridge regular broom tuna stamp jeans about claw',
-		publicKey: 'F7K4AB5JPJWQ2YZ6UFDCEJEFDXJJR4FRLARF36FXICTNMRSBWUIRZ3IPW4'
+		privateKey: 'track panic hollow hub clap sniff bracket animal whale mother mirror object coral same canoe pitch lyrics oven issue deputy north soft story above very',
+		publicKey: 'HEBIUTQ4WVRQSK7GBNUOZSWC4XP6HLIGF2YGV4ASTPHGW7CDJ5OMMJLOIU'
 	},
 	account6: {
 		privateKey: 'lazy enforce shock brain twice box slender sea any drink tip coconut suit maid dilemma abandon antenna work kit kiss unaware six aspect about crew',

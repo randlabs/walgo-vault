@@ -52,6 +52,9 @@ class VaultManager {
 		this.setAppId = function (appId) {
 			this.appId = appId
 		}
+		this.setAssetId = function (assetId) {
+			this.assetId = assetId
+		}
 
 		this.setCreator = function (adminAddr) {
 			this.adminAddr = adminAddr

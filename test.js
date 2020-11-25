@@ -555,12 +555,10 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 }
 
 async function main () {
+	let errText
 	try {
 		let txId
 		let txResponse
-
-		await vaultManager.generateDelegatedMintAccountToFile(settings.minterDelegateFile, lsigCallback)
-		vaultManager.delegateMintAccountFromFile(settings.minterDelegateFile)
 
 		// txId = await vaultManager.optInASA(addresses[7], signCallback)
 
@@ -570,33 +568,35 @@ async function main () {
 		// return
 		
 		// // ASA ID Testnet: 11870752
-		// txId = await asaTools.createASA(algodClient, addresses[0], 8000000000000000, 6, 'wALGO', 'Wrapped ALGO', 'https://stakerdao', signCallback);
-		// txResponse = await vaultManager.waitForTransactionResponse(txId)
-		// console.log('Asset created with index %d', txResponse['asset-index'])
+		if(settings.createASA) {
+			txId = await asaTools.createASA(algodClient, mintAddr, 8000000000000000, 6, 'wALGO', 'Wrapped ALGO', 'https://stakerdao', signCallback);
+			txResponse = await vaultManager.waitForTransactionResponse(txId)
+			settings.assetId = txResponse['asset-index']
+			vaultManager.setAssetId(settings.assetId)
+			console.log('Asset created with index %d', settings.assetId)
+		}
 
-		// txId = await asaTools.createASA(algodClient, mintAddr, 8000000000000000, 6, 'wALGOF', 'Wrapped ALGO Fake', 'https://stakerdao', signCallback);
-		// txResponse = await vaultManager.waitForTransactionResponse(txId)
-		// console.log('Asset created with index %d', txResponse['asset-index'])
+		txId = await asaTools.createASA(algodClient, mintAddr, 8000000000000000, 6, 'wALGOF', 'Wrapped ALGO Fake', 'https://stakerdao', signCallback);
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
+		fakeAssetId = txResponse['asset-index']
+		console.log('Asset created with index %d', fakeAssetId)
 		// return
 
-		//console.log('deleteApp')
-		// txId = await vaultManager.deleteApp(addresses[0])
-		// txResponse = await vaultManager.waitForTransactionResponse(txId)
-		// appId = vaultManager.appIdFromCreateAppResponse(txResponse)
-		// console.log('AppId: ' + appId)
+		if(settings.createApp) {
+			console.log('createApp')
+			txId = await vaultManager.createApp(addresses[0], signCallback)
+			txResponse = await vaultManager.waitForTransactionResponse(txId)
+			appId = vaultManager.appIdFromCreateAppResponse(txResponse)
+			vaultManager.setAppId(appId)
+			console.log('Create App: AppId: ' + appId)
+		}
 
-		//console.log('createApp')
-		// txId = await vaultManager.createApp(addresses[0], signCallback)
-		// txResponse = await vaultManager.waitForTransactionResponse(txId)
+		console.log('createApp: Fake to test')
+		txId = await vaultManager.createApp(addresses[0], signCallback, testApprovalProgramFilename, testClearStateProgramFilename)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-		// console.log('createApp: Fake to test')
-		// txId = await vaultManager.createApp(addresses[0], signCallback, testApprovalProgramFilename, testClearStateProgramFilename)
-		// txResponse = await vaultManager.waitForTransactionResponse(txId)
-
-		// appId = vaultManager.appIdFromCreateAppResponse(txResponse)
-		// // vaultManager.setAppId(appId)
-		// console.log('Create App: AppId: ' + appId)
-		// return
+		fakeAppId = vaultManager.appIdFromCreateAppResponse(txResponse)
+		console.log('Create App: AppId: ' + appId)
 
 		console.log('updateApp')
 		txId = await vaultManager.updateApp(addresses[0], signCallback)
@@ -631,6 +631,9 @@ async function main () {
 		console.log('setAdminAccount %s: %s', addresses[0], txId)
 
 		txResponse = await vaultManager.waitForTransactionResponse(txId)
+
+		await vaultManager.generateDelegatedMintAccountToFile(settings.minterDelegateFile, lsigCallback)
+		vaultManager.delegateMintAccountFromFile(settings.minterDelegateFile)
 
 		// optIn minterAddr if did not optIn
 		let balance = await vaultManager.assetBalance(mintAddr)
@@ -802,9 +805,49 @@ async function main () {
 		await testAccount(addresses[5], 4000405, 3900405, 4500, 3900000)
 
 	} catch (err) {
-		let text = errorText(err)
+		errText = errorText(err)
+	}
 
-		throw new Error('ERROR: ' + text)
+	try {
+		if(settings.createApp) {
+			console.log('deleteApp')
+			txId = await vaultManager.deleteApp(addresses[0], signCallback)
+			console.log('deleteApp: %s', txId)
+		}
+	} catch(err) {
+		console.error('ERROR: deleteApp failed: %s', errorText(err))
+	}
+
+	try {
+		if(fakeAppId) {
+			console.log('deleteApp: Fake App')
+			txId = await vaultManager.deleteApp(addresses[0], signCallback, fakeAppId)
+			console.log('deleteApp: Fake App %s', txId)
+		}
+	} catch(err) {
+		console.error('ERROR: deleteApp Fake App failed: %s', errorText(err))
+	}
+	
+	try {
+		if(settings.createASA) {
+			txId = await asaTools.destroyASA(algodClient, addresses[0], this.assetId, signCallback);
+			console.log('destroyASA: %s', txId)
+		}
+	} catch(err) {
+		console.error('ERROR: destroyASA failed: %s', errorText(err))
+	}
+
+	try {
+		if(fakeAssetId) {
+			txId = await asaTools.destroyASA(algodClient, addresses[0], fakeAssetId, signCallback);
+			console.log('destroyASA: Fake Asset %s', txId)
+		}
+	} catch(err) {
+		console.error('ERROR: destroyASA Fake Asset failed: %s', errorText(err))
+	}
+
+	if(errText) {
+		throw new Error('ERROR: ' + errText)
 	}
 }
 
