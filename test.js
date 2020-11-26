@@ -580,13 +580,12 @@ async function main () {
 		txResponse = await vaultManager.waitForTransactionResponse(txId)
 		fakeAssetId = txResponse['asset-index']
 		console.log('Asset created with index %d', fakeAssetId)
-		// return
 
 		if(settings.createApp) {
 			console.log('createApp')
 			txId = await vaultManager.createApp(addresses[0], signCallback)
 			txResponse = await vaultManager.waitForTransactionResponse(txId)
-			appId = vaultManager.appIdFromCreateAppResponse(txResponse)
+			let appId = vaultManager.appIdFromCreateAppResponse(txResponse)
 			vaultManager.setAppId(appId)
 			console.log('Create App: AppId: ' + appId)
 		}
@@ -596,7 +595,7 @@ async function main () {
 		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
 		fakeAppId = vaultManager.appIdFromCreateAppResponse(txResponse)
-		console.log('Create App: AppId: ' + appId)
+		console.log('Create App: AppId: ' + fakeAppId)
 
 		console.log('updateApp')
 		txId = await vaultManager.updateApp(addresses[0], signCallback)
