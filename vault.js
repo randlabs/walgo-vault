@@ -374,6 +374,28 @@ class VaultManager {
 			return 0
 		}
 
+		// accountBalance
+		this.accountBalance = async function(accountAddr) {
+			let response = await this.algodClient.accountInformation(accountAddr).do()
+			return response.amount
+		}
+
+		this.transferAlgos = async function (sender, destAddr, amount, closeAddr, signCallback) {
+			const params = await this.algodClient.getTransactionParams().do()
+
+			params.fee = this.minFee
+			params.flatFee = true
+
+			// create unsigned transaction
+			let txALGOTransfer = algosdk.makePaymentTxnWithSuggestedParams(sender, destAddr, amount, closeAddr, 
+				new Uint8Array(0), params)
+			let txALGOTransferSigned = signCallback(sender, txALGOTransfer)
+
+			let tx = (await this.algodClient.sendRawTransaction(txALGOTransferSigned).do())
+
+			return tx.txId
+		}
+
 		// @forceAssetId: force assetId. Used to test.
 		this.transferAsset = async function (sender, destAddr, amount, closeAddr, signCallback, forceAssetId) {
 			const params = await this.algodClient.getTransactionParams().do()
@@ -565,6 +587,10 @@ class VaultManager {
 			if(vaultBalance - amount - this.minTransactionFee() < this.minVaultBalance()) {
 				amount = vaultBalance - this.minVaultBalance() - this.minTransactionFee()
 			}
+			if(amount < 0) {
+				return 0
+			}
+
 			return amount
 		}
 
