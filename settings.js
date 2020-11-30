@@ -1,14 +1,17 @@
 module.exports = {
 	appName: 'StakerDAO Vault',
+
+	timeout: 2500000,
+
 	// betanet
-	assetId: 2671688,
-	fakeAssetId: 2690115,
+	assetId: 2705842,
+	fakeAssetId: 2705843,
 
 	// testnet
 	//assetId: 12875488,
 
-	appId: 2694110,
-	fakeAppId: 2690332,
+	appId: 2705844,
+	fakeAppId: 2705845,
 	burnFee: 100,
 	mintFee: 150,
 	creationFee: 1568670,
@@ -25,7 +28,7 @@ module.exports = {
 		//server: 'localhost:8090',
 		port: '',
 		apiToken: {
-			//'X-Algo-API-Token': '133e2f3f4c6058f59930aed3df861948c2e85a21afa733080af2b06e668ccdf7',
+		//	'X-Algo-API-Token': '133e2f3f4c6058f59930aed3df861948c2e85a21afa733080af2b06e668ccdf7',
 		}
 	},
 
@@ -55,12 +58,16 @@ module.exports = {
 		publicKey: 'HEBIUTQ4WVRQSK7GBNUOZSWC4XP6HLIGF2YGV4ASTPHGW7CDJ5OMMJLOIU'
 	},
 	account6: {
-		privateKey: 'lazy enforce shock brain twice box slender sea any drink tip coconut suit maid dilemma abandon antenna work kit kiss unaware six aspect about crew',
-		publicKey: '2XKEBSAJQJ5WYCYVZ5WNHLVUYJVGLJP3BPJ7PRYWDTEH6N7T742YEP6IX4'
+		privateKey: 'worry sphere situate rib update trumpet glove mechanic perfect glare cost cart agree drastic spin blanket what flash orient utility grow focus zebra abandon leave',
+		publicKey: 'CV3U3AV6WY4Q22QLGYUQYFBF6DQWZLK23S5PBLFXRI3MWVQHVUHIE7EZB4'
 	},
 	minterAccount: {
 		privateKey: 'sadness cradle giraffe famous garbage uniform real catalog horse swift elder trim skill shoe fault lyrics net file brown shop trophy vehicle fitness abstract orphan',
 		publicKey: 'GZILFNLBQ4BURKLJISKDQVNDXOTFGMSP6MAXI76HRB2KDI2PBAA2TKFFIY'
+	},
+	dispenserAccount: {
+		privateKey: 'off make custom code notable rule furnace zoo acid miss almost orchard add original pelican obtain open entire depend bleak rival dove outside absorb fame',
+		publicKey: '5TAAKQIKHOWAGL7HQLB43LHNMOAZNKP76QBB4OWEAYQSKSVA5VS6Y6DRCQ'
 	},
 	clearStateAttackAccount: {
 		privateKey: 'hello lesson dad camp squeeze screen ensure question concert never trash when soda wool smart genre humor verb vote insect abandon tide defense about soccer',
