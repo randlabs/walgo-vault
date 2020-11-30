@@ -71,6 +71,10 @@ function recoverAccounts () {
 		settings.minterAddress = settings["minterAccount"].publicKey
 		signatures[settings.minterAddress] = algosdk.mnemonicToSecretKey(settings["minterAccount"].privateKey)
 	}
+	if(settings["dispenserAccount"]) {
+		settings.dispenserAddress = settings["dispenserAccount"].publicKey
+		signatures[settings.dispenserAddress] = algosdk.mnemonicToSecretKey(settings["dispenserAccount"].privateKey)
+	}
 	if(settings["clearStateAttackAccount"]) {
 		settings.clearStateAttackAddr = settings["clearStateAttackAccount"].publicKey
 		signatures[settings.clearStateAttackAddr] = algosdk.mnemonicToSecretKey(settings["clearStateAttackAccount"].privateKey)
