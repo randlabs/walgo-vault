@@ -673,7 +673,7 @@ class VaultManager {
 		// mintwALGOs
 		// @forceAppId: force appId to be the specified instead of the vault. Used to test.
 		// @forceAssetId: force assetId to be the specified instead of wALGO. Used to test.
-		this.mintwALGOs = async function (sender, amount, signCallback, forceAppId, forceAssetId) {
+		this.mintwALGOs = async function (sender, amount, signCallback, forceAppId, forceAssetId, forceFeeMintOperation) {
 			const params = await this.algodClient.getTransactionParams().do()
 
 			params.fee = this.minFee
@@ -710,9 +710,18 @@ class VaultManager {
 
 			// create unsigned transaction
 			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, appId, appArgs, appAccounts)
+
+			if(forceFeeMintOperation) {
+				params.fee = forceFeeMintOperation
+			}
+
 			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(minterAddr, sender, undefined, undefined, amount, new Uint8Array(0), 
 				assetId, params)
 			let txns = [txApp, txwALGOTransfer];
+
+			if(forceFeeMintOperation) {
+				params.fee = this.minFee
+			}
 
 			if(mintFee > 0) {
 				let fees = Math.floor(mintFee * amount / 10000)

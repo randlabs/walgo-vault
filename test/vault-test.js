@@ -483,6 +483,15 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		}
 		mochaTools.expectTEALReject(error)
 	})
+	it("mintwALGOs: try to mint wALGOs paying a higher fee from the Minter account", async function() {
+		try {
+			txId = await vaultManager.mintwALGOs(accountAddr, mintAmount, signCallback, undefined, undefined, 2000)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALReject(error)
+	})
 	it("mintwALGOs " + Math.floor(mintAmount/2) + " with fee ", async function() {
 		let minted = await vaultManager.minted(accountAddr)
 		txId = await vaultManager.mintwALGOs(accountAddr, Math.floor(mintAmount/2), signCallback)
@@ -894,21 +903,21 @@ describe("StakerDAO Vault Test", async function() {
 	})
 
 	describe("Account Operations", async function() {
-		// describe("Testing account " + addresses[1], async function() {
-		// 	await testAccount(addresses[1], 12000405, 4545000, 5500000, 2349000)
-		// })
-		// describe("Testing account " + addresses[2], async function() {
-		// 	await testAccount(addresses[2], 6000405, 5545000, 300000, 4349000)
-		// })
-		// describe("Testing account " + addresses[3], async function() {
-		// 	await testAccount(addresses[3], 8000405, 3545000, 4300000, 3349000)
-		// })
-		// describe("Testing account " + addresses[4], async function() {
-		// 	await testAccount(addresses[4], 9000405, 8545000, 325230, 7349000)
-		// })
-		// describe("Testing account " + addresses[5], async function() {
-		// 	await testAccount(addresses[5], 4500405, 3200405, 410000, 2500000)
-		// })
+		describe("Testing account " + addresses[1], async function() {
+			await testAccount(addresses[1], 12000405, 4545000, 5500000, 2349000)
+		})
+		describe("Testing account " + addresses[2], async function() {
+			await testAccount(addresses[2], 6000405, 5545000, 300000, 4349000)
+		})
+		describe("Testing account " + addresses[3], async function() {
+			await testAccount(addresses[3], 8000405, 3545000, 4300000, 3349000)
+		})
+		describe("Testing account " + addresses[4], async function() {
+			await testAccount(addresses[4], 9000405, 8545000, 325230, 7349000)
+		})
+		describe("Testing account " + addresses[5], async function() {
+			await testAccount(addresses[5], 4500405, 3200405, 410000, 2500000)
+		})
 	})
 
   describe("Destruction Functions", async function() {
