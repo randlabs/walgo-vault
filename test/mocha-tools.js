@@ -23,7 +23,7 @@ function expectTxId(txId) {
 
 function expectTEALReject(err) {
 	let text = errorText(err)
-	expect(text).to.match(/(?:TEAL runtime encountered err opcode|would result negative|transaction rejected by ApprovalProgram|rejected by logic)/)
+	expect(text).to.match(/(?:TEAL runtime encountered err opcode|would result negative|transaction rejected by ApprovalProgram|rejected by logic|below min 100000)/)
 }
 
 function expectTEALRejectNonAdminError(err) {

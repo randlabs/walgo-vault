@@ -4,23 +4,16 @@ module.exports = {
 	timeout: 2500000,
 
 	// betanet
-	assetId: 2705842,
-	fakeAssetId: 2705843,
+	assetId: 2707342,
+	appId: 2707377,
 
-	// testnet
-	//assetId: 12875488,
+	//keepCreatedAsset: true,
+	//keepCreatedApp: true,
 
-	appId: 2705844,
-	fakeAppId: 2705845,
 	burnFee: 100,
 	mintFee: 150,
 	creationFee: 1568670,
 	minterDelegateFile: 'minter-delegation.sig',
-
-	// if true, the appId is ignore
-	createApp: true,
-	// if true, the assetId is ignore
-	createASA: true,
 
 	algodClient: {
 		//server: 'https://api.testnet.algoexplorer.io',

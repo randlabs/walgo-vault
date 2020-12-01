@@ -6,7 +6,6 @@ const accountTest = require('./account-test')
 const config = require('../config')
 const fs = require('fs')
 const mochaTools = require('./mocha-tools');
-//const { testAccount } = require("./account-test");
 
 let settings
 let burnFee = 150
@@ -89,6 +88,80 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		expect(balance).to.be.at.least(depositAmount*2)
 	})
 
+	it("updateApp: User account", async function() {
+		try {
+			txId = await vaultManager.updateApp(accountAddr, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALRejectNonAdminError(error)
+	})
+	it("deleteApp: User account", async function() {
+		try {
+			txId = await vaultManager.deleteApp(accountAddr, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALRejectNonAdminError(error)
+	})
+	it("setGlobalStatus(0): User account", async function() {
+		try {
+			txId = await vaultManager.setGlobalStatus(accountAddr, 0, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALRejectNonAdminError(error)
+	})
+	it("setMintAccount: User account", async function() {
+		try {
+			txId = await vaultManager.setMintAccount(accountAddr, accountAddr, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALRejectNonAdminError(error)
+	})
+	it("setAdminAccount: User account", async function() {
+		try {
+			txId = await vaultManager.setAdminAccount(accountAddr, accountAddr, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALRejectNonAdminError(error)
+	})
+	it("setMintFee: User account", async function() {
+		let error
+		try {
+			txId = await vaultManager.setMintFee(accountAddr, 300, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALRejectNonAdminError(error)
+	})
+
+	it("setBurnFee: User account", async function() {
+		try {
+			txId = await vaultManager.setBurnFee(accountAddr, 300, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALRejectNonAdminError(error)
+	})
+	it("setCreationFee: User account", async function() {
+		try {
+			txId = await vaultManager.setCreationFee(addresses[2], 300, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALRejectNonAdminError(error)		
+	})
 	it("Restore Account: Burn, withdraw and closeOut Vault to restore original state", async function() {
 		mintFee = await vaultManager.mintFee()
 		burnFee = await vaultManager.burnFee()
@@ -186,6 +259,83 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		txResponse = await vaultManager.waitForTransactionResponse(txId)
 		mochaTools.expectTxId(txId)
 	})
+
+	// test all admin functions with User account after optIn
+	it("updateApp: User account after optIn", async function() {
+		try {
+			txId = await vaultManager.updateApp(accountAddr, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALReject(error)
+	})
+	it("deleteApp: User account after optIn", async function() {
+		try {
+			txId = await vaultManager.deleteApp(accountAddr, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALReject(error)
+	})
+	it("setGlobalStatus(0): User account after optIn", async function() {
+		try {
+			txId = await vaultManager.setGlobalStatus(accountAddr, 0, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALReject(error)
+	})
+	it("setMintAccount: User account after optIn", async function() {
+		try {
+			txId = await vaultManager.setMintAccount(accountAddr, accountAddr, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALReject(error)
+	})
+	it("setAdminAccount: User account after optIn", async function() {
+		try {
+			txId = await vaultManager.setAdminAccount(accountAddr, accountAddr, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALReject(error)
+	})
+	it("setMintFee: User account after optIn", async function() {
+		let error
+		try {
+			txId = await vaultManager.setMintFee(accountAddr, 300, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALReject(error)
+	})
+
+	it("setBurnFee: User account after optIn", async function() {
+		try {
+			txId = await vaultManager.setBurnFee(accountAddr, 300, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALReject(error)
+	})
+	it("setCreationFee: User account after optIn", async function() {
+		try {
+			txId = await vaultManager.setCreationFee(addresses[2], 300, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALRejectNonAdminError(error)		
+	})
+
 
 	// Audit attack. Deposit 2000 malgos, mint 2000 microwalgos and burn 1 microwalgo paying the fee from the vault. Ends with 1999 microwalgos minted
 	// and the Vault with 1000 microalgos balance
@@ -528,16 +678,19 @@ describe("StakerDAO Vault Test", async function() {
 	this.timeout(settings.timeout);
 
 	describe("Creation ASA and Application", function() {
-		if(settings.createASA) {
-			it("Create ASA", async function() {
+		it("Create ASA", async function() {
+			if(!settings.assetId) {
 				txId = await asaTools.createASA(algodClient, mintAddr, 8000000000000000, 6, 'wALGO', 'Wrapped ALGO', 'https://stakerdao', signCallback);
 				txResponse = await vaultManager.waitForTransactionResponse(txId)
 				settings.assetId = txResponse['asset-index']
 				vaultManager.setAssetId(settings.assetId)
 				console.log('Asset Id: %d', settings.assetId)
       	expect(settings.assetId).to.be.above(0)
-			});
-		}
+			}
+			else {
+				expect(1).to.equal(1)
+			}
+		})
 
 		it("Create ASA Fake", async function() {
 			txId = await asaTools.createASA(algodClient, mintAddr, 8000000000000000, 6, 'wALGOF', 'Wrapped ALGO Fake', 'https://stakerdao', signCallback);
@@ -545,62 +698,70 @@ describe("StakerDAO Vault Test", async function() {
 			fakeAssetId = txResponse['asset-index']
 			console.log('Fake Asset Id: %d', fakeAssetId)
 			expect(settings.assetId).to.be.above(0)
-		});
+		})
 
-		if(settings.createApp) {
-			it("createApp", async function() {
+		it("createApp", async function() {
+			if(!settings.appId) {
 				txId = await vaultManager.createApp(addresses[0], signCallback)
 				txResponse = await vaultManager.waitForTransactionResponse(txId)
 				let appId = vaultManager.appIdFromCreateAppResponse(txResponse)
 				vaultManager.setAppId(appId)
 				console.log('App Id: %d', appId)
       	expect(appId).to.be.above(0)
-			});
-		}
+			}
+			else {
+				expect(1).to.equal(1)
+			}
+		})
 		it("createApp: Create Fake App to test", async function() {
-			txId = await vaultManager.createApp(addresses[0], signCallback, testApprovalProgramFilename, testClearStateProgramFilename)
-			txResponse = await vaultManager.waitForTransactionResponse(txId)		
-			fakeAppId = vaultManager.appIdFromCreateAppResponse(txResponse)
-			console.log('Fake App Id: %d', fakeAppId)
-			expect(fakeAppId).to.be.above(0)
-		});
-	});
+			if(!settings.fakeAppId) {
+				txId = await vaultManager.createApp(addresses[0], signCallback, testApprovalProgramFilename, testClearStateProgramFilename)
+				txResponse = await vaultManager.waitForTransactionResponse(txId)		
+				fakeAppId = vaultManager.appIdFromCreateAppResponse(txResponse)
+				console.log('Fake App Id: %d', fakeAppId)
+				expect(fakeAppId).to.be.above(0)
+			}
+			else {
+				expect(1).to.equal(1)
+			}
+		})
+	})
 
   describe("Admin Operations", async function() {
 		it("updateApp: Admin", async function() {
 			txId = await vaultManager.updateApp(addresses[0], signCallback)
 			mochaTools.expectTxId(txId)
-		});
+		})
 
 		it("setGlobalStatus: Admin set to 1", async function() {
 			txId = await vaultManager.setGlobalStatus(addresses[0], 1, signCallback)
 			txResponse = await vaultManager.waitForTransactionResponse(txId)
 			mochaTools.expectTxId(txId)
-		});
+		})
 		it("setMintAccount: Admin", async function() {
 			txId = await vaultManager.setMintAccount(addresses[0], addresses[1], signCallback)
 			txResponse = await vaultManager.waitForTransactionResponse(txId)
 			let addr = await vaultManager.mintAccount()
 			expect(addresses[1]).to.equal(addr)
-		});
+		})
 		it("setAdminAccount: Admin", async function() {
 			txId = await vaultManager.setAdminAccount(addresses[0], addresses[2], signCallback)
 			txResponse = await vaultManager.waitForTransactionResponse(txId)
 			let addr = await vaultManager.adminAccount()
 			expect(addresses[2]).to.equal(addr)
-		});
+		})
 		it("setMintAccount: Admin", async function() {
 			txId = await vaultManager.setMintAccount(addresses[2], mintAddr, signCallback)
 			txResponse = await vaultManager.waitForTransactionResponse(txId)
 			let addr = await vaultManager.mintAccount()
 			expect(mintAddr).to.equal(addr)
-		});
+		})
 		it("setAdminAccount: Admin restore old Admin account", async function() {
 			txId = await vaultManager.setAdminAccount(addresses[2], addresses[0], signCallback)
 			txResponse = await vaultManager.waitForTransactionResponse(txId)
 			let addr = await vaultManager.adminAccount()
 			expect(addresses[0]).to.equal(addr)
-		});
+		})
 
 		it("optIn: try to optIn Admin account", async function() {
 			try {
@@ -610,18 +771,8 @@ describe("StakerDAO Vault Test", async function() {
 				error = err
 			}
 			mochaTools.expectTEALReject(error)
-		});
+		})
 
-		it("setMintFee: non Admin", async function() {
-			let error
-			try {
-				txId = await vaultManager.setMintFee(addresses[2], 300, signCallback)
-				error = 0
-			} catch(err) {
-				error = err
-			}
-			mochaTools.expectTEALRejectNonAdminError(error)
-		});
 
 		it("setMintFee: Admin trying to set a fee above the limits 5001 more than 5000", async function() {
 			try {
@@ -632,17 +783,7 @@ describe("StakerDAO Vault Test", async function() {
 			}
 			mochaTools.expectTEALReject(error)
 			
-		});
-
-		it("setBurnFee: non Admin ", async function() {
-			try {
-				txId = await vaultManager.setBurnFee(addresses[1], 300, signCallback)
-				error = 0
-			} catch(err) {
-				error = err
-			}
-			mochaTools.expectTEALRejectNonAdminError(error)
-		});
+		})
 
 		it("setBurnFee: Admin trying to set a fee above the limits 5001 more than 5000", async function() {
 			try {
@@ -653,61 +794,51 @@ describe("StakerDAO Vault Test", async function() {
 			}
 			mochaTools.expectTEALReject(error)
 			
-		});
+		})
 
 		it("setBurnFee: Reset to 0", async function() {
 			txId = await vaultManager.setBurnFee(addresses[0], 0, signCallback)
 			mochaTools.expectTxId(txId)
-		});
+		})
 		it("setMintFee: Reset to 0", async function() {
 			txId = await vaultManager.setMintFee(addresses[0], 0, signCallback)
 			mochaTools.expectTxId(txId)
-		});
+		})
 		it("setCreationFee: Reset to 0", async function() {
 			txId = await vaultManager.setCreationFee(addresses[0], 0, signCallback)
 			txResponse = await vaultManager.waitForTransactionResponse(txId)
 			mochaTools.expectTxId(txId)
-		});
+		})
 		it("Verify burnFee is 0", async function() {
 			let fee = await vaultManager.burnFee()
 			expect(fee).to.equal(0);
-		});
+		})
 		it("Verify mintFee is 0", async function() {
 			let fee = await vaultManager.mintFee()
 			expect(fee).to.equal(0);
-		});
+		})
 		it("Verify creationFee is 0", async function() {
 			let fee = await vaultManager.creationFee()
 			expect(fee).to.equal(0);
-		});
-		it("setCreationFee: non Admin", async function() {
-			try {
-				txId = await vaultManager.setCreationFee(addresses[2], 300, signCallback)
-				error = 0
-			} catch(err) {
-				error = err
-			}
-			mochaTools.expectTEALRejectNonAdminError(error)
-			
-		});
+		})
 		it("setBurnFee: Admin", async function() {
 			txId = await vaultManager.setBurnFee(addresses[0], burnFee, signCallback)
 			txResponse = await vaultManager.waitForTransactionResponse(txId)
 			let fee = await vaultManager.burnFee()
 			expect(fee).to.equal(burnFee)
-		});
+		})
 		it("setMintFee: Admin", async function() {
 			txId = await vaultManager.setMintFee(addresses[0], mintFee, signCallback)
 			txResponse = await vaultManager.waitForTransactionResponse(txId)
 			let fee = await vaultManager.mintFee()
 			expect(fee).to.equal(mintFee)
-		});
+		})
 		it("setCreationFee: Admin", async function() {
 			txId = await vaultManager.setCreationFee(addresses[0], creationFee, signCallback)
 			txResponse = await vaultManager.waitForTransactionResponse(txId)
 			let fee = await vaultManager.creationFee()
 			expect(fee).to.equal(creationFee)
-		});
+		})
 		// try to optIn an address whose Vault balance != 0. It should fail, allowing non-zero balance vaults can be attacked by
 		// malicius users: ClearState a vault with minted wALGOs and then re-create it
 		it("Verify that addresses which Vault balance is above 0 can not optIn", async function() {
@@ -743,7 +874,7 @@ describe("StakerDAO Vault Test", async function() {
 			}
 			mochaTools.expectTEALReject(error)
 			
-		});
+		})
 	})
 
 	describe("Preparation User Operations", async function() {
@@ -753,58 +884,69 @@ describe("StakerDAO Vault Test", async function() {
 			} catch(err) {
 			}
 			expect(fs.existsSync(settings.minterDelegateFile)).to.be.false;
-		});
+		})
 
 		it("generateDelegatedMint: Minter signs a delegation to mint from the App", async function() {
 			await vaultManager.generateDelegatedMintAccountToFile(settings.minterDelegateFile, lsigCallback)
 			vaultManager.delegateMintAccountFromFile(settings.minterDelegateFile)
 			expect(fs.existsSync(settings.minterDelegateFile)).to.be.true;
-		});
-	});
-
-	describe("Account Operations", async function() {
-		describe("Testing account " + addresses[1], async function() {
-			await testAccount(addresses[1], 12000405, 4545000, 5500000, 2349000)
-		})
-		describe("Testing account " + addresses[2], async function() {
-			await testAccount(addresses[2], 6000405, 5545000, 300000, 4349000)
-		})
-		describe("Testing account " + addresses[1], async function() {
-			await testAccount(addresses[3], 8000405, 3545000, 4300000, 3349000)
-		})
-		describe("Testing account " + addresses[1], async function() {
-			await testAccount(addresses[4], 9000405, 8545000, 325230, 7349000)
-		})
-		describe("Testing account " + addresses[1], async function() {
-			await testAccount(addresses[5], 4000405, 3900405, 4500, 3900000)
 		})
 	})
 
+	describe("Account Operations", async function() {
+		// describe("Testing account " + addresses[1], async function() {
+		// 	await testAccount(addresses[1], 12000405, 4545000, 5500000, 2349000)
+		// })
+		// describe("Testing account " + addresses[2], async function() {
+		// 	await testAccount(addresses[2], 6000405, 5545000, 300000, 4349000)
+		// })
+		// describe("Testing account " + addresses[3], async function() {
+		// 	await testAccount(addresses[3], 8000405, 3545000, 4300000, 3349000)
+		// })
+		// describe("Testing account " + addresses[4], async function() {
+		// 	await testAccount(addresses[4], 9000405, 8545000, 325230, 7349000)
+		// })
+		// describe("Testing account " + addresses[5], async function() {
+		// 	await testAccount(addresses[5], 4500405, 3200405, 410000, 2500000)
+		// })
+	})
+
   describe("Destruction Functions", async function() {
-		if(settings.createApp) {
-			it("deleteApp", async function() {
+		it("deleteApp", async function() {
+			if(!settings.appId && !settings.keepCreatedApp) {
 				txId = await vaultManager.deleteApp(addresses[0], signCallback)
 				mochaTools.expectTxId(txId)
-			});
-		}
-		if(fakeAppId) {
-			it("deleteApp: Fake App", async function() {
+			}
+			else {
+				expect(1).to.equal(1)
+			}
+		})
+		it("deleteApp: Fake App", async function() {
+			if(!settings.fakeAppId) {
 				txId = await vaultManager.deleteApp(addresses[0], signCallback, fakeAppId)
 				mochaTools.expectTxId(txId)
-			});
-		}
-		if(settings.createASA) {
-			it("Destroy ASA", async function() {
-				this.timeout(settings.timeout);
+			}
+			else {
+				expect(1).to.equal(1)
+			}
+		})
+		it("Destroy ASA", async function() {
+			if(!settings.assetId && !settings.keepCreatedAsset) {
 				txId = await asaTools.destroyASA(algodClient, mintAddr, settings.assetId, signCallback);
 				mochaTools.expectTxId(txId)
-			});
-		}
-		if(fakeAssetId) {
-			it("destroyASA: Fake Asset", async function() {
+			}
+			else {
+				expect(1).to.equal(1)
+			}
+		})
+		it("destroyASA: Fake Asset", async function() {
+			if(!settings.fakeAssetId) {
 				txId = await asaTools.destroyASA(algodClient, mintAddr, fakeAssetId, signCallback);
 				mochaTools.expectTxId(txId)
-			});
-		}
-  });
+			}
+			else {
+				expect(1).to.equal(1)
+			}
+		})
+	})
 })
