@@ -115,6 +115,15 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		}
 		mochaTools.expectTEALRejectNonAdminError(error)
 	})
+	it("setAccountStatus(0): User account", async function() {
+		try {
+			txId = await vaultManager.setAccountStatus(accountAddr, accountAddr, 0, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALRejectNonAdminError(error)
+	})
 	it("setMintAccount: User account", async function() {
 		try {
 			txId = await vaultManager.setMintAccount(accountAddr, accountAddr, signCallback)
@@ -288,6 +297,15 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		}
 		mochaTools.expectTEALReject(error)
 	})
+	it("setAccountStatus(0): User account after optIn", async function() {
+		try {
+			txId = await vaultManager.setAccountStatus(accountAddr, accountAddr, 0, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALReject(error)
+	})
 	it("setMintAccount: User account after optIn", async function() {
 		try {
 			txId = await vaultManager.setMintAccount(accountAddr, accountAddr, signCallback)
@@ -333,7 +351,7 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		} catch(err) {
 			error = err
 		}
-		mochaTools.expectTEALRejectNonAdminError(error)		
+		mochaTools.expectTEALReject(error)
 	})
 
 
