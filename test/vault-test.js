@@ -353,8 +353,6 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		}
 		mochaTools.expectTEALReject(error)
 	})
-
-
 	// Audit attack. Deposit 2000 malgos, mint 2000 microwalgos and burn 1 microwalgo paying the fee from the vault. Ends with 1999 microwalgos minted
 	// and the Vault with 1000 microalgos balance
 	it("TOB Audit: Lack of fee consideration for burning operation lead the system to be undercollateralized", async function() {
