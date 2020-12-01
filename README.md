@@ -6,7 +6,7 @@
 git clone git@github.com:randlabs/stakerdao-vault.git
 cd stakerdao-vault
 npm install
-node test.js
+npm test
 ```
 
 ## Command Line Tool
@@ -45,12 +45,31 @@ Remarks:
 
 ## Application Calls
 
+### Admin updateApp
+
+The admin can update the teal code of the application.
+
+* Tx0: 
+  * Sender: Admin
+	* OnCompletion: UpdateApplication
+  * Application Call tx
+
+### Admin deleteApplication
+
+The admin can delete the application. 
+
+* Tx0: 
+  * Sender: Admin
+	* OnCompletion: DeleteApplication
+  * Application Call tx
+
 ### Admin setGlobalStatus
 
 The admin can enable or disable any vault at any time.
 
 * Tx0: 
   * Sender: Admin
+	* OnCompletion: NoOp
   * arg0: integer: new status (0 or 1)
   * Application Call tx
 
@@ -60,8 +79,20 @@ The Admin can enable or disable any vault at any time.
 
 * Tx0: 
   * Sender: Admin
+	* OnCompletion: NoOp
   * acc0: User Address
   * arg0: integer: new status (0 or 1)
+  * Application Call tx
+
+### Admin setMinterAccount
+
+The Admin can change the Minter account. This account is used to mint wALGOs in mintwALGOs operations. By default, the Minter == Creator.
+
+* Tx0: 
+  * Sender: Admin
+	* OnCompletion: NoOp
+  * arg0: str:sMA
+  * acc0: new Minter Address
   * Application Call tx
 
 ### Admin setMintFee
@@ -70,7 +101,9 @@ Set the percent of paid in ALGOs on each mintwALGOs operation
 
 * Tx0: 
   * Sender: Admin
-  * arg0: integer: new fee (0 to 5000 which means 0%-50%)
+	* OnCompletion: NoOp
+  * arg0: str:sMF
+  * arg1: integer: new fee (0 to 5000 which means 0%-50%)
   * Application Call tx
 
 ### Admin setBurnFee
@@ -79,7 +112,9 @@ Set the percent of ALGOs reserved for the Admin on each burnwALGOs operation
 
 * Tx0: 
   * Sender: Admin
-  * arg0: integer: new fee (0 to 5000 which means 0%-50%)
+	* OnCompletion: NoOp
+  * arg0: str:sBF
+  * arg1: integer: new fee (0 to 5000 which means 0%-50%)
   * Application Call tx
 
 ### Admin setCreationFee
@@ -88,7 +123,9 @@ Set the fee in ALGOs that is required to send to Admin to optin to the App
 
 * Tx0: 
   * Sender: Admin
-  * arg0: integer: new fee in microALGOs
+	* OnCompletion: NoOp
+  * arg0: str:sCF
+  * arg1: integer: new fee in microALGOs
   * Application Call tx
 
 ### User optIn
@@ -97,6 +134,7 @@ User opts in to the Vault App. The App creates the local data for the account. V
 
 * Tx0: from Vault owner account
   * Sender: Vault owner account
+	* OnCompletion: OptIn
   * acc0: Vault address
   * Application Call tx
 
@@ -112,6 +150,7 @@ Closes the Vault, recover the ALGOs and pay pending fees. After this operation, 
 
 * Tx0:
   * Sender: Vault owner account
+	* OnCompletion: CloseOut
   * acc0: Vault address
   * Application Call tx
 
@@ -131,6 +170,7 @@ User sends ALGOs to the Vault address directly from any account.
 
 * Tx0: 
   * Sender: Vault owner
+	* OnCompletion: NoOp
   * arg0: str:wA
   * acc0: Vault address
   * Application Call tx
@@ -147,6 +187,7 @@ User sends ALGOs to the Vault address directly from any account.
 
 * Tx0: 
   * Sender: Vault owner account
+	* OnCompletion: NoOp
   * arg0: str:mw
   * acc0: Vault address
   * Application Call tx
@@ -172,6 +213,7 @@ If MintFee > 0, a third tx is needed
 
 * Tx0: 
   * Sender: Vault owner
+	* OnCompletion: NoOp
   * arg0: str:bw
   * Application Call tx
 
