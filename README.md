@@ -42,6 +42,7 @@ Remarks:
 * Only 1 Vault per account is allowed
 * Minimum Withdrawal: 1000 micro Algos
 * Mint & Burn Fee: if it is changed, only future mint operations are impacted
+* Attackers can prevent an account to open a Vault if they know the account address on advance. Users should not reveal publicly their accounts that they are going to use to open a Vault.
 
 ## Application Calls
 
