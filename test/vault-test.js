@@ -346,7 +346,7 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 	})
 	it("setCreationFee: User account after optIn", async function() {
 		try {
-			txId = await vaultManager.setCreationFee(addresses[2], 300, signCallback)
+			txId = await vaultManager.setCreationFee(accountAddr, 300, signCallback)
 			error = 0
 		} catch(err) {
 			error = err
@@ -823,6 +823,44 @@ describe("StakerDAO Vault Test", async function() {
 			
 		})
 
+		it("setMintFee: Minter try to change fee", async function() {
+			try {
+				txId = await vaultManager.setMintFee(mintAddr, 10, signCallback)
+				error = 0
+			} catch(err) {
+				error = err
+			}
+			mochaTools.expectTEALRejectNonAdminError(error)			
+		})
+		it("setBurnFee: Minter try to change fee", async function() {
+			try {
+				txId = await vaultManager.setBurnFee(mintAddr, 10, signCallback)
+				error = 0
+			} catch(err) {
+				error = err
+			}
+			mochaTools.expectTEALRejectNonAdminError(error)			
+		})
+		it("setMintFee: Minter try to change fee", async function() {
+			try {
+				txId = await vaultManager.setMintFee(mintAddr, 10, signCallback)
+				error = 0
+			} catch(err) {
+				error = err
+			}
+			mochaTools.expectTEALRejectNonAdminError(error)			
+		})
+
+		it("setCreationFee: Minter try to change fee", async function() {
+			try {
+				txId = await vaultManager.setCreationFee(mintAddr, 5001, signCallback)
+				error = 0
+			} catch(err) {
+				error = err
+			}
+			mochaTools.expectTEALRejectNonAdminError(error)
+		})
+
 		it("setBurnFee: Reset to 0", async function() {
 			txId = await vaultManager.setBurnFee(addresses[0], 0, signCallback)
 			mochaTools.expectTxId(txId)
@@ -924,18 +962,18 @@ describe("StakerDAO Vault Test", async function() {
 		describe("Testing account " + addresses[1], async function() {
 			await testAccount(addresses[1], 12000405, 4545000, 5500000, 2349000)
 		})
-		describe("Testing account " + addresses[2], async function() {
-			await testAccount(addresses[2], 6000405, 5545000, 300000, 4349000)
-		})
-		describe("Testing account " + addresses[3], async function() {
-			await testAccount(addresses[3], 8000405, 3545000, 4300000, 3349000)
-		})
-		describe("Testing account " + addresses[4], async function() {
-			await testAccount(addresses[4], 9000405, 8545000, 325230, 7349000)
-		})
-		describe("Testing account " + addresses[5], async function() {
-			await testAccount(addresses[5], 4500405, 3200405, 410000, 2500000)
-		})
+		// describe("Testing account " + addresses[2], async function() {
+		// 	await testAccount(addresses[2], 6000405, 5545000, 300000, 4349000)
+		// })
+		// describe("Testing account " + addresses[3], async function() {
+		// 	await testAccount(addresses[3], 8000405, 3545000, 4300000, 3349000)
+		// })
+		// describe("Testing account " + addresses[4], async function() {
+		// 	await testAccount(addresses[4], 9000405, 8545000, 325230, 7349000)
+		// })
+		// describe("Testing account " + addresses[5], async function() {
+		// 	await testAccount(addresses[5], 4500405, 3200405, 410000, 2500000)
+		// })
 	})
 
   describe("Destruction Functions", async function() {
