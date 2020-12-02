@@ -43,6 +43,7 @@ Remarks:
 * Minimum Withdrawal: 1000 micro Algos
 * Mint & Burn Fee: if it is changed, only future mint operations are impacted
 * Attackers can prevent an account to open a Vault if they know the account address on advance. Users should not reveal publicly their accounts that they are going to use to open a Vault.
+* ClearState: calling clearState generate a permanent lost of the algos deposited in the Vault.
 
 ## Application Calls
 
@@ -277,4 +278,4 @@ Asset created with index 2694358
 
 vault.js contains all the functions to execute all these operations and has a lot of helper functions to help developers to integrate Vault Application.
 The functions that require signing transactions receive a callback that is called each time a signature is required. 
-Function generateDelegatedMintAccountToFile creates a file containing a signed logicSig of the minter.teal.tmpl file that is used to approve mintwALGOs operations. This logicSig allows any user using Vault app to mint wALGOs from the Minter account.
+Function createDelegatedMintAccountToFile creates a file containing a signed logicSig of the minter.teal.tmpl file that is used to approve mintwALGOs operations. This logicSig allows any user using Vault app to mint wALGOs from the Minter account.

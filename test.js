@@ -631,7 +631,7 @@ async function main () {
 
 		txResponse = await vaultManager.waitForTransactionResponse(txId)
 
-		await vaultManager.generateDelegatedMintAccountToFile(settings.minterDelegateFile, lsigCallback)
+		await vaultManager.createDelegatedMintAccountToFile(settings.minterDelegateFile, lsigCallback)
 		vaultManager.delegateMintAccountFromFile(settings.minterDelegateFile)
 
 		// optIn minterAddr if did not optIn

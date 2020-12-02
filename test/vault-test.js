@@ -451,6 +451,11 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		txResponse = await vaultManager.waitForTransactionResponse(txId)
 		mochaTools.expectTxId(txId)
 	})
+	it("TOB Audit: clearStateAttack, transfer algos", async function() {
+		txId = await vaultManager.transferAlgos(adminAddr, clearStateAttackAddr, creationFee + 100000, undefined, signCallback)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
+		mochaTools.expectTxId(txId)
+	})
 	// try to send 2 txs in a group to drain algos from a Vault creating a clearState from the sender and
 	// withdrawing algos from a Vault that the sender does not own.
 	it("TOB Audit: Lack of clear state program check allows any vault to be drained: optIn clearStateAttackAddr", async function() {
@@ -950,7 +955,7 @@ describe("StakerDAO Vault Test", async function() {
 		})
 
 		it("generateDelegatedMint: Minter signs a delegation to mint from the App", async function() {
-			await vaultManager.generateDelegatedMintAccountToFile(settings.minterDelegateFile, lsigCallback)
+			await vaultManager.createDelegatedMintAccountToFile(settings.minterDelegateFile, lsigCallback)
 			vaultManager.delegateMintAccountFromFile(settings.minterDelegateFile)
 			expect(fs.existsSync(settings.minterDelegateFile)).to.be.true;
 		})
@@ -960,18 +965,18 @@ describe("StakerDAO Vault Test", async function() {
 		describe("Testing account " + addresses[1], async function() {
 			await testAccount(addresses[1], 12000405, 4545000, 5500000, 2349000)
 		})
-		// describe("Testing account " + addresses[2], async function() {
-		// 	await testAccount(addresses[2], 6000405, 5545000, 300000, 4349000)
-		// })
-		// describe("Testing account " + addresses[3], async function() {
-		// 	await testAccount(addresses[3], 8000405, 3545000, 4300000, 3349000)
-		// })
-		// describe("Testing account " + addresses[4], async function() {
-		// 	await testAccount(addresses[4], 9000405, 8545000, 325230, 7349000)
-		// })
-		// describe("Testing account " + addresses[5], async function() {
-		// 	await testAccount(addresses[5], 4500405, 3200405, 410000, 2500000)
-		// })
+		describe("Testing account " + addresses[2], async function() {
+			await testAccount(addresses[2], 6000405, 5545000, 300000, 4349000)
+		})
+		describe("Testing account " + addresses[3], async function() {
+			await testAccount(addresses[3], 8000405, 3545000, 4300000, 3349000)
+		})
+		describe("Testing account " + addresses[4], async function() {
+			await testAccount(addresses[4], 9000405, 8545000, 325230, 7349000)
+		})
+		describe("Testing account " + addresses[5], async function() {
+			await testAccount(addresses[5], 4500405, 3200405, 410000, 2500000)
+		})
 	})
 
   describe("Destruction Functions", async function() {

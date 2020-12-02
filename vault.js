@@ -49,66 +49,136 @@ class VaultManager {
 		this.vaultMinBalance = 100000
 		this.minFee = 1000
 	
+		/**
+		 * Set Application Id used in all the functions of this class.
+		 * @param  {Number} appId [application id]
+		 */
 		this.setAppId = function (appId) {
 			this.appId = appId
 		}
+
+		/**
+		 * Set the wALGO asset id used in all the functions of this class.
+		 * @param  {Number} assetId [asset id]
+		 */
 		this.setAssetId = function (assetId) {
 			this.assetId = assetId
 		}
 
-		this.setCreator = function (adminAddr) {
-			this.adminAddr = adminAddr
+		/**
+		 * Set application creator. It is used to retrieve application global state.
+		 * @param  {String}		creatorAddr 	application creator address
+		 */
+		this.setCreator = function (creatorAddr) {
+			this.adminAddr = creatorAddr
 		}
 
+		/**
+		 * Get minimum balance of the vault accounts.
+		 * @return {[Number]}      minimum balance of vaults
+		 */
 		this.minVaultBalance = function() {
 			return this.vaultMinBalance
 		}
 
+		/**
+		 * Get minimum fee to pay for transactions.
+		 * @return {[Number]}      minimum transaction fee
+		 */
 		this.minTransactionFee = function() {
 			return this.minFee
 		}
 
+		/**
+		 * Internal function.
+		 * Read application local state related to the account.
+		 * @param  {String} accountAddr 	account to retrieve local state
+		 * @return {[Array]}      				an array containing all the {key: value} pairs of the local state
+		 */
 		this.readLocalState = async function (accountAddr) {
 			return tools.readAppLocalState(this.algodClient, this.appId, accountAddr)
 		}
 
-		this.readGlobalState = async function (accountAddr) {
-			return tools.readAppGlobalState(this.algodClient, this.appId, accountAddr)
+		/**
+		 * Internal function.
+		 * Read application global state.
+		 * @return {[Array]}      				an array containing all the {key: value} pairs of the global state
+		 */
+		this.readGlobalState = async function () {
+			return tools.readAppGlobalState(this.algodClient, this.appId, this.adminAddr)
 		}
 
+		/**
+		 * Print local state of accountAddr on stdout.
+		 * @param  {String} accountAddr 	account to retrieve local state
+		 */
 		this.printLocalState = async function (accountAddr) {
 			await tools.printAppLocalState(this.algodClient, this.appId, accountAddr)
 		}
 
+		/**
+		 * Print application global state on stdout.
+		 */
 		this.printGlobalState = async function (accountAddr) {
-			await tools.printAppGlobalState(this.algodClient, this.appId, accountAddr)
+			await tools.printAppGlobalState(this.algodClient, this.appId, this.adminAddr)
 		}
 
+		/**
+		 * Internal function.
+		 * Read application local state variable related to accountAddr.
+		 * @param  {String} 	accountAddr 	account to retrieve local state
+		 * @param  {String} 	key 					variable key to get the value associated
+		 * @return {[String/Number]}      	it returns the value associated to the key that could be an address, a number or a base64 string containing a ByteArray
+		 */
 		this.readLocalStateByKey = async function (accountAddr, key) {
 			return await tools.readAppLocalStateByKey(this.algodClient, this.appId, accountAddr, key)
 		}
 
+		/**
+		 * Internal function.
+		 * Read application global state variable.
+		 * @param  {String} 	key 					variable key to get the value associated
+		 * @return {[String/Number]}      	it returns the value associated to the key that could be an address, a number or a base64 string containing a ByteArray
+		 */
 		this.readGlobalStateByKey = async function (key) {
 			return await tools.readAppGlobalStateByKey(this.algodClient, this.appId, this.adminAddr, key)
 		}
 
+		/**
+		 * Get Vault balance related to accountAddr.
+		 * @param  {String} 	accountAddr 	account to retrieve balance
+		 * @return {[Number]}      balance of the Vault account associated with accountAddr
+		 */
 		this.vaultBalance = async function (accountAddr) {
 			let vaultAddr = await this.vaultAddressByTEAL(accountAddr)
 			let accountInfo = await this.algodClient.accountInformation(vaultAddr).do()
 			return accountInfo.amount
 		}
 
+		/**
+		 * Get Vault address associated to accountAddr based on the application local state. It only works when accountAddr opted in the application.
+		 * @param  {String} 	accountAddr 	account to retrieve balance
+		 * @return {[String]}      Vault address associated to accountAddr if it opted in the application, otherwise undefined
+		 */
 		this.vaultAddressByApp = async function (accountAddr) {
-			return await this.readLocalStateByKey(accountAddr, VAULT_ACCOUNT_LOCAL_KEY)
+			return this.readLocalStateByKey(accountAddr, VAULT_ACCOUNT_LOCAL_KEY)
 		}		
 
+		/**
+		 * Get Vault address associated to accountAddr compiling the code of its Vault.
+		 * This function calculates the address in the same way the Vault Application does and does not require opt in.
+		 * @param  {String} 	accountAddr 	account to retrieve balance
+		 * @return {[String]}      Vault address associated to accountAddr
+		 */
 		this.vaultAddressByTEAL = async function (accountAddr) {
 			let compiledProgram = (await this.vaultCompiledTEALByAddress(accountAddr))
 			return compiledProgram.hash
 		}
 
-		// helper function to await transaction confirmation
-		// Function used to wait for a tx confirmation
+		/**
+		 * Helper function to wait until transaction txId is included in a block/round.
+		 * @param  {String} 	txId 	transaction id to wait for
+		 */
 		this.waitForConfirmation = async function (txId) {
 			const status = (await this.algodClient.status().do())
 			let lastRound = status['last-round']
@@ -123,6 +193,11 @@ class VaultManager {
 				await this.algodClient.statusAfterBlock(lastRound).do()
 			}
 		}
+		/**
+		 * Helper function to wait until transaction txId is included in a block/round and returns the transaction response associated to the transaction.
+		 * @param  {String} 	txId 	transaction id to get transaction response
+		 * @return {[Object]}      returns an object containing response information
+		 */
 		this.waitForTransactionResponse = async function (txId) {
 			// Wait for confirmation
 			await this.waitForConfirmation(txId)
@@ -131,22 +206,35 @@ class VaultManager {
 			return await this.algodClient.pendingTransactionInformation(txId).do()
 		}
 
+		/**
+		 * Verify if transactionResponse has any information about a transaction local or global state change.
+		 * @param  {Object} 	transactionResponse 	object containing the transaction response of an application call
+		 * @return {[Boolean]}      returns true if there is a local or global delta meanining that the transaction made a change in the local or global state
+		 */
 		this.anyAppCallDelta = function(transactionResponse) {
 			return (transactionResponse['global-state-delta'] || transactionResponse['local-state-delta'])
 		}
 		
+		/**
+		 * Print to stdout the changes introduced by the transaction that generated the transactionResponse if any.
+		 * @param  {Object} 	transactionResponse 	object containing the transaction response of an application call
+		 */
 		this.printAppCallDelta = function(transactionResponse) {
 			if (transactionResponse['global-state-delta'] !== undefined) {
 				console.log('Global State updated:')
-				tools.printAppCallDeltaArray (transactionResponse['global-state-delta'])
+				tools.printAppCallDeltaArray(transactionResponse['global-state-delta'])
 			}
 			if (transactionResponse['local-state-delta'] !== undefined) {
 				console.log('Local State updated:')
-				tools.printAppCallDeltaArray (transactionResponse['local-state-delta'])
+				tools.printAppCallDeltaArray(transactionResponse['local-state-delta'])
 			}
 		}
 
-		// helper function to compile program source
+		/**
+		 * Compile program that programFilename contains.
+		 * @param  {String} 	programFilename 	filepath to the program to compile
+		 * @return {[String]}      base64 string containing the compiled program
+		 */
 		this.compileProgram = async function (programFilename) {
 			const programBytes = fs.readFileSync(programFilename)
 			const compileResponse = await this.algodClient.compile(programBytes).do()
@@ -154,10 +242,20 @@ class VaultManager {
 			return compiledBytes
 		}
 
+		/**
+		 * Internal function.
+		 * Compile application clear state program.
+		 * @return {[String]}      base64 string containing the compiled program
+		 */
 		this.compileClearProgram = async function () {
 			return await this.compileProgram(clearProgramFilename)
 		}
 
+		/**
+		 * Internal function.
+		 * Compile application approval program.
+		 * @return {[String]}      base64 string containing the compiled program
+		 */
 		this.compileApprovalProgram = async function () {
 			// use any address to replace in the template
 			const compiledVaultProgram = await this.vaultCompiledTEALByAddress(this.adminAddr)
@@ -187,13 +285,23 @@ class VaultManager {
 			return compiledBytes
 		}
 
+		/**
+		 * Helper function to retrieve the application id from a createApp transaction response.
+		 * @param  {Object} 	txResponse 	object containig the transactionResponse of the createApp call
+		 * @return {[Number]}      application id of the created application
+		 */
 		this.appIdFromCreateAppResponse = function(txResponse) {
 			return txResponse["application-index"]
 		}
 
-		// create new application
-		// @approvalCodeFile
-		// @clearCodeFile
+		/**
+		 * Create an application based on the default approval and clearState programs or based on the specified files.
+		 * @param  {String} 	sender 	account used to sign the createApp transaction
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @param  {String} 	approvalCodeFile 	optional. If it is not specified it uses the default Vault app approval code
+		 * @param  {String} 	clearCodeFile 	optional. If it is not specified it uses the default Vault app clearState code
+		 * @return {[String]}      transaction id of the created application
+		 */
 		this.createApp = async function (sender, signCallback, approvalCodeFile, clearCodeFile) {
 			const localInts = 3
 			const localBytes = 2
@@ -240,7 +348,13 @@ class VaultManager {
 			return txId;
 		}
 
-		this.generateDelegatedMintAccount = async function(sender, lsigCallback) {
+		/**
+		 * Create a logicSig object that can be used to mint wALGOs, used in mintwALGOs operation. The sender is the minter account holding wALGOs.
+		 * @param  {String} 	sender 	minter account used to sign the teal program
+		 * @param  {Function} 	lsigCallback 	callback with prototype lsigCallback(sender, lsig) used to sign logicSig object
+		 * @return {[Class]}      signed logicSig object
+		 */
+		this.createDelegatedMintAccount = async function(sender, lsigCallback) {
 			if(!minterTEAL) {
 				minterTEAL = fs.readFileSync(minterProgramFilename, 'utf8')
 			}
@@ -264,6 +378,12 @@ class VaultManager {
 			return lsigMinter
 		}
 
+		/**
+		 * Use the logicSig minter delegation signed teal from filepath to mint algos in mintwALGOs operations
+		 * Priving a signed delegated logicSig calling delegateMintAccount or delegateMintAccountFromFile is required to use mintwALGOs.
+		 * Use it in combination with createDelegatedMintAccountToFile.
+		 * @param  {String} 	filepath 	filepath of the signed minter teal code
+		 */
 		this.delegateMintAccountFromFile = function(filepath) {
 			let lsiguintArray = fs.readFileSync(filepath)
 			let lsigb64 = lsiguintArray.toString()
@@ -279,9 +399,14 @@ class VaultManager {
 			this.delegateMintAccount(lsigDelegatedReconst)
 		}
 
-		this.generateDelegatedMintAccountToFile = async function(filepath, lsigCallback) {
+		/**
+		 * Create a logicSig object that can be used to mint wALGOs and write it to filepath. It uses application minter account as signer.
+		 * @param  {String} 	sender 	minter account used to sign the teal program
+		 * @param  {Function} 	lsigCallback 	callback with prototype lsigCallback(sender, lsig) used to sign logicSig object
+		 */
+		this.createDelegatedMintAccountToFile = async function(filepath, lsigCallback) {
 			let minterAddr = await this.mintAccount()
-			let lsigDelegatedBuf = await this.generateDelegatedMintAccount(minterAddr, lsigCallback)
+			let lsigDelegatedBuf = await this.createDelegatedMintAccount(minterAddr, lsigCallback)
 
 			let encodedObj = lsigDelegatedBuf.get_obj_for_encoding()
 			let lsigEncoded = algosdk.encodeObj(encodedObj)
@@ -289,17 +414,23 @@ class VaultManager {
 			fs.writeFileSync(filepath, lsigb64)
 		}
 
+		/**
+		 * Delegate wALGO minting using a logicSig signed by the minter account. 
+		 * Priving a signed delegated logicSig calling delegateMintAccount or delegateMintAccountFromFile is required to use mintwALGOs.
+		 * @param  {Object} 	lsigMint 	logicSig signed by minter account that will be used in mintwALGOs operations
+		 */
 		this.delegateMintAccount = async function(lsigMint) {
-			// let decodedLsig = algosdk.decodeObj(lsigMintBuf);
-			// this.lsigMint = algosdk.makeLogicSig(decodedLsig.l, decodedLsig.arg);
 			this.lsigMint = lsigMint
-			// this.lsigMint.sig = decodedLsig.sig;
-			// this.lsigMint.msig = decodedLsig.msig;
 		}
 
-		// optIn
-		// @forceCreationFee: force the amount of fees to pay to admin. Used to test.
-		// @forceFeeTo: force To address instead of using the Admin. Used to test.
+		/**
+		 * OptIn sender to application.
+		 * @param  {String} 	sender 	account to optIn
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @param  {Number} 	forceCreationFee 	optional. Amount to use as fee. By default MinTxnFee
+		 * @param  {Function} 	forceFeeTo 	optional. Force To address used to pay the creationFee instead of using the Admin. Useful to test
+		 * @return {[String]}      transaction id of one of the transactions in the transaction group
+		 */
 		this.optIn = async function (sender, signCallback, forceCreationFee, forceFeeTo) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
@@ -357,7 +488,12 @@ class VaultManager {
 			}
 		}
 
-		// @forceAssetId: force assetId. Used to test.
+		/**
+		 * Get asset balance of accountAddr. By default gets wALGO balance.
+		 * @param  {String} 	accountAddr 	
+		 * @param  {Number} 	forceAssetId 	optional. Asset id to retrieve balance. By default, the asset id set as wALGO
+		 * @return {[Number]}      balance of wALGO or the specified asset id
+		 */
 		this.assetBalance = async function(accountAddr, forceAssetId) {
 			let response = await this.algodClient.accountInformation(accountAddr).do()
 			let assetId = this.assetId
@@ -374,12 +510,25 @@ class VaultManager {
 			return 0
 		}
 
-		// accountBalance
+		/**
+		 * Get accountAddr balance in algos.
+		 * @param  {String} 	accountAddr 	
+		 * @return {[Number]}      balance in algos
+		 */
 		this.accountBalance = async function(accountAddr) {
 			let response = await this.algodClient.accountInformation(accountAddr).do()
 			return response.amount
 		}
 
+		/**
+		 * Transfer algos
+		 * @param  {String} 	sender 	From address
+		 * @param  {String} 	destAddr 	To address
+		 * @param  {Number} 	amount 	amount in algos to transfer
+		 * @param  {String} 	closeAddr 	optional. CloseRemainderTo address to send all remaining algos
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of the transaction
+		 */
 		this.transferAlgos = async function (sender, destAddr, amount, closeAddr, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -396,7 +545,16 @@ class VaultManager {
 			return tx.txId
 		}
 
-		// @forceAssetId: force assetId. Used to test.
+		/**
+		 * Transfer asset. By default, it transfers wALGOs.
+		 * @param  {String} 	sender 	From address
+		 * @param  {String} 	destAddr 	To address
+		 * @param  {Number} 	amount 	amount of assets to transfer
+		 * @param  {String} 	closeAddr 	optional. CloseRemainderTo address to send all remaining assets
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @param  {Number} 	forceAssetId 	optional. Assset id to use instead of the default wALGO
+		 * @return {[String]}      transaction id of the transaction
+		 */
 		this.transferAsset = async function (sender, destAddr, amount, closeAddr, signCallback, forceAssetId) {
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -419,7 +577,13 @@ class VaultManager {
 			return tx.txId
 		}
 
-		// @forceAssetId: force assetId. Used to test.
+		/**
+		 * OptIn to asset. By default, optIn to wALGO.
+		 * @param  {String} 	sender 	account to optIn
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @param  {Number} 	forceAssetId 	optional. Assset id to use instead of the default wALGO
+		 * @return {[String]}      transaction id of the transaction
+		 */
 		this.optInASA = async function (sender, signCallback, forceAssetId) {
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -443,7 +607,13 @@ class VaultManager {
 			return tx.txId
 		}
 
-		// setAdminAccount
+		/**
+		 * Change admin account to newAdminAddr.
+		 * @param  {String} 	sender 	current admin account
+		 * @param  {String} 	newAdminAddr 	new admin account
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of the transaction
+		 */
 		this.setAdminAccount = async function (sender, newAdminAddr, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_ADMIN_ACCOUNT_OP)))
@@ -453,6 +623,10 @@ class VaultManager {
 			return await this.callApp (sender, appArgs, appAccounts, signCallback)
 		}
 
+		/**
+		 * Get admin account from the application global state.
+		 * @return {[String]}      current admin account
+		 */
 		this.adminAccount = async function () {
 			let ret = await this.readGlobalStateByKey(ADMIN_ACCOUNT_GLOBAL_KEY)
 			if(!ret) {
@@ -461,7 +635,13 @@ class VaultManager {
 			return ret
 		}
 		
-		// setMintAccount
+		/**
+		 * Change minter account to mintAddr.
+		 * @param  {String} 	sender 	admin account
+		 * @param  {String} 	mintAddr 	new minter account
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of the transaction
+		 */
 		this.setMintAccount = async function (sender, mintAddr, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_MINT_ACCOUNT_OP)))
@@ -471,6 +651,10 @@ class VaultManager {
 			return await this.callApp(sender, appArgs, appAccounts, signCallback)
 		}
 		
+		/**
+		 * Get minter account.
+		 * @return {[String]}      current minter account
+		 */
 		this.mintAccount = async function () {
 			let ret = await this.readGlobalStateByKey(MINT_ACCOUNT_GLOBAL_KEY)
 			if(!ret) {
@@ -479,7 +663,13 @@ class VaultManager {
 			return ret
 		}
 		
-		// setMintFee
+		/**
+		 * Set mint fee paid every mintwALGOs operation. It has to be a number between 0-5000 meaning 0%-50%.
+		 * @param  {String} 	sender 	admin account
+		 * @param  {Number} 	newFee 	new mint fee
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of the transaction
+		 */
 		this.setMintFee = async function (sender, newFee, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_MINT_FEE_OP)))
@@ -488,6 +678,10 @@ class VaultManager {
 			return await this.callApp(sender, appArgs, undefined, signCallback)
 		}
 
+		/**
+		 * Get mint fee.
+		 * @return {[Number]}      current mint fee
+		 */
 		this.mintFee = async function () {
 			let ret = await this.readGlobalStateByKey(MINT_FEE_GLOBAL_KEY)
 			if(!ret) {
@@ -496,7 +690,13 @@ class VaultManager {
 			return ret
 		}
 		
-		// setDepositFee
+		/**
+		 * Set burn fee paid every burnwALGOs operation. It has to be a number between 0-5000 meaning 0%-50%.
+		 * @param  {String} 	sender 	admin account
+		 * @param  {Number} 	newFee 	new burn fee
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of the transaction
+		 */
 		this.setBurnFee = async function (sender, newFee, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_BURN_FEE_OP)))
@@ -505,6 +705,10 @@ class VaultManager {
 			return await this.callApp(sender, appArgs, undefined, signCallback)
 		}
 
+		/**
+		 * Get burn fee.
+		 * @return {[Number]}      current burn fee
+		 */
 		this.burnFee = async function () {
 			let ret = await this.readGlobalStateByKey(BURN_FEE_GLOBAL_KEY)
 			if(!ret) {
@@ -513,7 +717,13 @@ class VaultManager {
 			return ret
 		}
 
-		// setMintFee
+		/**
+		 * Set creation fee in microalgos paid by accounts opting in.
+		 * @param  {String} 	sender 	admin account
+		 * @param  {Number} 	newFee 	new creation fee in microalgos
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of the transaction
+		 */
 		this.setCreationFee = async function (sender, newFee, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_CREATION_FEE_OP)))
@@ -522,6 +732,10 @@ class VaultManager {
 			return await this.callApp(sender, appArgs, undefined, signCallback)
 		}
 
+		/**
+		 * Get creation fee in algos.
+		 * @return {[Number]}      current creation fee in algos
+		 */
 		this.creationFee = async function () {
 			let ret = await this.readGlobalStateByKey(CREATION_FEE_GLOBAL_KEY)
 			if(!ret) {
@@ -530,6 +744,15 @@ class VaultManager {
 			return ret
 		}
 
+		/**
+		 * Set application global status. If disabled, accounts cannot make any operation, only admin operations are allowed
+		 * 0: disabled.
+		 * 1: enabled.
+		 * @param  {String} 	sender 	admin account
+		 * @param  {Number} 	newStatus 	0 or 1
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of the transaction
+		 */
 		this.setGlobalStatus = async function (sender, newStatus, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_GLOBAL_STATUS_OP)))
@@ -538,14 +761,28 @@ class VaultManager {
 			return await this.callApp(sender, appArgs, undefined, signCallback)
 		}
 		
+		/**
+		 * Get application global status. If disabled, accounts cannot make any operation, only admin operations are allowed
+		 * @return {[Number]}      0 if disabled or 1 if enabled
+		 */
 		this.globalStatus = async function () {
-			let ret = await this.readGlobalStateByKey(GLOBAL_STATUS_GLOBAL_KEY)
+			let ret = this.readGlobalStateByKey(GLOBAL_STATUS_GLOBAL_KEY)
 			if(!ret) {
 				return 0
 			}
 			return ret
 		}
 				
+		/**
+		 * Set application accountAddr status. If disabled, the account cannot make any operation.
+		 * 0: disabled.
+		 * 1: enabled.
+		 * @param  {String} 	sender 	admin account
+		 * @param  {String} 	accountAddr 	account to set the status
+		 * @param  {Number} 	newStatus 	0 or 1
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of the transaction
+		 */
 		this.setAccountStatus = async function (sender, accountAddr, newStatus, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_ACCOUNT_STATUS_OP)))
@@ -557,6 +794,10 @@ class VaultManager {
 			return await this.callApp(sender, appArgs, appAccounts, signCallback)
 		}
 
+		/**
+		 * Get application accountAddr status. If disabled, the account cannot make any operation.
+		 * @return {[Number]}      0 if disabled or 1 if enabled
+		 */
 		this.accountStatus = async function (accountAddr) {
 			let ret = await this.readLocalStateByKey(accountAddr, VAULT_STATUS_LOCAL_KEY)
 			if(!ret) {
@@ -565,6 +806,11 @@ class VaultManager {
 			return ret
 		}
 				
+		/**
+		 * Get the amount of wALGOs minted for accountAddr. It returns net minted, only the amount of wALGOs owed.
+		 * @param  {String} 	accountAddr 	account to get the minted amount
+		 * @return {[Number]}      net minted by accountAddr
+		 */
 		this.minted = async function (accountAddr) {
 			let ret = await this.readLocalStateByKey(accountAddr, MINTED_LOCAL_KEY)
 			if(!ret) {
@@ -573,7 +819,12 @@ class VaultManager {
 			return ret
 		}
 
-		// maxWithdrawAmount: get the total rewards fees generated by the Vault
+		/**
+		 * Get the maximum amount of algos that accountAddr can withdraw from its Vault. 
+		 * It calculates the amount, based on the minted wALGOs and the transaction fees to pay in the withdrawal operation.
+		 * @param  {String} 	accountAddr 	account to get the maximum withdrawal amount
+		 * @return {[Number]}      maximum withdrawal amount for accountAddr
+		 */
 		this.maxWithdrawAmount = async function (accountAddr) {
 			let vaultBalance = await this.vaultBalance(accountAddr)
 			let minted = await this.minted(accountAddr)
@@ -594,6 +845,12 @@ class VaultManager {
 			return amount
 		}
 
+		/**
+		 * Get the maximum amount of wALGOs that accountAddr can mint.
+		 * It calculates the amount, based on the minted wALGOs, Vault balance, mint fees, and the transaction fees to pay in the mintwALGOs operation.
+		 * @param  {String} 	accountAddr 	account to get the maximum mint amount
+		 * @return {[Number]}      maximum mint amount for accountAddr
+		 */
 		this.maxMintAmount = async function (accountAddr) {
 			let vaultBalance = await this.vaultBalance(accountAddr)
 			let minted = await this.minted(accountAddr)
@@ -621,6 +878,11 @@ class VaultManager {
 			return (maxAmount > 0 ? maxAmount : 0)
 		}
 
+		/**
+		 * Get the compiled Object of the vault teal code applied to accountAddr.
+		 * @param  {String} 	accountAddr 	account to apply the vault teal template code
+		 * @return {[Object]}      object which has {result: compiledTealCodeBase64, hash: addressOfVault }
+		 */
 		this.vaultCompiledTEALByAddress = async function(accountAddr) {
 			if(!vaultTEAL) {
 				vaultTEAL = fs.readFileSync(vaultProgramFilename, 'utf8')
@@ -637,6 +899,13 @@ class VaultManager {
 			return await this.algodClient.compile(programBytes).do()
 		}
 
+		/**
+		 * Internal function.
+		 * Sign transaction From a user Vault. It is signed using the teal code.
+		 * @param  {String} 	sender 	owner of the Vault
+		 * @param  {Object} 	tx 	transaction to sign
+		 * @return {[Object]}      signed transaction
+		 */
 		this.signVaultTx = async function(sender, tx) {
 			const compiledProgram = await this.vaultCompiledTEALByAddress(sender)
 			
@@ -646,7 +915,14 @@ class VaultManager {
 
 			return txSigned
 		}
-		// depositALGOs
+
+		/**
+		 * Deposit algos from sender to sender's Vault.
+		 * @param  {String} 	sender 	owner of the Vault
+		 * @param  {Number} 	amount 	amount of algos to deposit
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of the transaction
+		 */
 		this.depositALGOs = async function (sender, amount, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -670,9 +946,16 @@ class VaultManager {
 			return tx.txId
 		}
 
-		// mintwALGOs
-		// @forceAppId: force appId to be the specified instead of the vault. Used to test.
-		// @forceAssetId: force assetId to be the specified instead of wALGO. Used to test.
+		/**
+		 * Mint wALGOs from sender's Vault and send them to sender.
+		 * @param  {String} 	sender 	owner of the Vault
+		 * @param  {Number} 	amount 	amount of wALGOs to mint
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @param  {Number} 	forceAppId 	force to use this one instead of the Vault. Used to test
+		 * @param  {Number} 	forceAssetId 	force to use this one instead of wALGO. Used to test
+		 * @param  {Number} 	forceFeeMintOperation 	force to use this one instead of wALGO. Used to test
+		 * @return {[String]}      transaction id of one of the transactions in the transaction group
+		 */
 		this.mintwALGOs = async function (sender, amount, signCallback, forceAppId, forceAssetId, forceFeeMintOperation) {
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -749,7 +1032,13 @@ class VaultManager {
 			return tx.txId
 		}
 
-		// withdrawALGOs
+		/**
+		 * Withdraw algos from sender's Vault and send them to sender.
+		 * @param  {String} 	sender 	owner of the Vault
+		 * @param  {Number} 	amount 	amount of algos to withdraw
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of one of the transactions in the transaction group
+		 */
 		this.withdrawALGOs = async function (sender, amount, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -790,7 +1079,14 @@ class VaultManager {
 			return tx.txId
 		}
 
-		// burnwALGOs
+		/**
+		 * Burn wALGOs from sender.
+		 * @param  {String} 	sender 	owner of the Vault that minted the wALGOs
+		 * @param  {Number} 	amount 	amount of wALGOs to burn
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @param  {Number} 	forceAssetId 	force assetId to be the specified instead of wALGO. Used to test
+		 * @return {[String]}      transaction id of one of the transactions in the transaction group
+		 */
 		this.burnwALGOs = async function (sender, amount, signCallback, forceAssetId) {
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -852,7 +1148,15 @@ class VaultManager {
 			return tx.txId
 		}
 
-		// burnwALGOsAttack: try to burn the algos from the Minter account instead of the user trying to bypass controls. Audit report.
+		/**
+		 * Internal function.
+		 * Try to burn the algos from the Minter account instead of the user trying to bypass controls. Audit report.
+		 * @param  {String} 	sender 	owner of the Vault that minted the wALGOs
+		 * @param  {Number} 	amount 	amount of wALGOs to burn
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @param  {Number} 	forceAssetId 	force assetId to be the specified instead of wALGO. Used to test
+		 * @return {[String]}      transaction id of one of the transactions in the transaction group
+		 */
 		this.burnwALGOsAttack = async function (sender, amount, signCallback, forceAssetId) {
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -914,10 +1218,15 @@ class VaultManager {
 			return tx.txId
 		}
 
-		// closeOut
-		// @forceTo: force To address to be the specified instead of the vault admin. Used to test.
-		// @forceClose: force Close address to be the specified instead of the vault admin. Used to test.
-		// @forceToAmount: force the withdrawal of the specified amount instead of calculating it automatically. Used to test.
+		/**
+		 * CloseOut sender and withdraw all the remaining algos. To call this function, sender must burn all minted wALGOs.
+		 * @param  {String} 	sender 	owner of the Vault
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @param  {String} 	forceTo 	force To address instead of sender. Used to test
+		 * @param  {Number} 	forceToAmount 	force the withdrawal this amount instead of calculating it automatically. Used to test
+		 * @param  {String} 	forceClose 	force Close address instead of the vault admin. Used to test
+		 * @return {[String]}      transaction id of one of the transactions in the transaction group
+		 */
 		this.closeOut = async function (sender, signCallback, forceTo, forceToAmount, forceClose) {
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -976,7 +1285,15 @@ class VaultManager {
 			return tx.txId
 		}
 
-		// call application
+		/**
+		 * Internal function.
+		 * Call application specifying args and accounts.
+		 * @param  {String} 	sender 	caller address
+		 * @param  {Array} 	appArgs 	array of arguments to pass to application call
+		 * @param  {Array} 	appAccounts 	array of accounts to pass to application call
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of the transaction
+		 */
 		this.callApp = async function (sender, appArgs, appAccounts, signCallback) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
@@ -997,6 +1314,15 @@ class VaultManager {
 			return txId
 		}
 		
+		/**
+		 * Internal function.
+		 * Try to send 2 txs in a group to withdraw algos from a Vault using admin account.
+		 * @param  {String} 	sender 	admin account
+		 * @param  {String} 	mintAddr 	new minter account
+		 * @param  {String} 	accountAddr 	Vault owner to drain algos
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of the transaction
+		 */
 		this.setMintAccountAttack = async function (sender, mintAddr, accountAddr, signCallback) {
 			let appArgs = []
 			appArgs.push(new Uint8Array(Buffer.from(SET_MINT_ACCOUNT_OP)))
@@ -1006,7 +1332,14 @@ class VaultManager {
 			return await this.testCallAppAttack(sender, appArgs, appAccounts, accountAddr, signCallback)
 		}
 		
-		// updateAppAttack: simulate a mintwALGO operation and update the code. Audit Report.
+		/**
+		 * Internal function.
+		 * Simulate a mintwALGOs operation and update the code. Audit Report.
+		 * @param  {String} 	sender 	normal account, must be opted in
+		 * @param  {Number} 	amount 	amount to mint
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of one of the transactions of the group
+		 */
 		this.updateAppAttack = async function (sender, amount, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -1069,7 +1402,15 @@ class VaultManager {
 			return tx.txId
 		}
 
-		// clearStateAttack: create a clearState transaction from the vault to bypass vault.teal controls and withdraw algos from the vault. Audit report.
+		/**
+		 * Internal function.
+		 * Create a clearState transaction from the vault to bypass vault.teal controls and withdraw algos from the vault. Audit report.
+		 * @param  {String} 	sender 	normal account, must be opted in
+		 * @param  {String} 	vaultOwnerAddr 	account to attack, must be opted in and have algos withdraw
+		 * @param  {Number} 	amount 	amount of algos to withdraw
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of one of the transactions of the group
+		 */
 		this.clearStateAttack = async function (sender, vaultOwnerAddr, amount, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
 
@@ -1110,8 +1451,17 @@ class VaultManager {
 			return tx.txId
 		}
 
-		// setMintAccountAttack: attach an additional transaction to the App Call to try to withdraw algos from a Vault.
-		// if the TEAL code does not verify the GroupSize correctly the Vault TEAL will approve the tx 
+		/**
+		 * Internal function.
+		 * Attach an additional transaction to the App Call to try to withdraw algos from a Vault.
+		 * If the TEAL code does not verify the GroupSize correctly the Vault teal will approve the tx. 
+		 * @param  {String} 	sender 	normal account, must be opted in
+		 * @param  {Array} 	appArgs 	array of arguments to pass to application call
+		 * @param  {Array} 	appAccounts 	array of accounts to pass to application call
+		 * @param  {String} 	attackAccountAddr 	account where the algos 
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of one of the transactions of the group
+		 */
 		this.testCallAppAttack = async function (sender, appArgs, appAccounts, attackAccountAddr, signCallback) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
@@ -1149,6 +1499,13 @@ class VaultManager {
 			return tx.txId
 		}
 
+		/**
+		 * ClearState sender. Remove all the sender associated local data. 
+		 * NOTE: if there is any balance in the Vault, it will be lost forever.
+		 * @param  {String} 	sender 	account to ClearState
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of one of the transactions of the group
+		 */
 		this.clearApp = async function (sender, signCallback) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
@@ -1169,6 +1526,12 @@ class VaultManager {
 			return txId
 		}
 
+		/**
+		 * Update app code using default filenames.
+		 * @param  {String} 	sender 	admin account used to update the application code
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of one of the transactions of the group
+		 */
 		this.updateApp = async function (sender, signCallback) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()
@@ -1192,7 +1555,12 @@ class VaultManager {
 			return txId
 		}
 
-
+		/**
+		 * Permanent delete the application.
+		 * @param  {String} 	sender 	admin account 
+		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @return {[String]}      transaction id of one of the transactions of the group
+		 */
 		this.deleteApp = async function (sender, signCallback, appId) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do()

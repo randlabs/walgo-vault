@@ -104,7 +104,7 @@ async function main() {
 	try {
 		vaultManager.delegateMintAccountFromFile(settings.minterDelegateFile)
 	} catch(err) {
-		await vaultManager.generateDelegatedMintAccountToFile(settings.minterDelegateFile, lsigCallback)
+		await vaultManager.createDelegatedMintAccountToFile(settings.minterDelegateFile, lsigCallback)
 		vaultManager.delegateMintAccountFromFile(settings.minterDelegateFile)
 	}
 
