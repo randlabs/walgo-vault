@@ -25,7 +25,8 @@ Command Line usage example:
 
 Accounts can create a Vault and store their ALGOs their and receive participation rewards. They can mint wALGOs up to the balance of the ALGOs in the Vault and withdraw the ALGOs at any time keeping ALGO balance above the amount of wALGOs minted.
 
-Global Variables:
+### Global Variables
+
 * A (Admin): admin of the Application
 * GS (GlobalStatus): 1 if the Application is enabled and 0 if it is not
 * MA (MintAccount): account storing the wALGOs. This account must give access to the Application to send the wALGOs to the Vault owner accounts
@@ -33,7 +34,8 @@ Global Variables:
 * BF (BurnFee): fee paid in ALGOs on each burnwALGO operation
 * CF (CreationFee): fee paid in ALGOs on each burnwALGO operation
 
-Local variables stored in the Vault owner accounts:
+### Local Account Variables
+
 * s (status): 1 if the Vault is enabled and 0 if it is not
 * m (minted): net amount of wALGOs minted
 * v (vault): Vault account corresponding to Vault owner account. This address is calculated from vault.teal specialized with the Vault owner account
@@ -45,7 +47,32 @@ Remarks:
 * Attackers can prevent an account to open a Vault if they know the account address on advance. Users should not reveal publicly their accounts that they are going to use to open a Vault.
 * ClearState: calling clearState generate a permanent lost of the algos deposited in the Vault.
 
-## Application Calls
+## Components
+
+![StakerDAO Vault Design](images/stakerdao-diagram.png)
+
+## Vault Application
+
+This application is implemented in app-vault.teal.tmpl replacing TMPL_ASA_ID with the wALGO id and vault.teal.tmpl compiled code. It handles all the Vault operations including those executed by the admin and the users. 
+
+### Minter Account
+
+The Minter account is used to mint and burn wALGOs. This account acts like wALGO hot wallet. It signs a logic sig delegation code generated from minter.teal.tmpl replacing TMPL_APP_ID with the application id. It allows user accounts to mint wALGOs up to the amount of algos they keep in the Vault.
+
+### User Vault
+
+Each vault generates its own vault.teal replacing from vault.teal.tmpl TMPL_USER_ADDRESS with its account address and TMPL_APP_ID with the application id.
+For each account opted in, there is a unique Vault address where users deposits their algos that back wALGOs up.
+
+### Admin Account
+
+Vault Application has an admin account that can disable the application, disable individual accounts, change the fees, change the minting account, update the application, and delete it.
+
+### User Account
+
+Each user creating a Vault must have a controlling wallet that is used to execute all Vault operations. Vault Application uses this account to authenticate user operations.
+
+## Operations
 
 ### Admin updateApp
 
