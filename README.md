@@ -199,7 +199,7 @@ User sends ALGOs to the Vault address directly from any account.
 
 * Tx0: 
   * Sender: Vault owner
-	* OnCompletion: NoOp
+  * OnCompletion: NoOp
   * arg0: str:wA
   * acc0: Vault address
   * Application Call tx
@@ -216,7 +216,7 @@ User sends ALGOs to the Vault address directly from any account.
 
 * Tx0: 
   * Sender: Vault owner account
-	* OnCompletion: NoOp
+  * OnCompletion: NoOp
   * arg0: str:mw
   * acc0: Vault address
   * Application Call tx
@@ -242,7 +242,7 @@ If MintFee > 0, a third tx is needed
 
 * Tx0: 
   * Sender: Vault owner
-	* OnCompletion: NoOp
+  * OnCompletion: NoOp
   * arg0: str:bw
   * Application Call tx
 
