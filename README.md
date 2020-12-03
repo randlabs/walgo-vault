@@ -80,7 +80,7 @@ The admin can update the teal code of the application.
 
 * Tx0: 
   * Sender: Admin
-	* OnCompletion: UpdateApplication
+  * OnCompletion: UpdateApplication
   * Application Call tx
 
 ### Admin deleteApplication
@@ -89,7 +89,7 @@ The admin can delete the application.
 
 * Tx0: 
   * Sender: Admin
-	* OnCompletion: DeleteApplication
+  * OnCompletion: DeleteApplication
   * Application Call tx
 
 ### Admin setGlobalStatus
@@ -98,7 +98,7 @@ The admin can enable or disable any vault at any time.
 
 * Tx0: 
   * Sender: Admin
-	* OnCompletion: NoOp
+  * OnCompletion: NoOp
   * arg0: integer: new status (0 or 1)
   * Application Call tx
 
@@ -108,7 +108,7 @@ The Admin can enable or disable any vault at any time.
 
 * Tx0: 
   * Sender: Admin
-	* OnCompletion: NoOp
+  * OnCompletion: NoOp
   * acc0: User Address
   * arg0: integer: new status (0 or 1)
   * Application Call tx
@@ -119,7 +119,7 @@ The Admin can change the Minter account. This account is used to mint wALGOs in 
 
 * Tx0: 
   * Sender: Admin
-	* OnCompletion: NoOp
+  * OnCompletion: NoOp
   * arg0: str:sMA
   * acc0: new Minter Address
   * Application Call tx
@@ -130,7 +130,7 @@ Set the percent of paid in ALGOs on each mintwALGOs operation
 
 * Tx0: 
   * Sender: Admin
-	* OnCompletion: NoOp
+  * OnCompletion: NoOp
   * arg0: str:sMF
   * arg1: integer: new fee (0 to 5000 which means 0%-50%)
   * Application Call tx
@@ -141,7 +141,7 @@ Set the percent of ALGOs reserved for the Admin on each burnwALGOs operation
 
 * Tx0: 
   * Sender: Admin
-	* OnCompletion: NoOp
+  * OnCompletion: NoOp
   * arg0: str:sBF
   * arg1: integer: new fee (0 to 5000 which means 0%-50%)
   * Application Call tx
@@ -152,7 +152,7 @@ Set the fee in ALGOs that is required to send to Admin to optin to the App
 
 * Tx0: 
   * Sender: Admin
-	* OnCompletion: NoOp
+  * OnCompletion: NoOp
   * arg0: str:sCF
   * arg1: integer: new fee in microALGOs
   * Application Call tx
@@ -163,7 +163,7 @@ User opts in to the Vault App. The App creates the local data for the account. V
 
 * Tx0: from Vault owner account
   * Sender: Vault owner account
-	* OnCompletion: OptIn
+  * OnCompletion: OptIn
   * acc0: Vault address
   * Application Call tx
 
@@ -179,7 +179,7 @@ Closes the Vault, recover the ALGOs and pay pending fees. After this operation, 
 
 * Tx0:
   * Sender: Vault owner account
-	* OnCompletion: CloseOut
+  * OnCompletion: CloseOut
   * acc0: Vault address
   * Application Call tx
 
