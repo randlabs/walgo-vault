@@ -29,7 +29,7 @@ function setupClient() {
 	signatures = settings.signatures
 	addresses = settings.addresses
 	mintAddr = settings.minterAddress
-	dispenserAddr = settings.minterAddress
+	dispenserAddr = settings.dispenserAddress
 	clearStateAttackAddr = settings.clearStateAttackAddr
 
 	vaultManager = new vault.VaultManager(algodClient, settings.appId, addresses[0], settings.assetId)
@@ -82,7 +82,6 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		if(balance < depositAmount*2) {
 			txId = await vaultManager.transferAlgos(dispenserAddr, accountAddr, depositAmount*2, undefined, signCallback)
 			txResponse = await vaultManager.waitForTransactionResponse(txId)
-			mochaTools.expectTxId(txId)
 		}
 		balance = await vaultManager.accountBalance(accountAddr)
 		expect(balance).to.be.at.least(depositAmount*2)
