@@ -24,6 +24,7 @@ const MINT_WALGOS_OP = 'mw'
 const WITHDRAW_ALGOS_OP = 'wA'
 const BURN_ALGOS_OP = 'bw'
 
+const INITIALIZE_APP_OP = 'iA'
 const SET_ADMIN_ACCOUNT_OP = 'sAA'
 const SET_ACCOUNT_STATUS_OP = 'sAS'
 const SET_GLOBAL_STATUS_OP = 'sGS'
@@ -253,10 +254,10 @@ class VaultManager {
 
 		/**
 		 * Internal function.
-		 * Compile application approval program.
+		 * Compile vault.teal and return the begining part (Prefix) and the last part (Suffix). In the middle, is the user account that changes for each user opting in.
 		 * @return {[String]}      base64 string containing the compiled program
 		 */
-		this.compileApprovalProgram = async function () {
+		this.vaultProgramPrefixSuffix = async function() {
 			// use any address to replace in the template
 			const compiledVaultProgram = await this.vaultCompiledTEALByAddress(this.adminAddr)
 			
@@ -266,16 +267,23 @@ class VaultManager {
 			let prefix = compiledVaultProgramHex.substring(0, 24)
 			let suffix = compiledVaultProgramHex.substring(88)
 
+			let ret = {}
+
 			buffer = Buffer.from(prefix, 'hex');
-			let prefixBase64 = buffer.toString('base64');
+			ret.prefixBase64 = buffer.toString('base64');
 			buffer = Buffer.from(suffix, 'hex');
-			let suffixBase64 = buffer.toString('base64');
+			ret.suffixBase64 = buffer.toString('base64');
 
+			return ret 
+		}
+
+		/**
+		 * Internal function.
+		 * Compile application approval program.
+		 * @return {[String]}      base64 string containing the compiled program
+		 */
+		this.compileApprovalProgram = async function () {
 			let program = fs.readFileSync(approvalProgramFilename, 'utf8')
-
-			program = program.replace(/TMPL_ASA_ID/g, this.assetId)
-			program = program.replace(/TMPL_VAULT_TEAL_PREFIX/g, prefixBase64)
-			program = program.replace(/TMPL_VAULT_TEAL_SUFFIX/g, suffixBase64)
 
 			let encoder = new TextEncoder()
 			let programBytes = encoder.encode(program);
@@ -306,7 +314,7 @@ class VaultManager {
 			const localInts = 3
 			const localBytes = 2
 			const globalInts = 5
-			const globalBytes = 3
+			const globalBytes = 5
 
 			// declare onComplete as NoOp
 			const onComplete = algosdk.OnApplicationComplete.NoOpOC
@@ -347,6 +355,24 @@ class VaultManager {
 			await algodClient.sendRawTransaction(txAppSigned).do()
 			return txId;
 		}
+
+		/**
+		 * Initialize the application setting the appId, vault Prefix and vault Suffix.
+		 * @param  {String} 	sender 	account used to sign the createApp transaction
+		 * @return {[String]}      transaction id of the created application
+		 */
+		this.initializeApp = async function(sender, signCallback) {
+			let vaultProgram = await this.vaultProgramPrefixSuffix()
+
+			// initialize(wALGOId, vaultPrefix, vaultSuffix)
+			let appArgs = []
+			appArgs.push(new Uint8Array(Buffer.from(INITIALIZE_APP_OP)))
+			appArgs.push(new Uint8Array(tools.getInt64Bytes(this.assetId)))
+			appArgs.push(new Uint8Array(Buffer.from(vaultProgram.prefixBase64, "base64")))
+			appArgs.push(new Uint8Array(Buffer.from(vaultProgram.suffixBase64, "base64")))
+
+			return await this.callApp (sender, appArgs, undefined, signCallback)
+	}
 
 		/**
 		 * Create a logicSig object that can be used to mint wALGOs, used in mintwALGOs operation. The sender is the minter account holding wALGOs.
