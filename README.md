@@ -23,16 +23,22 @@ Command Line usage example:
 
 ## Vault
 
-Accounts can create a Vault and store their ALGOs their and receive participation rewards. They can mint wALGOs up to the balance of the ALGOs in the Vault and withdraw the ALGOs at any time keeping ALGO balance above the amount of wALGOs minted.
+Accounts can create a Vault and store their algos there and receive participation rewards for them. Users can mint wALGOs up to the balance of algos they keep in 
+the Vault and withdraw them at any time keeping algo balance above or equal to the amount of wALGOs minted.
+Vault creation can cost a fixed amount in algos which must be paid in optIn operation.
+Mint and Burn operations can require to pay a percent of the amount minting and burning.
 
 ### Global Variables
 
-* A (Admin): admin of the Application
-* GS (GlobalStatus): 1 if the Application is enabled and 0 if it is not
-* MA (MintAccount): account storing the wALGOs. This account must give access to the Application to send the wALGOs to the Vault owner accounts
-* MF (MintFee): fee paid in ALGOs for each mintwALGOs operation
-* BF (BurnFee): fee paid in ALGOs on each burnwALGO operation
-* CF (CreationFee): fee paid in ALGOs on each burnwALGO operation
+* A Byte[] (Admin): admin of the Application
+* GS Int (GlobalStatus): 1 if the Application is enabled and 0 if it is not
+* MA Byte[] (MintAccount): account storing the wALGOs. This account must give access to the Application to send the wALGOs to the Vault owner accounts
+* MF Int (MintFee): fee paid in ALGOs for each mintwALGOs operation
+* BF Int (BurnFee): fee paid in ALGOs on each burnwALGO operation
+* CF Int (CreationFee): fee paid in ALGOs on each burnwALGO operation
+* ASA Int (ASA ID): id of wALGO token
+* VP Byte[] (Vault Prefix): first part of the vault.teal program. In the middle is placed the user account address.
+* VS Byte[] (Vault Suffix): last part of the vault.teal program. In the middle is placed the user account address.
 
 ### Local Account Variables
 
@@ -51,9 +57,8 @@ Remarks:
 
 ![StakerDAO Vault Design](images/stakerdao-diagram.png)
 
-## Vault Application
-
-This application is implemented in app-vault.teal.tmpl replacing TMPL_ASA_ID with the wALGO id and vault.teal.tmpl compiled code. It handles all the Vault operations including those executed by the admin and the users. 
+NOTE: users can mintwALGOs and withdrawALGOs to any account, and burnwALGO and depositALGOs from any account. In the same way, the fees can be paid from any
+acount. This diagram shows the general logic but for simplicity it does not show all the valid possibilities.
 
 ### Minter Account
 
@@ -64,9 +69,24 @@ The Minter account is used to mint and burn wALGOs. This account acts like wALGO
 Each vault generates its own vault.teal replacing from vault.teal.tmpl TMPL_USER_ADDRESS with its account address and TMPL_APP_ID with the application id.
 For each account opted in, there is a unique Vault address where users deposits their algos that back wALGOs up.
 
+## Vault Application
+
+This application is implemented in app-vault.teal. It handles all the Vault operations including those executed by the admin and the users. 
+It verifies that user accounts interacting with it are using a Vault that is managed by vault.teal. To do this, initializeApp sets the Prefix and Suffix of the 
+vault.teal code, then the vault.teal is recontructed in the app-vault.teal in this way:
+vault.teal: "Program" + Prefix + USER_ADDRESS + Suffix
+
+When users optin, they send the Vault address and app-vault.teal computes the vault.teal replacing USER_ADDRESS with the real user address and calculates the 
+Vault address that corresponds to the user. If the user specifies a Vault address that does not match with this calculation, the transaction
+is rejected and the user cannot optIn.
+
+This application handles all transactions interacting with the Vaults. The vault.teal requires that any transaction withdrawing algos from it has to include a 
+tx0 in a transaction group that is an application call to this application. In this way, all the transaction group is controlled by this application to ensure
+that the general logic is always preserved.
+
 ### Admin Account
 
-Vault Application has an admin account that can disable the application, disable individual accounts, change the fees, change the minting account, update the application, and delete it.
+Vault Application has an admin account that can initialize the application, disable the application, disable individual accounts, change the fees, change the minting account, update the application, and delete it.
 
 ### User Account
 
@@ -92,6 +112,19 @@ The admin can delete the application.
   * OnCompletion: DeleteApplication
   * Application Call tx
 
+### Admin initializeApp
+
+The admin can update the teal code of the application.
+
+* Tx0: 
+  * Sender: Admin
+  * OnCompletion: UpdateApplication
+  * arg0: str:iA
+  * arg1: integer:ID of ASA wALGO
+  * arg2: str:Vault code Prefix
+  * arg3: str:Vault code Suffix
+  * Application Call tx
+
 ### Admin setGlobalStatus
 
 The admin can enable or disable any vault at any time.
@@ -99,6 +132,7 @@ The admin can enable or disable any vault at any time.
 * Tx0: 
   * Sender: Admin
   * OnCompletion: NoOp
+  * arg0: str:sGS
   * arg0: integer: new status (0 or 1)
   * Application Call tx
 
@@ -109,6 +143,7 @@ The Admin can enable or disable any vault at any time.
 * Tx0: 
   * Sender: Admin
   * OnCompletion: NoOp
+  * arg0: str:sAS
   * acc0: User Address
   * arg0: integer: new status (0 or 1)
   * Application Call tx
