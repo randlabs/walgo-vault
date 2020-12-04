@@ -152,6 +152,17 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		mochaTools.expectTEALRejectNonAdminError(error)
 	})
 
+	it("initializeApp: User account", async function() {
+		let error
+		try {
+			txId = await vaultManager.initializeApp(accountAddr, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALRejectNonAdminError(error)
+	})
+
 	it("setBurnFee: User account", async function() {
 		try {
 			txId = await vaultManager.setBurnFee(accountAddr, 300, signCallback)
@@ -230,6 +241,29 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 			expect(asaBalance).to.equal(0)
 		}
 	})
+	it("setCreationFee(0): Admin", async function() {
+		txId = await vaultManager.setCreationFee(addresses[0], 0, signCallback)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
+		let fee = await vaultManager.creationFee()
+		expect(fee).to.equal(0)
+	})
+	it("optIn account: no creation fees", async function() {
+		txId = await vaultManager.optIn(accountAddr, signCallback)
+		await vaultManager.waitForConfirmation(txId)
+		mochaTools.expectTxId(txId)
+	})
+	it("closeOut Account: no creation fees", async function() {
+		txId = await vaultManager.closeOut(accountAddr, signCallback)
+		await vaultManager.waitForConfirmation(txId)
+		mochaTools.expectTxId(txId)
+	})
+	it("setCreationFee(creationFee): Admin restore creationFee", async function() {
+		txId = await vaultManager.setCreationFee(addresses[0], creationFee, signCallback)
+		txResponse = await vaultManager.waitForTransactionResponse(txId)
+		let fee = await vaultManager.creationFee()
+		expect(fee).to.equal(creationFee)
+	})
+
 	it("optIn: Try optIn paying less fees", async function() {
 		try {
 			txId = await vaultManager.optIn(accountAddr, signCallback, creationFee-1)
@@ -239,7 +273,6 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		}
 		mochaTools.expectTEALReject(error)
 	})
-
 
 	it("optIn: Try optIn paying fees to an incorrect account", async function() {
 		try {
@@ -327,6 +360,17 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		let error
 		try {
 			txId = await vaultManager.setMintFee(accountAddr, 300, signCallback)
+			error = 0
+		} catch(err) {
+			error = err
+		}
+		mochaTools.expectTEALReject(error)
+	})
+
+	it("initializeApp: User account after optIn", async function() {
+		let error
+		try {
+			txId = await vaultManager.initializeApp(accountAddr, signCallback)
 			error = 0
 		} catch(err) {
 			error = err
@@ -591,7 +635,7 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 		}
 		mochaTools.expectTEALReject(error)
 	})
-	it("mintwALGOs mint maximum allowed " + maxMintAmount, async function() {
+	it("mintwALGOs mint maximum allowed", async function() {
 		minted = await vaultManager.minted(accountAddr)
 		txId = await vaultManager.mintwALGOs(accountAddr, maxMintAmount, signCallback)
 		txResponse = await vaultManager.waitForTransactionResponse(txId)
@@ -742,6 +786,13 @@ describe("StakerDAO Vault Test", async function() {
 				expect(1).to.equal(1)
 			}
 		})
+
+		it("initializeApp", async function() {
+			txId = await vaultManager.initializeApp(addresses[0], signCallback)
+			txResponse = await vaultManager.waitForConfirmation(txId)
+			mochaTools.expectTxId(txId)
+		})
+
 		it("createApp: Create Fake App to test", async function() {
 			if(!settings.fakeAppId) {
 				txId = await vaultManager.createApp(addresses[0], signCallback, testApprovalProgramFilename, testClearStateProgramFilename)
@@ -811,7 +862,6 @@ describe("StakerDAO Vault Test", async function() {
 				error = err
 			}
 			mochaTools.expectTEALReject(error)
-			
 		})
 
 		it("setBurnFee: Admin trying to set a fee above the limits 5001 more than 5000", async function() {
