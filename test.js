@@ -588,6 +588,10 @@ async function main () {
 			let appId = vaultManager.appIdFromCreateAppResponse(txResponse)
 			vaultManager.setAppId(appId)
 			console.log('Create App: AppId: ' + appId)
+			
+			console.log('initializeApp')
+			txId = await vaultManager.initializeApp(addresses[0], signCallback)
+			console.log('initializeApp: %s', txId)	
 		}
 
 		console.log('createApp: Fake to test')
