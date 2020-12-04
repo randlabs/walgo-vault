@@ -123,6 +123,11 @@ int 1
 bz failed
 
 txna ApplicationArgs 0
+byte "iA" // initializeApp
+==
+bnz admin_initialize
+
+txna ApplicationArgs 0
 byte "sGS" // setGlobalStatus
 ==
 bnz admin_set_global_status
@@ -161,6 +166,28 @@ bnz admin_set_creation_fee
 
 err
 
+// Handle initialize
+// -----------------
+// Admin -> initialize: args ['i', ASA_ID, VAULT_PREFIX, VAULT_SUFFIX]
+admin_initialize:
+
+byte "ASA" // Asset ID
+txna ApplicationArgs 1
+btoi
+app_global_put
+
+byte "Pr" // vault.teal Prefix
+txna ApplicationArgs 2
+app_global_put
+
+byte "Su" // vault.teal Suffix
+txna ApplicationArgs 3
+app_global_put
+
+b success
+
+// End initialize
+/////////////////////////////////////////////////////////////////////
 
 // Handle setGlobalStatus
 // -----------------
@@ -274,8 +301,7 @@ byte "MF" // MintFee
 load 8
 app_global_put
 
-int 1
-return
+b success
 
 // End setMintFee
 /////////////////////////////////////////////////////////////////////
@@ -460,14 +486,17 @@ bz failed
 // corresponds to the Sender account Vault
 byte "Program"
 // Prefix (see README.md)
-byte base64 TMPL_VAULT_TEAL_PREFIX
+byte "Pr"
+app_global_get
+
 concat
 
 txn Sender
 concat
 
 // Suffix (see README.md)
-byte base64 TMPL_VAULT_TEAL_SUFFIX
+byte "Su"
+app_global_get
 concat
 
 sha512_256
@@ -715,7 +744,9 @@ global ZeroAddress
 
 // ASA_ID
 gtxn 1 XferAsset
-int TMPL_ASA_ID
+byte "ASA"
+app_global_get
+//int TMPL_ASA_ID
 ==
 &&
 
@@ -939,7 +970,9 @@ load 9
 
 // ASA_ID
 gtxn 1 XferAsset
-int TMPL_ASA_ID
+byte "ASA"
+app_global_get
+//int TMPL_ASA_ID
 ==
 &&
 
