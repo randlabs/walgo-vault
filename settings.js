@@ -4,8 +4,8 @@ module.exports = {
 	timeout: 2500000,
 
 	// betanet
-	assetId: 2707342,
-	appId: 2707377,
+	//assetId: 2707342,
+	//appId: 2726135,
 
 	//keepCreatedAsset: true,
 	//keepCreatedApp: true,
@@ -21,7 +21,7 @@ module.exports = {
 		//server: 'localhost:8090',
 		port: '',
 		apiToken: {
-		//	'X-Algo-API-Token': '133e2f3f4c6058f59930aed3df861948c2e85a21afa733080af2b06e668ccdf7',
+			//	'X-Algo-API-Token': '133e2f3f4c6058f59930aed3df861948c2e85a21afa733080af2b06e668ccdf7',
 		}
 	},
 
