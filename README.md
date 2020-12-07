@@ -262,7 +262,7 @@ User sends ALGOs to the Vault address directly from any account.
   * Fee: MinTxnFee
   * AssetAmount: mint amount. The total minted amount must be less or equal to the ALGO Vault balance substracted the fees and it will need to keep at least the price of an additional tx to closeOut.
   * AssetCloseTo: ZeroAddress
-  * XferAsset: 2671688 (betanet)
+  * XferAsset: wALGO asset Id
   * AssetTransfer tx
 
 If MintFee > 0, a third tx is needed
@@ -285,7 +285,7 @@ If MintFee > 0, a third tx is needed
   * Sender: any account
   * AssetReceiver: Mint account
   * AssetAmount: burn amount. The total burned amount must be less or equal to total minted. It should be equal to arg1 Tx0
-  * XferAsset: 2671688 (betanet)
+  * XferAsset: wALGO asset Id
   * AssetTransfer tx
 
 If BurnFee > 0, a third tx is needed
