@@ -2,7 +2,6 @@ var expect = require("chai").expect;
 const algosdk = require('algosdk')
 const asaTools = require('../asa-tools')
 const vault = require('../vault')
-const accountTest = require('./account-test')
 const config = require('../config')
 const fs = require('fs')
 const mochaTools = require('./mocha-tools');
