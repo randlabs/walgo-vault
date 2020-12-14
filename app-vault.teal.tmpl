@@ -947,6 +947,12 @@ store 7
 // )
 
 no_admin_burn_walgos_no_fee:
+// take into account the tx1.Fee because it can be executed from the Vault.
+// Position 7 is used to verify that the final Algo balance is above wALGOs minted.
+load 7
+gtxn 1 Fee
++
+store 7
 
 // more than 0
 gtxn 1 AssetAmount
