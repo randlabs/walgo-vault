@@ -159,6 +159,17 @@ The Admin can change the Minter account. This account is used to mint wALGOs in 
   * acc0: new Minter Address
   * Application Call tx
 
+### Admin setAdminAccount
+
+The Admin can change the Admin account. This account is used to execute all Admin operations.
+
+* Tx0: 
+  * Sender: Admin
+  * OnCompletion: NoOp
+  * arg0: str:sAA
+  * acc0: new Admin Address
+  * Application Call tx
+
 ### Admin setMintFee
 
 Set the percent of paid in ALGOs on each mintwALGOs operation
