@@ -569,14 +569,14 @@ async function main () {
 		
 		// // ASA ID Testnet: 11870752
 		if(settings.createASA) {
-			txId = await asaTools.createASA(algodClient, mintAddr, 8000000000000000, 6, 'wALGO', 'Wrapped ALGO', 'https://stakerdao', signCallback);
+			txId = await asaTools.createASA(algodClient, mintAddr, 8000000000000000, 6, 'wALGO', 'Wrapped ALGO', 'https://stakerdao.com', signCallback);
 			txResponse = await vaultManager.waitForTransactionResponse(txId)
 			settings.assetId = txResponse['asset-index']
 			vaultManager.setAssetId(settings.assetId)
 			console.log('Asset created with index %d', settings.assetId)
 		}
 
-		txId = await asaTools.createASA(algodClient, mintAddr, 8000000000000000, 6, 'wALGOF', 'Wrapped ALGO Fake', 'https://stakerdao', signCallback);
+		txId = await asaTools.createASA(algodClient, mintAddr, 8000000000000000, 6, 'wALGOF', 'Wrapped ALGO Fake', 'https://stakerdao.com', signCallback);
 		txResponse = await vaultManager.waitForTransactionResponse(txId)
 		fakeAssetId = txResponse['asset-index']
 		console.log('Asset created with index %d', fakeAssetId)

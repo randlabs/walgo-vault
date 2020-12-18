@@ -752,7 +752,7 @@ describe("StakerDAO Vault Test", async function() {
 	describe("Creation ASA and Application", function() {
 		it("Create ASA", async function() {
 			if(!settings.assetId) {
-				txId = await asaTools.createASA(algodClient, mintAddr, 8000000000000000, 6, 'wALGO', 'Wrapped ALGO', 'https://stakerdao', signCallback);
+				txId = await asaTools.createASA(algodClient, mintAddr, 8000000000000000, 6, 'wALGO', 'Wrapped ALGO', 'https://stakerdao.com', signCallback);
 				txResponse = await vaultManager.waitForTransactionResponse(txId)
 				settings.assetId = txResponse['asset-index']
 				vaultManager.setAssetId(settings.assetId)

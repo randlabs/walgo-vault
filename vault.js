@@ -305,10 +305,11 @@ class VaultManager {
 		/**
 		 * Create an application based on the default approval and clearState programs or based on the specified files.
 		 * @param  {String} 	sender 	account used to sign the createApp transaction
-		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
+		 * @param  {Function} 	signCallback callback with prototype signCallback(sender, tx) used to sign transactions.
+		 * If not specified, it returns a transaction object
 		 * @param  {String} 	approvalCodeFile 	optional. If it is not specified it uses the default Vault app approval code
 		 * @param  {String} 	clearCodeFile 	optional. If it is not specified it uses the default Vault app clearState code
-		 * @return {[String]}      transaction id of the created application
+		 * @return {[String]}      transaction id of the created application or a transaction object if signCallback is not specified
 		 */
 		this.createApp = async function (sender, signCallback, approvalCodeFile, clearCodeFile) {
 			const localInts = 3
@@ -347,6 +348,10 @@ class VaultManager {
 				localInts, localBytes, globalInts, globalBytes)
 			const txId = txApp.txID().toString()
 
+			if (!signCallback) {
+				return txApp;
+			}
+
 			// Sign the transaction
 			let txAppSigned = signCallback(sender, txApp)
 			//const txAppSigned = txApp.signTxn(adminAccount.sk)
@@ -358,8 +363,10 @@ class VaultManager {
 
 		/**
 		 * Initialize the application setting the appId, vault Prefix and vault Suffix.
-		 * @param  {String} 	sender 	account used to sign the createApp transaction
-		 * @return {[String]}      transaction id of the created application
+		 * @param  {String} sender account used to sign the createApp transaction
+		 * @param  {Function} signCallback callback with prototype signCallback(sender, tx) used to sign transactions.
+		 * If not specified, it returns a transaction object
+		 * @return {[String]}      transaction id of the created application or a transaction object if signCallback is not specified
 		 */
 		this.initializeApp = async function(sender, signCallback) {
 			let vaultProgram = await this.vaultProgramPrefixSuffix()
@@ -399,7 +406,7 @@ class VaultManager {
 
 			let lsigMinter = algosdk.makeLogicSig(minterProgram);
 
-			lsigCallback(sender, lsigMinter)
+			await lsigCallback(sender, lsigMinter)
 
 			return lsigMinter
 		}
@@ -552,8 +559,9 @@ class VaultManager {
 		 * @param  {String} 	destAddr 	To address
 		 * @param  {Number} 	amount 	amount in algos to transfer
 		 * @param  {String} 	closeAddr 	optional. CloseRemainderTo address to send all remaining algos
-		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
-		 * @return {[String]}      transaction id of the transaction
+		 * @param  {Function} 	signCallback callback with prototype signCallback(sender, tx) used to sign transactions.
+		 * If not specified, it returns a transaction object
+		 * @return {[String]}      transaction id of the created application or a transaction object if signCallback is not specified
 		 */
 		this.transferAlgos = async function (sender, destAddr, amount, closeAddr, signCallback) {
 			const params = await this.algodClient.getTransactionParams().do()
@@ -564,6 +572,10 @@ class VaultManager {
 			// create unsigned transaction
 			let txALGOTransfer = algosdk.makePaymentTxnWithSuggestedParams(sender, destAddr, amount, closeAddr, 
 				new Uint8Array(0), params)
+			if (!signCallback) {
+				return txALGOTransfer;
+			}
+
 			let txALGOTransferSigned = signCallback(sender, txALGOTransfer)
 
 			let tx = (await this.algodClient.sendRawTransaction(txALGOTransferSigned).do())
@@ -637,8 +649,9 @@ class VaultManager {
 		 * Change admin account to newAdminAddr.
 		 * @param  {String} 	sender 	current admin account
 		 * @param  {String} 	newAdminAddr 	new admin account
-		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
-		 * @return {[String]}      transaction id of the transaction
+		 * @param  {Function} signCallback callback with prototype signCallback(sender, tx) used to sign transactions.
+		 * If not specified, it returns a transaction object
+		 * @return {[String]}      transaction id of the created application or a transaction object if signCallback is not specified
 		 */
 		this.setAdminAccount = async function (sender, newAdminAddr, signCallback) {
 			let appArgs = []
@@ -665,8 +678,9 @@ class VaultManager {
 		 * Change minter account to mintAddr.
 		 * @param  {String} 	sender 	admin account
 		 * @param  {String} 	mintAddr 	new minter account
-		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
-		 * @return {[String]}      transaction id of the transaction
+		 * @param  {Function} signCallback callback with prototype signCallback(sender, tx) used to sign transactions.
+		 * If not specified, it returns a transaction object
+		 * @return {[String]}      transaction id of the created application or a transaction object if signCallback is not specified
 		 */
 		this.setMintAccount = async function (sender, mintAddr, signCallback) {
 			let appArgs = []
@@ -693,8 +707,9 @@ class VaultManager {
 		 * Set mint fee paid every mintwALGOs operation. It has to be a number between 0-5000 meaning 0%-50%.
 		 * @param  {String} 	sender 	admin account
 		 * @param  {Number} 	newFee 	new mint fee
-		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
-		 * @return {[String]}      transaction id of the transaction
+		 * @param  {Function} signCallback callback with prototype signCallback(sender, tx) used to sign transactions.
+		 * If not specified, it returns a transaction object
+		 * @return {[String]}      transaction id of the created application or a transaction object if signCallback is not specified
 		 */
 		this.setMintFee = async function (sender, newFee, signCallback) {
 			let appArgs = []
@@ -720,8 +735,9 @@ class VaultManager {
 		 * Set burn fee paid every burnwALGOs operation. It has to be a number between 0-5000 meaning 0%-50%.
 		 * @param  {String} 	sender 	admin account
 		 * @param  {Number} 	newFee 	new burn fee
-		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
-		 * @return {[String]}      transaction id of the transaction
+		 * @param  {Function} signCallback callback with prototype signCallback(sender, tx) used to sign transactions.
+		 * If not specified, it returns a transaction object
+		 * @return {[String]}      transaction id of the created application or a transaction object if signCallback is not specified
 		 */
 		this.setBurnFee = async function (sender, newFee, signCallback) {
 			let appArgs = []
@@ -747,8 +763,9 @@ class VaultManager {
 		 * Set creation fee in microalgos paid by accounts opting in.
 		 * @param  {String} 	sender 	admin account
 		 * @param  {Number} 	newFee 	new creation fee in microalgos
-		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
-		 * @return {[String]}      transaction id of the transaction
+		 * @param  {Function} signCallback callback with prototype signCallback(sender, tx) used to sign transactions.
+		 * If not specified, it returns a transaction object
+		 * @return {[String]}      transaction id of the created application or a transaction object if signCallback is not specified
 		 */
 		this.setCreationFee = async function (sender, newFee, signCallback) {
 			let appArgs = []
@@ -776,8 +793,9 @@ class VaultManager {
 		 * 1: enabled.
 		 * @param  {String} 	sender 	admin account
 		 * @param  {Number} 	newStatus 	0 or 1
-		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
-		 * @return {[String]}      transaction id of the transaction
+		 * @param  {Function} signCallback callback with prototype signCallback(sender, tx) used to sign transactions.
+		 * If not specified, it returns a transaction object
+		 * @return {[String]}      transaction id of the created application or a transaction object if signCallback is not specified
 		 */
 		this.setGlobalStatus = async function (sender, newStatus, signCallback) {
 			let appArgs = []
@@ -806,8 +824,9 @@ class VaultManager {
 		 * @param  {String} 	sender 	admin account
 		 * @param  {String} 	accountAddr 	account to set the status
 		 * @param  {Number} 	newStatus 	0 or 1
-		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
-		 * @return {[String]}      transaction id of the transaction
+		 * @param  {Function} signCallback callback with prototype signCallback(sender, tx) used to sign transactions.
+		 * If not specified, it returns a transaction object
+		 * @return {[String]}      transaction id of the created application or a transaction object if signCallback is not specified
 		 */
 		this.setAccountStatus = async function (sender, accountAddr, newStatus, signCallback) {
 			let appArgs = []
@@ -1317,8 +1336,9 @@ class VaultManager {
 		 * @param  {String} 	sender 	caller address
 		 * @param  {Array} 	appArgs 	array of arguments to pass to application call
 		 * @param  {Array} 	appAccounts 	array of accounts to pass to application call
-		 * @param  {Function} 	signCallback 	callback with prototype signCallback(sender, tx) used to sign transactions
-		 * @return {[String]}      transaction id of the transaction
+		 * @param  {Function} signCallback callback with prototype signCallback(sender, tx) used to sign transactions.
+		 * If not specified, it returns a transaction object
+		 * @return {[String]}      transaction id of the created application or a transaction object if signCallback is not specified
 		 */
 		this.callApp = async function (sender, appArgs, appAccounts, signCallback) {
 			// get node suggested parameters
@@ -1330,6 +1350,10 @@ class VaultManager {
 			// create unsigned transaction
 			const txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts)
 			const txId = txApp.txID().toString()
+
+			if (!signCallback) {
+				return txApp;
+			}
 
 			// Sign the transaction
 			let txAppSigned = signCallback(sender, txApp)
