@@ -2,7 +2,7 @@ const algosdk = require('algosdk');
 const fs = require('fs');
 const tools = require('./tools');
 
-const approvalProgramFilename = 'app-vault.teal.tmpl';
+const approvalProgramFilename = 'app-vault.teal';
 const clearProgramFilename = 'app-vault-clear-state.teal';
 
 const vaultProgramFilename = 'vault.teal.tmpl';

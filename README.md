@@ -350,5 +350,7 @@ Asset created with index 2694358
 ## wALGO SDK
 
 vault.js contains all the functions to execute all these operations and has a lot of helper functions to help developers to integrate Vault Application.
+
 The functions that require signing transactions receive a callback that is called each time a signature is required. 
+
 Function createDelegatedMintAccountToFile creates a file containing a signed logicSig of the minter.teal.tmpl file that is used to approve mintwALGOs operations. This logicSig allows any user using Vault app to mint wALGOs from the Minter account.
