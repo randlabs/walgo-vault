@@ -2,16 +2,10 @@ const fs = require('fs');
 const algosdk = require('algosdk');
 const vault = require('../vault');
 const asaTools = require('../asa-tools');
-const signTools = require('./sign');
-const addresses = require('./addresses');
 const msgpack = require("msgpack-lite");
-const { getMultiSignatureSigners } = require('./sign');
 const readline = require('readline');
-
-const rl = readline.createInterface({
-	input: process.stdin,
-	output: process.stdout
-});
+const transaction = require('algosdk/src/transaction');
+const encoding = require('algosdk/src/encoding/encoding');
 
 function usage() {
 	console.log('Usage: node deploy-vault.js ' +
@@ -26,6 +20,7 @@ function usage() {
 		'\t\t\ta multisig account combined with --multisig-threshold\n' +
 		'\t\t--in filein\n\t\t\tLoad transactions from file. Useful to sign and send transactions previously generated\n' +
 		'\t\t--out fileout\n\t\t\tGenerate the transactions and dump them to a file\n' +
+		'\t\t--print-txs\n\t\t\tPrint transactions before signing' +
 		'\t\t--multisig-threshold\n\t\t\tIf there is more than one --from it sets the to set the multisig threshold\n' +
 		'\t\t--net mainnet|testnet|betanet (default: testnet)\n' +
 		'\t\t--sign-txs\n\t\t\tSign transactions created or loaded from file\n' +
@@ -34,7 +29,7 @@ function usage() {
 	process.exit(0);
 }
 
-async function readLineAsync() {
+function readLineAsync() {
 	const rl = readline.createInterface({
 		input: process.stdin
 	});
@@ -45,43 +40,64 @@ async function readLineAsync() {
 			resolve(line);
 		});
 	});
-};
+}
 
+function signCount(tx) {
+	let count = 0;
+	if (!tx.msig) {
+		return count;
+	}
+	for (let i = 0; i < tx.msig.subsig.length; i++) {
+		if (tx.msig.subsig[i].s) {
+			count += 1;
+		}
+	}
+	return count;
+}
 let signatures = {};
+let printTxs;
 
-async function signCallback(sender, tx) {
-	if (!signatures[sender]) {
-		console.log('Enter mnemonic for %s:', sender);
+async function signCallback(sender, tx, mparams) {
+	let key;
+
+	let txObj = tx;
+	if (!tx.get_obj_for_encoding) {
+		txObj = encoding.decode(tx);
+	}
+
+	if (!signatures[sender] || mparams) {
+		if (printTxs) {
+			console.log('Transaction to sign: \n %s', JSON.stringify(txObj));
+		}
+		if (mparams) {
+			console.log('\nEnter mnemonic for multisig %s:', sender);
+		}
+		else {
+			console.log('\nEnter mnemonic for %s:', sender);
+		}
 		const line = await readLineAsync();
-		let key = algosdk.mnemonicToSecretKey(line);
+		key = algosdk.mnemonicToSecretKey(line);
+
 		// eslint-disable-next-line require-atomic-updates
 		signatures[sender] = key;
 	}
 
-	const txSigned = tx.signTxn(signatures[sender].sk);
-	return txSigned;
-
-	if (sender == 'EA74IW6WLQ7MOHOYTKIW53JKHL7GQEDFQY67SNFQ2EATMAXOC2AWMR7ND4') {
-		let key = algosdk.mnemonicToSecretKey('fiber fringe dune upper chat six rich maze morning pistol square ' +
-		'decorate own erosion they stem fluid cube expose census media coconut odor above hard');
-		const txSigned = tx.signTxn(key.sk);
+	if (!mparams) {
+		const txSigned = tx.signTxn(signatures[sender].sk);
 		return txSigned;
 	}
-	return;
+	if (!txObj.msig) {
+		const txSigned = algosdk.signMultisigTransaction(tx, mparams, key.sk).blob;
+		return txSigned;
+	}
 
-
-	const mparams = {
-		version: 1,
-		threshold: 1,
-		addrs: [
-			'CV3U3AV6WY4Q22QLGYUQYFBF6DQWZLK23S5PBLFXRI3MWVQHVUHIE7EZB4',
-			'DDA62FAYHSPYBSGKXQPUFNL2IG5WPMYQNPQS44YW5X4NER7ABNUOVHL4M4'
-		],
-	};
-	//let key = algosdk.mnemonicToSecretKey('worry sphere situate rib update trumpet glove mechanic perfect glare cost cart agree drastic spin blanket what flash orient utility grow focus zebra abandon leave');
-	// const txSigned = tx.signTxn(key.sk);
-	//const txSigned = algosdk.signMultisigTransaction(tx, mparams, key.sk).blob;
-	// const txSigned = tx.signTxn(settings.signatures[sender].sk);
+	let count = signCount(txObj);
+	const txSigned = algosdk.appendSignMultisigTransaction(tx, mparams, key.sk).blob;
+	txObj = encoding.decode(txSigned);
+	if (count === signCount(txObj)) {
+		console.error('\nSignature of %s is present\n', key.addr);
+		process.exit(0);
+	}
 	return txSigned;
 }
 
@@ -105,13 +121,19 @@ async function loadTransactionsFromFile(filename) {
 	let txs = [];
 
 	if (typeof filename !== 'string' || filename.length == 0) {
-		throw new Error("Invalid filename (tx-storage).");
+		throw new Error("Invalid filename");
 	}
 
 	//create decoder stream
 	let decodeStream = msgpack.createDecodeStream();
 	decodeStream.on("data", (_tx) => {
-		txs.push(_tx);
+		if (_tx.gen) {
+			txs.push(transaction.Transaction.from_obj_for_encoding(_tx));
+		}
+		else {
+			let txBlob = new Uint8Array(Buffer.from(_tx, "base64"));
+			txs.push(txBlob);
+		}
 	});
 
 	//NOTE: The decoder does not accept partial reads
@@ -129,20 +151,56 @@ async function loadTransactionsFromFile(filename) {
 	return txs;
 }
 
+/**
+ * Save transactions to a file
+ *
+ * @param {Array} txs of Algorand Transaction Objects
+ * @param {String} filename Filename of txs
+ * @return {Void} void
+ */
+async function saveTransactionsToFile(txs, filename) {
+	if (typeof filename !== 'string' || filename.length == 0) {
+		console.error("Invalid filename");
+		usage();
+	}
+	if (!Array.isArray(txs)) {
+		console.error("Invalid transactions");
+		usage();
+	}
+
+	// eslint-disable-next-line security/detect-non-literal-fs-filename
+	let outputStream = fs.createWriteStream(filename);
+	let outputEncoderStream = msgpack.createEncodeStream({
+		codec: msgpack.createCodec({ //to match algosdk encoding options
+			canonical: true
+		})
+	});
+	outputEncoderStream.pipe(outputStream);
+
+	for (let _tx of txs) {
+		if (_tx.get_obj_for_encoding) {
+			outputEncoderStream.write(_tx.get_obj_for_encoding());
+		}
+		else {
+			let txb64 = Buffer.from(_tx).toString('base64');
+			outputEncoderStream.write(txb64);
+		}
+	}
+	outputEncoderStream.end();
+
+	await new Promise((resolve, reject) => {
+		outputStream.once('finish', () => {
+			resolve();
+		}).once('error', reject);
+	});
+}
+
 function getAddress(arg) {
 	if (arg.length != 58) {
 		console.log('Invalid address %s\n', arg);
 		usage();
 	}
 	return arg;
-}
-
-function getStatus(status) {
-	if (status != 1 && status != 0) {
-		console.log('Invalid Status: %s', status);
-		usage();
-	}
-	return status;
 }
 
 function getInteger(amount) {
@@ -154,22 +212,12 @@ function getInteger(amount) {
 	return amount;
 }
 
-function sendToFile(fileout, tx) {
-	let encodedObj = tx.get_obj_for_encoding();
-	let txEncoded = algosdk.encodeObj(encodedObj);
-	if (fileout) {
-		let buf = Buffer.from(txEncoded);
-		// eslint-disable-next-line security/detect-non-literal-fs-filename
-		fs.writeFileSync(fileout, buf);
-	}
-}
-
 async function deployVaultApp() {
 	let filein;
 	let fileout;
-	let txsFile;
 	let from;
 	let multisig;
+	let mparams;
 	let assetId;
 	let threshold;
 	let sendTxs;
@@ -184,10 +232,11 @@ async function deployVaultApp() {
 	let network = 'testnet';
 	let supply;
 	let decimals;
+	let txs = [];
 
 	try {
 		// get general configurations
-		for (let idx = 0; idx < process.argv.length; idx++) {
+		for (let idx = 3; idx < process.argv.length; idx++) {
 			if (process.argv[idx] == 'create-app') {
 				createApp = true;
 			}
@@ -309,6 +358,13 @@ async function deployVaultApp() {
 			else if (process.argv[idx] == '--sign-txs') {
 				signTxs = true;
 			}
+			else if (process.argv[idx] == '--print-txs') {
+				printTxs = true;
+			}
+			else {
+				console.log('Unknown command: %s', process.argv[idx]);
+				usage();
+			}
 		}
 
 		let algodClient;
@@ -326,7 +382,7 @@ async function deployVaultApp() {
 			process.exit(0);
 		}
 
-		if (!multisig && !from) {
+		if (!from && !filein) {
 			console.log('You need to set at least one --from address');
 			process.exit(0);
 		}
@@ -336,11 +392,24 @@ async function deployVaultApp() {
 		}
 
 		if (multisig) {
-			from = addresses.generateMultisig(multisig, threshold);
+			mparams = {
+				version: 1,
+				threshold: threshold,
+				addrs: multisig
+			};
+			from = algosdk.multisigAddress(mparams);
 		}
 		let vaultManager = new vault.VaultManager(algodClient, 0, from, assetId);
 
-		if (createwALGO) {
+		if (!fileout && !sendTxs) {
+			console.error('If --send-txs is not set, set the output file with --out');
+			usage();
+		}
+
+		if (filein) {
+			txs = await loadTransactionsFromFile(filein);
+		}
+		else if (createwALGO) {
 			let name;
 			let unitName;
 			let url = 'https://stakerdao.com';
@@ -357,30 +426,8 @@ async function deployVaultApp() {
 				name = 'Wrapped Algo Betanet';
 				unitName = 'wALGO Ts';
 			}
-			if (signTxs) {
-				let txCreatewALGO = await asaTools.createASA(algodClient, from, supply, decimals, unitName, name, url, signCallback, false);
-				if (sendTxs) {
-					let tx = await algodClient.sendRawTransaction(txCreatewALGO).do();
-					let txResponse = await vaultManager.waitForTransactionResponse(tx.txId);
-					assetId = txResponse['asset-index'];
-					console.log('Asset created with index %d', assetId);
-				}
-				else {
-					if (!fileout) {
-						console.error('If --send-txs is not set, set the output file with --out');
-						usage();
-					}
-					sendToFile(fileout);
-				}
-			}
-			else {
-				if (!fileout) {
-					console.error('If --sign-txs is not set, set the output file with --out');
-					usage();
-				}
-				let txCreatewALGO = await asaTools.createASA(algodClient, from, supply, decimals, unitName, name, url);
-				sendToFile(txCreatewALGO);
-			}
+			let txCreatewALGO = await asaTools.createASA(algodClient, from, supply, decimals, unitName, name, url);
+			txs.push(txCreatewALGO);
 			return;
 		}
 
@@ -391,103 +438,63 @@ async function deployVaultApp() {
 
 		if (createApp) {
 			let txCreateApp = await vaultManager.createApp(from);
-			if (signTxs) {
-				console.log('Sign createApp transaction:');
-				let txCreateAppSigned = await signCallback(from, txCreateApp);
-
-				if (sendTxs) {
-					let tx = await algodClient.sendRawTransaction(txCreateAppSigned).do();
-					let txResponse = await vaultManager.waitForTransactionResponse(tx.txId);
-					appId = vaultManager.appIdFromCreateAppResponse(txResponse);
-					console.log('Application created successfully! Application Id: ', appId);
-				}
-			}
-			return;
+			txs.push(txCreateApp);
 		}
-		if (initApp) {
+		else if (initApp) {
 			vaultManager.setAppId(appId);
 			vaultManager.setAssetId(assetId);
 
 			let txInitApp = await vaultManager.initializeApp(from);
 			let txEnableApp = await vaultManager.setGlobalStatus(from, 1);
-			if (signTxs) {
-				console.log('Sign initApp and setGlobalStatus(1) transactions:');
-				let txInitAppSigned = await signCallback(from, txInitApp);
-				let txEnableAppSigned = await signCallback(from, txEnableApp);
-
-				if (sendTxs) {
-					let tx = await algodClient.sendRawTransaction(txInitAppSigned).do();
-					await vaultManager.waitForTransactionResponse(tx.txId);
-					console.log('initApp txid: ' + tx.txId);
-					tx = await algodClient.sendRawTransaction(txEnableAppSigned).do();
-					await vaultManager.waitForTransactionResponse(tx.txId);
-					console.log('setGlobalStatus(1) txid: ' + tx.txId);
-					console.log('Application initialized successfully!');
-				}
-			}
-			return;
+			txs.push(txInitApp);
+			txs.push(txEnableApp);
 		}
-		if (setMinter) {
+		else if (setMinter) {
 			vaultManager.setAppId(appId);
 
 			let txSetMintAccount = await vaultManager.setMintAccount(from, minterAddr);
-			if (signTxs) {
-				console.log('Sign setMintAccount transactions:');
-				let txSetMintAccountSigned = await signCallback(from, txSetMintAccount);
-
-				if (sendTxs) {
-					let tx = await algodClient.sendRawTransaction(txSetMintAccountSigned).do();
-					await vaultManager.waitForTransactionResponse(tx.txId);
-					console.log('setMintAccount txid: ' + tx.txId);
-					console.log('setMintAccount successfully!');
-				}
-			}
-			return;
+			txs.push(txSetMintAccount);
 		}
-
-		if (delegateMinter) {
+		else if (delegateMinter) {
 			if (!fileout) {
 				console.error('You need to set --out filename to save minter delegation');
 			}
 			vaultManager.setAssetId(assetId);
 			vaultManager.setAppId(appId);
-			await vaultManager.createDelegatedMintAccountToFile(fileout, lsigCallback);
+			vaultManager.createDelegatedMintAccountToFile(fileout, lsigCallback);
 			console.log('Minter delegation TEAL signed in file %s', fileout);
 			return;
 		}
 
-		// send transaction batch file
-		if (sendTxs) {
-			let txBatch = await loadTransactionsFromFile(txsFile);
-			// let txBatchDecoded = algosdk.decodeObj(txBatch);
-			let tx = await algodClient.sendRawTransaction(txBatch[0]).do();
-			tx = await algodClient.sendRawTransaction(txBatch[1]).do();
-			console.log('Transactions submitted. Last tx id %s', tx.txId);
-			return;
-		}
-
-
-		// let encodedObj = txCreateApp.get_obj_for_encoding();
-		// let txCreateAppEncoded = algosdk.encodeObj(encodedObj);
-
-		if (multisig) {
-			let encodedObj = txCreateApp.get_obj_for_encoding();
-			let txCreateAppMultisig = { txn: encodedObj };
-			signTools.addSignatureTemplate(txCreateAppMultisig, threshold, multisig);
-			let txCreateAppMultisigEncoded = algosdk.encodeObj(txCreateAppMultisig);
-			if (fileout) {
-				let buf = Buffer.from(txCreateAppMultisigEncoded);
-				fs.writeFileSync(fileout, buf);
+		if (signTxs) {
+			if (txs.length === 0) {
+				console.error('There are no transactions to sign\n\n');
+				usage();
 			}
 
-			encodedObj = txInitApp.get_obj_for_encoding();
-			let txInitAppMultisig = { txn: encodedObj };
-			signTools.addSignatureTemplate(txInitAppMultisig, threshold, multisig);
-			encodedObj = txEnableApp.get_obj_for_encoding();
-			let txEnableAppMultisig = { txn: encodedObj };
-			signTools.addSignatureTemplate(txEnableAppMultisig, threshold, multisig);
+			for (let i = 0; i < txs.length; i++) {
+				txs[i] = await signCallback(from, txs[i], mparams);
+			}
 		}
-
+		if (sendTxs) {
+			for (let i = 0; i < txs.length; i++) {
+				let tx = await algodClient.sendRawTransaction(txs[i]).do();
+				console.log('Sent tx: %s', tx.txId);
+				let txResponse = await vaultManager.waitForTransactionResponse(tx.txId);
+				appId = vaultManager.appIdFromCreateAppResponse(txResponse);
+				if (appId) {
+					console.log('Application created successfully! Application Id: %s', appId);
+				}
+			}
+		}
+		else {
+			if (!fileout) {
+				console.error('If --sign-txs is not set, set the output file with --out');
+				usage();
+			}
+			await saveTransactionsToFile(txs, fileout);
+			console.log('Transaction/s successfully saved to file %s', fileout);
+		}
 	}
 	catch (err) {
 		let text = err.error;
