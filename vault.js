@@ -426,7 +426,9 @@ class VaultManager {
 
 			let lsigMinter = algosdk.makeLogicSig(minterProgram);
 
-			await lsigCallback(sender, lsigMinter);
+			if (lsigCallback) {
+				await lsigCallback(sender, lsigMinter);
+			}
 
 			return lsigMinter;
 		};
@@ -458,7 +460,7 @@ class VaultManager {
 		 * Create a logicSig object that can be used to mint wALGOs and write it to filepath. It uses application minter account as signer.
 		 * @param  {String} filepath output file where the signed TEAL is stored
 		 * @param  {Function} lsigCallback callback with prototype lsigCallback(sender, lsig) used to sign logicSig object
-		 * @return {String} void
+		 * @return {Void} void
 		 */
 		this.createDelegatedMintAccountToFile = async function(filepath, lsigCallback) {
 			let minterAddr = await this.mintAccount();
@@ -475,7 +477,7 @@ class VaultManager {
 		 * Delegate wALGO minting using a logicSig signed by the minter account.
 		 * Priving a signed delegated logicSig calling delegateMintAccount or delegateMintAccountFromFile is required to use mintwALGOs.
 		 * @param  {Object} lsigMint logicSig signed by minter account that will be used in mintwALGOs operations
-		 * @return {String} void
+		 * @return {Void} void
 		 */
 		this.delegateMintAccount = function(lsigMint) {
 			this.lsigMint = lsigMint;
