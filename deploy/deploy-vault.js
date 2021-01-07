@@ -10,17 +10,20 @@ const encoding = require('algosdk/src/encoding/encoding');
 function usage() {
 	console.log('Usage: node deploy-vault.js ' +
 		'Commands:' +
-		'\t\tcreate-walgo supply decimals' +
+		'\t\tcreate-walgo supply decimals\n' +
 		'\t\t\tCreate wALGO token, the --from (or multisig) is used as reserve and manager\n' +
-		'\t\tcreate-app asa-id' +
-		'\t\tinit-app wALGO-id app-id' +
-		'\t\tdelegate-minter wALGO-id app-id' +
-		'\t\tset-minter app-id minter-address' +
+		'\t\tdelete-asset asa-id\n' +
+		'\t\t\tDelete asset asa-id, --from must be the owner\n' +
+		'\t\tcreate-app asa-id\n' +
+		'\t\tinit-app wALGO-id app-id\n' +
+		'\t\tdelegate-minter wALGO-id app-id\n' +
+		'\t\tset-minter app-id minter-address\n' +
 		'\t\t--from account-address\n\t\t\tUse --from to set the transaction sender or use it multiple times to setup\n' +
 		'\t\t\ta multisig account combined with --multisig-threshold\n' +
 		'\t\t--in filein\n\t\t\tLoad transactions from file. Useful to sign and send transactions previously generated\n' +
 		'\t\t--out fileout\n\t\t\tGenerate the transactions and dump them to a file\n' +
-		'\t\t--print-txs\n\t\t\tPrint transactions before signing' +
+		'\t\t--private-key\n\t\t\tUse this private key to sign transactions. Remomended only for test purposes.\n' +
+		'\t\t--print-txs\n\t\t\tPrint transactions before signing\n' +
 		'\t\t--multisig-threshold\n\t\t\tIf there is more than one --from it sets the to set the multisig threshold\n' +
 		'\t\t--net mainnet|testnet|betanet (default: testnet)\n' +
 		'\t\t--sign-txs\n\t\t\tSign transactions created or loaded from file\n' +
@@ -56,6 +59,7 @@ function signCount(tx) {
 }
 let signatures = {};
 let printTxs;
+let privateKey;
 
 async function signCallback(sender, tx, mparams) {
 	let key;
@@ -69,14 +73,19 @@ async function signCallback(sender, tx, mparams) {
 		if (printTxs) {
 			console.log('Transaction to sign: \n %s', JSON.stringify(txObj));
 		}
-		if (mparams) {
-			console.log('\nEnter mnemonic for multisig %s:', sender);
+		if (!privateKey) {
+			if (mparams) {
+				console.log('\nEnter mnemonic for multisig %s:', sender);
+			}
+			else {
+				console.log('\nEnter mnemonic for %s:', sender);
+			}
+			const line = await readLineAsync();
+			key = algosdk.mnemonicToSecretKey(line);
 		}
 		else {
-			console.log('\nEnter mnemonic for %s:', sender);
+			key = privateKey;
 		}
-		const line = await readLineAsync();
-		key = algosdk.mnemonicToSecretKey(line);
 
 		// eslint-disable-next-line require-atomic-updates
 		signatures[sender] = key;
@@ -224,6 +233,7 @@ async function deployVaultApp() {
 	let signTxs;
 	let createApp;
 	let createwALGO;
+	let deleteAsset;
 	let initApp;
 	let appId;
 	let delegateMinter;
@@ -236,7 +246,7 @@ async function deployVaultApp() {
 
 	try {
 		// get general configurations
-		for (let idx = 3; idx < process.argv.length; idx++) {
+		for (let idx = 2; idx < process.argv.length; idx++) {
 			if (process.argv[idx] == 'create-app') {
 				createApp = true;
 			}
@@ -290,6 +300,16 @@ async function deployVaultApp() {
 				decimals = getInteger(process.argv[idx]);
 				createwALGO = true;
 			}
+			else if (process.argv[idx] == 'delete-asset') {
+				if (idx + 2 >= process.argv.length) {
+					usage();
+				}
+
+				idx += 1;
+				// get asa-id
+				assetId = getInteger(process.argv[idx]);
+				deleteAsset = true;
+			}
 			else if (process.argv[idx] == '--in') {
 				if (idx + 1 >= process.argv.length) {
 					usage();
@@ -336,14 +356,6 @@ async function deployVaultApp() {
 					multisig.push(getAddress(process.argv[idx]));
 				}
 			}
-			else if (process.argv[idx] == '--asset-id') {
-				if (idx + 1 >= process.argv.length) {
-					usage();
-				}
-
-				idx += 1;
-				assetId = getInteger(process.argv[idx]);
-			}
 			else if (process.argv[idx] == '--multisig-threshold') {
 				if (idx + 1 >= process.argv.length) {
 					usage();
@@ -360,6 +372,19 @@ async function deployVaultApp() {
 			}
 			else if (process.argv[idx] == '--print-txs') {
 				printTxs = true;
+			}
+			else if (process.argv[idx] == '--private-key') {
+				if (idx + 1 >= process.argv.length) {
+					usage();
+				}
+
+				idx += 1;
+				privateKey = process.argv[idx];
+				if (privateKey.indexOf('\'') >= 0 && privateKey.indexOf('"') >= 0) {
+					privateKey = process.privateKey.substring(1, privateKey.length - 1);
+				}
+				console.log(privateKey);
+				privateKey = algosdk.mnemonicToSecretKey(privateKey);
 			}
 			else {
 				console.log('Unknown command: %s', process.argv[idx]);
@@ -409,7 +434,13 @@ async function deployVaultApp() {
 		if (filein) {
 			txs = await loadTransactionsFromFile(filein);
 		}
-		else if (createwALGO) {
+
+		if ((createApp || initApp || setMinter || createwALGO) && !from) {
+			console.error('You need to set --from address');
+			process.exit(0);
+		}
+
+		if (createwALGO) {
 			let name;
 			let unitName;
 			let url = 'https://stakerdao.com';
@@ -428,15 +459,12 @@ async function deployVaultApp() {
 			}
 			let txCreatewALGO = await asaTools.createASA(algodClient, from, supply, decimals, unitName, name, url);
 			txs.push(txCreatewALGO);
-			return;
 		}
-
-		if ((createApp || initApp || setMinter || createwALGO) && !from) {
-			console.error('You need to set --from address');
-			process.exit(0);
+		else if (deleteAsset) {
+			let txDeleteAsset = await asaTools.destroyASA(algodClient, from, assetId);
+			txs.push(txDeleteAsset);
 		}
-
-		if (createApp) {
+		else if (createApp) {
 			let txCreateApp = await vaultManager.createApp(from);
 			txs.push(txCreateApp);
 		}
@@ -482,8 +510,14 @@ async function deployVaultApp() {
 				console.log('Sent tx: %s', tx.txId);
 				let txResponse = await vaultManager.waitForTransactionResponse(tx.txId);
 				appId = vaultManager.appIdFromCreateAppResponse(txResponse);
+				assetId = txResponse['asset-index'];
 				if (appId) {
 					console.log('Application created successfully! Application Id: %s', appId);
+					process.exit(appId);
+				}
+				else if (assetId) {
+					console.log('wALGO created successfully! Asset Id: %s', assetId);
+					process.exit(assetId);
 				}
 			}
 		}
