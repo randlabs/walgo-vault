@@ -15,6 +15,7 @@ function usage() {
 		'\t\tdelete-asset asa-id\n' +
 		'\t\t\tDelete asset asa-id, --from must be the owner\n' +
 		'\t\tcreate-app asa-id\n' +
+		'\t\tdelete-app app-id\n' +
 		'\t\tinit-app wALGO-id app-id\n' +
 		'\t\tdelegate-minter wALGO-id app-id\n' +
 		'\t\tset-minter app-id minter-address\n' +
@@ -22,6 +23,7 @@ function usage() {
 		'\t\t\ta multisig account combined with --multisig-threshold\n' +
 		'\t\t--in filein\n\t\t\tLoad transactions from file. Useful to sign and send transactions previously generated\n' +
 		'\t\t--out fileout\n\t\t\tGenerate the transactions and dump them to a file\n' +
+		'\t\t--first-round first-round\n\t\t\tEspecify when the transaction starts to be valid. By default, current round\n' +
 		'\t\t--private-key\n\t\t\tUse this private key to sign transactions. Remomended only for test purposes.\n' +
 		'\t\t--print-txs\n\t\t\tPrint transactions before signing\n' +
 		'\t\t--multisig-threshold\n\t\t\tIf there is more than one --from it sets the to set the multisig threshold\n' +
@@ -112,9 +114,17 @@ async function signCallback(sender, tx, mparams) {
 
 async function lsigCallback(sender, lsig) {
 	if (!signatures[sender]) {
-		console.log('Enter mnemonic for %s:', sender);
-		const line = await readLineAsync();
-		let key = algosdk.mnemonicToSecretKey(line);
+		let key;
+
+		if (!privateKey) {
+			console.log('Enter mnemonic for %s:', sender);
+			const line = await readLineAsync();
+			key = algosdk.mnemonicToSecretKey(line);
+		}
+		else {
+			key = privateKey;
+		}
+
 		if (key.addr !== sender) {
 			console.error('Key does not match the sender');
 			process.exit(1);
@@ -232,6 +242,8 @@ async function deployVaultApp() {
 	let sendTxs;
 	let signTxs;
 	let createApp;
+	let createTxs;
+	let deleteApp;
 	let createwALGO;
 	let deleteAsset;
 	let initApp;
@@ -242,6 +254,7 @@ async function deployVaultApp() {
 	let network = 'testnet';
 	let supply;
 	let decimals;
+	let firstRound;
 	let txs = [];
 
 	try {
@@ -249,6 +262,12 @@ async function deployVaultApp() {
 		for (let idx = 2; idx < process.argv.length; idx++) {
 			if (process.argv[idx] == 'create-app') {
 				createApp = true;
+			}
+			else if (process.argv[idx] == 'delete-app') {
+				deleteApp = true;
+				idx += 1;
+				// get asa-id
+				appId = getInteger(process.argv[idx]);
 			}
 			else if (process.argv[idx] == 'init-app') {
 				if (idx + 2 >= process.argv.length) {
@@ -380,11 +399,19 @@ async function deployVaultApp() {
 
 				idx += 1;
 				privateKey = process.argv[idx];
-				if (privateKey.indexOf('\'') >= 0 && privateKey.indexOf('"') >= 0) {
-					privateKey = process.privateKey.substring(1, privateKey.length - 1);
+				if (privateKey.indexOf('\'') >= 0 || privateKey.indexOf('"') >= 0) {
+					privateKey = privateKey.substring(1, privateKey.length - 1);
 				}
 				console.log(privateKey);
 				privateKey = algosdk.mnemonicToSecretKey(privateKey);
+			}
+			else if (process.argv[idx] == '--first-round') {
+				if (idx + 1 >= process.argv.length) {
+					usage();
+				}
+
+				idx += 1;
+				firstRound = getInteger(process.argv[idx]);
 			}
 			else {
 				console.log('Unknown command: %s', process.argv[idx]);
@@ -435,9 +462,12 @@ async function deployVaultApp() {
 			txs = await loadTransactionsFromFile(filein);
 		}
 
-		if ((createApp || initApp || setMinter || createwALGO) && !from) {
-			console.error('You need to set --from address');
-			process.exit(0);
+		if (createApp || initApp || setMinter || createwALGO || deleteApp || deleteAsset) {
+			createTxs = true;
+			if (!from) {
+				console.error('You need to set --from address');
+				process.exit(0);
+			}
 		}
 
 		if (createwALGO) {
@@ -468,6 +498,11 @@ async function deployVaultApp() {
 			let txCreateApp = await vaultManager.createApp(from);
 			txs.push(txCreateApp);
 		}
+		else if (deleteApp) {
+			vaultManager.setAppId(appId);
+			let txDeleteApp = await vaultManager.deleteApp(from);
+			txs.push(txDeleteApp);
+		}
 		else if (initApp) {
 			vaultManager.setAppId(appId);
 			vaultManager.setAssetId(assetId);
@@ -494,6 +529,15 @@ async function deployVaultApp() {
 			return;
 		}
 
+		if (createTxs) {
+			if (firstRound) {
+				for (let i = 0; i < txs.length; i++) {
+					if (txs[i].firstRound) {
+						txs[i].firstRound = firstRound;
+					}
+				}
+			}
+		}
 		if (signTxs) {
 			if (txs.length === 0) {
 				console.error('There are no transactions to sign\n\n');
