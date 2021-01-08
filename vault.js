@@ -474,6 +474,41 @@ class VaultManager {
 		};
 
 		/**
+		 * Save logic sig object to file to use on delegateMintAccountFromFile.
+		 * @param  {Function} lsig logic sig object to store in filepath
+		 * @param  {String} filepath output file where the signed TEAL is stored
+		 * @return {Void} void
+		 */
+		this.lsigToFile = function(lsig, filepath) {
+			let encodedObj = lsig.get_obj_for_encoding();
+			let lsigEncoded = algosdk.encodeObj(encodedObj);
+			let lsigb64 = Buffer.from(lsigEncoded).toString('base64');
+			// eslint-disable-next-line security/detect-non-literal-fs-filename
+			fs.writeFileSync(filepath, lsigb64);
+		};
+
+		/**
+		 * Load logic sig object stored in filepath.
+		 * @param  {String} filepath output file where the signed TEAL is stored
+		 * @return {Object} logic sig object stored in filepath
+		 */
+		this.lsigFromFile = function(filepath) {
+			// eslint-disable-next-line security/detect-non-literal-fs-filename
+			let lsiguintArray = fs.readFileSync(filepath);
+			let lsigb64 = lsiguintArray.toString();
+
+			let lsigEncoded = new Uint8Array(Buffer.from(lsigb64, "base64"));
+
+			let lsigDecoded = algosdk.decodeObj(lsigEncoded);
+
+			let lsig = algosdk.makeLogicSig(lsigDecoded.l, lsigDecoded.arg);
+			lsig.sig = lsigDecoded.sig;
+			lsig.msig = lsigDecoded.msig;
+
+			return lsig;
+		};
+
+		/**
 		 * Delegate wALGO minting using a logicSig signed by the minter account.
 		 * Priving a signed delegated logicSig calling delegateMintAccount or delegateMintAccountFromFile is required to use mintwALGOs.
 		 * @param  {Object} lsigMint logicSig signed by minter account that will be used in mintwALGOs operations
@@ -1660,6 +1695,10 @@ class VaultManager {
 			const txApp = algosdk.makeApplicationUpdateTxn(sender, params, this.appId, approvalProgramCompiled, clearProgramCompiled);
 			const txId = txApp.txID().toString();
 
+			if (!signCallback) {
+				return txApp;
+			}
+
 			// Sign the transaction
 			let txAppSigned = signCallback(sender, txApp);
 
@@ -1689,6 +1728,10 @@ class VaultManager {
 			// create unsigned transaction
 			const txApp = algosdk.makeApplicationDeleteTxn(sender, params, applicationId);
 			const txId = txApp.txID().toString();
+
+			if (!signCallback) {
+				return txApp;
+			}
 
 			// Sign the transaction
 			let txAppSigned = signCallback(sender, txApp);

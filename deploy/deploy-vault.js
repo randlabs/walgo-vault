@@ -8,8 +8,8 @@ const transaction = require('algosdk/src/transaction');
 const encoding = require('algosdk/src/encoding/encoding');
 
 function usage() {
-	console.log('Usage: node deploy-vault.js ' +
-		'Commands:' +
+	console.log('Usage: node deploy-vault.js\n\n' +
+		'Commands:\n' +
 		'\t\tcreate-walgo supply decimals\n' +
 		'\t\t\tCreate wALGO token, the --from (or multisig) is used as reserve and manager\n' +
 		'\t\tdelete-asset asa-id\n' +
@@ -19,17 +19,19 @@ function usage() {
 		'\t\tinit-app wALGO-id app-id\n' +
 		'\t\tdelegate-minter wALGO-id app-id\n' +
 		'\t\tset-minter app-id minter-address\n' +
+		'\t\tget-multisig-addr\n\t\t\tUse multiple --from and --threshold to define the multisig to get the address\n' +
+		'Modifiers:\n' +
 		'\t\t--from account-address\n\t\t\tUse --from to set the transaction sender or use it multiple times to setup\n' +
-		'\t\t\ta multisig account combined with --multisig-threshold\n' +
+		'\t\t\ta multisig account combined with --threshold\n' +
 		'\t\t--in filein\n\t\t\tLoad transactions from file. Useful to sign and send transactions previously generated\n' +
 		'\t\t--out fileout\n\t\t\tGenerate the transactions and dump them to a file\n' +
 		'\t\t--first-round first-round\n\t\t\tEspecify when the transaction starts to be valid. By default, current round\n' +
 		'\t\t--private-key\n\t\t\tUse this private key to sign transactions. Remomended only for test purposes.\n' +
-		'\t\t--print-txs\n\t\t\tPrint transactions before signing\n' +
-		'\t\t--multisig-threshold\n\t\t\tIf there is more than one --from it sets the to set the multisig threshold\n' +
+		'\t\t--print\n\t\t\tPrint transactions before signing\n' +
+		'\t\t--threshold\n\t\t\tIf there is more than one --from it sets the to set the multisig threshold\n' +
 		'\t\t--net mainnet|testnet|betanet (default: testnet)\n' +
-		'\t\t--sign-txs\n\t\t\tSign transactions created or loaded from file\n' +
-		'\t\t--send-txs\n\t\t\tSend signed transaction/s from file\n');
+		'\t\t--sign\n\t\t\tSign transactions created or loaded from file\n' +
+		'\t\t--send\n\t\t\tSend signed transaction/s from file\n');
 
 	process.exit(0);
 }
@@ -59,6 +61,7 @@ function signCount(tx) {
 	}
 	return count;
 }
+
 let signatures = {};
 let printTxs;
 let privateKey;
@@ -71,7 +74,7 @@ async function signCallback(sender, tx, mparams) {
 		txObj = encoding.decode(tx);
 	}
 
-	if (!signatures[sender] || mparams) {
+	if (!signatures[sender]) {
 		if (printTxs) {
 			console.log('Transaction to sign: \n %s', JSON.stringify(txObj));
 		}
@@ -92,9 +95,17 @@ async function signCallback(sender, tx, mparams) {
 		// eslint-disable-next-line require-atomic-updates
 		signatures[sender] = key;
 	}
+	else {
+		key = signatures[sender];
+	}
 
 	if (!mparams) {
-		const txSigned = tx.signTxn(signatures[sender].sk);
+		if (key.addr !== sender) {
+			console.error('Key does not match the sender %s', sender);
+			process.exit(1);
+		}
+
+		const txSigned = tx.signTxn(key.sk);
 		return txSigned;
 	}
 	if (!txObj.msig) {
@@ -112,12 +123,17 @@ async function signCallback(sender, tx, mparams) {
 	return txSigned;
 }
 
-async function lsigCallback(sender, lsig) {
-	if (!signatures[sender]) {
-		let key;
+async function lsigCallback(sender, lsig, mparams) {
+	let key;
 
+	if (!signatures[sender]) {
 		if (!privateKey) {
-			console.log('Enter mnemonic for %s:', sender);
+			if (mparams) {
+				console.log('\nEnter mnemonic for multisig %s:', sender);
+			}
+			else {
+				console.log('\nEnter mnemonic for %s:', sender);
+			}
 			const line = await readLineAsync();
 			key = algosdk.mnemonicToSecretKey(line);
 		}
@@ -125,15 +141,37 @@ async function lsigCallback(sender, lsig) {
 			key = privateKey;
 		}
 
-		if (key.addr !== sender) {
-			console.error('Key does not match the sender');
+		if (!mparams && key.addr !== sender) {
+			console.error('Key does not match the sender %s', sender);
 			process.exit(1);
 		}
 		// eslint-disable-next-line require-atomic-updates
 		signatures[sender] = key;
 	}
+	else {
+		key = signatures[sender];
+	}
 
-	lsig.sign(signatures[sender].sk);
+	if (!mparams) {
+		if (key.addr !== sender) {
+			console.error('Key does not match the sender %s', sender);
+			process.exit(1);
+		}
+
+		lsig.sign(signatures[sender].sk);
+		return;
+	}
+	let count = signCount(lsig);
+	if (count === 0) {
+		lsig.sign(key.sk, mparams);
+	}
+	else {
+		lsig.appendToMultisig(key.sk);
+	}
+	if (count === signCount(lsig)) {
+		console.error('\nSignature of %s is present\n', key.addr);
+		process.exit(0);
+	}
 }
 
 async function loadTransactionsFromFile(filename) {
@@ -246,6 +284,7 @@ async function deployVaultApp() {
 	let deleteApp;
 	let createwALGO;
 	let deleteAsset;
+	let getMulsigAddr;
 	let initApp;
 	let appId;
 	let delegateMinter;
@@ -256,6 +295,10 @@ async function deployVaultApp() {
 	let decimals;
 	let firstRound;
 	let txs = [];
+
+	if (process.argv.length === 2) {
+		usage();
+	}
 
 	try {
 		// get general configurations
@@ -288,7 +331,7 @@ async function deployVaultApp() {
 				}
 
 				idx += 1;
-				// get asa-id
+				// get app-id
 				appId = getInteger(process.argv[idx]);
 				// get minter-address
 				idx += 1;
@@ -328,6 +371,9 @@ async function deployVaultApp() {
 				// get asa-id
 				assetId = getInteger(process.argv[idx]);
 				deleteAsset = true;
+			}
+			else if (process.argv[idx] == 'get-multisig-addr') {
+				getMulsigAddr = true;
 			}
 			else if (process.argv[idx] == '--in') {
 				if (idx + 1 >= process.argv.length) {
@@ -375,7 +421,7 @@ async function deployVaultApp() {
 					multisig.push(getAddress(process.argv[idx]));
 				}
 			}
-			else if (process.argv[idx] == '--multisig-threshold') {
+			else if (process.argv[idx] == '--threshold') {
 				if (idx + 1 >= process.argv.length) {
 					usage();
 				}
@@ -383,13 +429,13 @@ async function deployVaultApp() {
 				idx += 1;
 				threshold = getInteger(process.argv[idx]);
 			}
-			else if (process.argv[idx] == '--send-txs') {
+			else if (process.argv[idx] == '--send') {
 				sendTxs = true;
 			}
-			else if (process.argv[idx] == '--sign-txs') {
+			else if (process.argv[idx] == '--sign') {
 				signTxs = true;
 			}
-			else if (process.argv[idx] == '--print-txs') {
+			else if (process.argv[idx] == '--print') {
 				printTxs = true;
 			}
 			else if (process.argv[idx] == '--private-key') {
@@ -411,7 +457,7 @@ async function deployVaultApp() {
 				}
 
 				idx += 1;
-				firstRound = getInteger(process.argv[idx]);
+				firstRound = process.argv[idx];
 			}
 			else {
 				console.log('Unknown command: %s', process.argv[idx]);
@@ -430,13 +476,20 @@ async function deployVaultApp() {
 			algodClient = new algosdk.Algodv2("", "https://api.betanet.algoexplorer.io", "");
 		}
 		if (multisig && !threshold) {
-			console.log('If more than one --from is specified, set the --multisig-threshold also');
-			process.exit(0);
+			console.log('If more than one --from is specified, set the --threshold also');
+			usage();
 		}
 
+		if (firstRound) {
+			if (firstRound[0] === '+') {
+				const params = await algodClient.getTransactionParams().do();
+				firstRound = getInteger(firstRound);
+				firstRound = params.firstRound + firstRound;
+			}
+		}
 		if (!from && !filein) {
 			console.log('You need to set at least one --from address');
-			process.exit(0);
+			usage();
 		}
 		if (multisig && (threshold > multisig.length || threshold == 0)) {
 			console.log('Required threshold is less than one or greater than the number of addresses.');
@@ -453,12 +506,12 @@ async function deployVaultApp() {
 		}
 		let vaultManager = new vault.VaultManager(algodClient, 0, from, assetId);
 
-		if (!fileout && !sendTxs) {
-			console.error('If --send-txs is not set, set the output file with --out');
+		if (!fileout && !sendTxs && !getMulsigAddr) {
+			console.error('If --send is not set, set the output file with --out');
 			usage();
 		}
 
-		if (filein) {
+		if (filein && !delegateMinter) {
 			txs = await loadTransactionsFromFile(filein);
 		}
 
@@ -524,8 +577,28 @@ async function deployVaultApp() {
 			}
 			vaultManager.setAssetId(assetId);
 			vaultManager.setAppId(appId);
-			vaultManager.createDelegatedMintAccountToFile(fileout, lsigCallback);
+
+			let lsigMinter;
+
+			if (filein) {
+				lsigMinter = await vaultManager.lsigFromFile(filein);
+			}
+			else {
+				lsigMinter = await vaultManager.createDelegatedMintAccount(from);
+			}
+
+			await lsigCallback(from, lsigMinter, mparams);
+
+			vaultManager.lsigToFile(lsigMinter, fileout);
 			console.log('Minter delegation TEAL signed in file %s', fileout);
+			return;
+		}
+		else if (getMulsigAddr) {
+			if (!multisig) {
+				console.log('Use multiple --from and --threshold to define the multisig');
+				usage();
+			}
+			console.log('Mulsig address: %s', from);
 			return;
 		}
 
@@ -534,6 +607,7 @@ async function deployVaultApp() {
 				for (let i = 0; i < txs.length; i++) {
 					if (txs[i].firstRound) {
 						txs[i].firstRound = firstRound;
+						txs[i].lastRound = firstRound + 1000;
 					}
 				}
 			}
@@ -567,7 +641,7 @@ async function deployVaultApp() {
 		}
 		else {
 			if (!fileout) {
-				console.error('If --sign-txs is not set, set the output file with --out');
+				console.error('If --sign is not set, set the output file with --out');
 				usage();
 			}
 			await saveTransactionsToFile(txs, fileout);
