@@ -32,9 +32,6 @@ const SET_MINT_FEE_OP = 'sMF';
 const SET_BURN_FEE_OP = 'sBF';
 const SET_CREATION_FEE_OP = 'sCF';
 
-let vaultTEAL;
-let minterTEAL;
-
 
 class VaultManager {
 	constructor (algodClient, appId = 0, adminAddr = undefined, assetId = 0) {
@@ -46,6 +43,10 @@ class VaultManager {
 		this.algodClient = algodClient;
 		this.vaultMinBalance = 100000;
 		this.minFee = 1000;
+		this.approvalProgramCode = undefined;
+		this.clearStateProgramCode = undefined;
+		this.vaultProgramCode = undefined;
+		this.minterProgramCode = undefined;
 
 		/**
 		 * Set Application Id used in all the functions of this class.
@@ -72,6 +73,42 @@ class VaultManager {
 		 */
 		this.setCreator = function (creatorAddr) {
 			this.adminAddr = creatorAddr;
+		};
+
+		/**
+		 * Set approval program code. Use this code insteal of the default filename.
+		 * @param  {String} programCode code of the program
+		 * @return {String} void
+		 */
+		this.setApprovalProgramCode = function (programCode) {
+			this.approvalProgramCode = programCode;
+		};
+
+		/**
+		 * Set clear state program code. Use this code insteal of the default filename.
+		 * @param  {String} programCode code of the program
+		 * @return {String} void
+		 */
+		this.setClearStateProgramCode = function (programCode) {
+			this.clearStateProgramCode = programCode;
+		};
+
+		/**
+		 * Set vault program code. Use this code insteal of the default filename.
+		 * @param  {String} programCode code of the program
+		 * @return {String} void
+		 */
+		this.setVaultProgramCode = function (programCode) {
+			this.vaultProgramCode = programCode;
+		};
+
+		/**
+		 * Set minter program code. Use this code insteal of the default filename.
+		 * @param  {String} programCode code of the program
+		 * @return {String} void
+		 */
+		this.setMinterProgramCode = function (programCode) {
+			this.minterProgramCode = programCode;
 		};
 
 		/**
@@ -260,8 +297,19 @@ class VaultManager {
 		 * Compile application clear state program.
 		 * @return {[String]}      base64 string containing the compiled program
 		 */
-		this.compileClearProgram = function () {
-			return this.compileProgram(clearProgramFilename);
+		this.compileClearProgram = async function () {
+			if (!this.clearStateProgramCode) {
+				// eslint-disable-next-line security/detect-non-literal-fs-filename
+				this.clearStateProgramCode = fs.readFileSync(clearProgramFilename, 'utf8');
+			}
+
+			let encoder = new TextEncoder();
+			let programBytes = encoder.encode(this.clearStateProgramCode);
+
+			const compileResponse = await this.algodClient.compile(programBytes).do();
+			const compiledClearStateProgram = new Uint8Array(Buffer.from(compileResponse.result, 'base64'));
+
+			return compiledClearStateProgram;
 		};
 
 		/**
@@ -296,15 +344,18 @@ class VaultManager {
 		 * @return {[String]}      base64 string containing the compiled program
 		 */
 		this.compileApprovalProgram = async function () {
-			// eslint-disable-next-line security/detect-non-literal-fs-filename
-			let program = fs.readFileSync(approvalProgramFilename, 'utf8');
+			if (!this.approvalProgramCode) {
+				// eslint-disable-next-line security/detect-non-literal-fs-filename
+				this.approvalProgramCode = fs.readFileSync(approvalProgramFilename, 'utf8');
+			}
 
 			let encoder = new TextEncoder();
-			let programBytes = encoder.encode(program);
+			let programBytes = encoder.encode(this.approvalProgramCode);
 
 			const compileResponse = await this.algodClient.compile(programBytes).do();
-			const compiledBytes = new Uint8Array(Buffer.from(compileResponse.result, 'base64'));
-			return compiledBytes;
+			const compiledApprovalProgram = new Uint8Array(Buffer.from(compileResponse.result, 'base64'));
+
+			return compiledApprovalProgram;
 		};
 
 		/**
@@ -405,12 +456,12 @@ class VaultManager {
 		 * @return {Class}      signed logicSig object
 		 */
 		this.createDelegatedMintAccount = async function(sender, lsigCallback) {
-			if (!minterTEAL) {
+			if (!this.minterProgramCode) {
 				// eslint-disable-next-line security/detect-non-literal-fs-filename
-				minterTEAL = fs.readFileSync(minterProgramFilename, 'utf8');
+				this.minterProgramCode = fs.readFileSync(minterProgramFilename, 'utf8');
 			}
 
-			let program = minterTEAL;
+			let program = this.minterProgramCode;
 
 			// eslint-disable-next-line require-unicode-regexp
 			program = program.replace(/TMPL_APP_ID/g, this.appId);
@@ -445,6 +496,17 @@ class VaultManager {
 			let lsiguintArray = fs.readFileSync(filepath);
 			let lsigb64 = lsiguintArray.toString();
 
+			this.delegateMintAccountFromBuffer(lsigb64);
+		};
+
+		/**
+		 * Use the logicSig minter delegation signed teal from filepath to mint algos in mintwALGOs operations
+		 * Priving a signed delegated logicSig calling delegateMintAccount or delegateMintAccountFromFile is required to use mintwALGOs.
+		 * Use it in combination with createDelegatedMintAccountToFile.
+		 * @param  {String} lsigb64 base64 string containing the signed teal program
+		 * @return {VOID} VOID
+		 */
+		this.delegateMintAccountFromBuffer = function(lsigb64) {
 			let lsigEncoded = new Uint8Array(Buffer.from(lsigb64, "base64"));
 
 			let lsigDecoded = algosdk.decodeObj(lsigEncoded);
@@ -1000,12 +1062,12 @@ class VaultManager {
 		 * @return {[Object]}      object which has {result: compiledTealCodeBase64, hash: addressOfVault }
 		 */
 		this.vaultCompiledTEALByAddress = function(accountAddr) {
-			if (!vaultTEAL) {
+			if (!this.vaultProgramCode) {
 				// eslint-disable-next-line security/detect-non-literal-fs-filename
-				vaultTEAL = fs.readFileSync(vaultProgramFilename, 'utf8');
+				this.vaultProgramCode = fs.readFileSync(vaultProgramFilename, 'utf8');
 			}
 
-			let program = vaultTEAL;
+			let program = this.vaultProgramCode;
 
 			// eslint-disable-next-line require-unicode-regexp
 			program = program.replace(/TMPL_APP_ID/g, this.appId);
