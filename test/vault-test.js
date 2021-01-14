@@ -278,25 +278,35 @@ function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmount, bur
 			expect(fee).to.equal(creationFee);
 		});
 		it("optIn: Try optIn paying less fees", async function() {
-			try {
-				txId = await vaultManager.optIn(accountAddr, signCallback, creationFee - 1);
-				error = 0;
+			if (creationFee !== 0) {
+				try {
+					txId = await vaultManager.optIn(accountAddr, signCallback, creationFee - 1);
+					error = 0;
+				}
+				catch (err) {
+					error = err;
+				}
+				mochaTools.expectTEALReject(error);
 			}
-			catch (err) {
-				error = err;
+			else {
+				expect(1).to.equal(1);
 			}
-			mochaTools.expectTEALReject(error);
 		});
 
 		it("optIn: Try optIn paying fees to an incorrect account", async function() {
-			try {
-				txId = await vaultManager.optIn(accountAddr, signCallback, undefined, addresses[1]);
-				error = 0;
+			if (creationFee !== 0) {
+				try {
+					txId = await vaultManager.optIn(accountAddr, signCallback, undefined, addresses[1]);
+					error = 0;
+				}
+				catch (err) {
+					error = err;
+				}
+				mochaTools.expectTEALReject(error);
 			}
-			catch (err) {
-				error = err;
+			else {
+				expect(1).to.equal(1);
 			}
-			mochaTools.expectTEALReject(error);
 		});
 	}
 	it("optIn account", async function() {
