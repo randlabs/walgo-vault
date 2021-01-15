@@ -2,19 +2,27 @@
 let expect = require("chai").expect;
 
 function errorText(err) {
-	let text = err.error;
+	let errObj;
+	let text;
+	if (err.response) {
+		errObj = err.response;
+	}
+	else {
+		errObj = err.error;
+	}
 
-	if (err.text) {
-		if (err.text.message) {
-			text = err.text.message;
+	if (errObj.text) {
+		if (errObj.text.message) {
+			text = errObj.text.message;
 		}
 		else {
-			text = err.text;
+			text = errObj.text;
 		}
 	}
-	else if (err.message) {
-		text = err.message;
+	else if (errObj.message) {
+		text = errObj.message;
 	}
+
 	return text;
 }
 
