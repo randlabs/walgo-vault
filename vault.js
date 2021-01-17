@@ -1250,19 +1250,26 @@ class VaultManager {
 			// Group both transactions
 			algosdk.assignGroupID(txns);
 
+			let txwALGOTransferSigned = algosdk.signLogicSigTransactionObject(txwALGOTransfer, this.lsigMint);
+			let txPayFeesSigned;
+
+			if (txPayFees) {
+				txPayFeesSigned = await this.signVaultTx(sender, txPayFees);
+				txns[2] = txPayFeesSigned.blob;
+			}
+
 			if (!signCallback) {
+				txns[1] = txwALGOTransferSigned.blob;
 				return txns;
 			}
 
 			let signed = [];
 			let txAppSigned = await signCallback(sender, txApp);
-			let txwALGOTransferSigned = algosdk.signLogicSigTransactionObject(txwALGOTransfer, this.lsigMint);
 
 			signed.push(txAppSigned);
 			signed.push(txwALGOTransferSigned.blob);
 
-			if (txPayFees) {
-				let txPayFeesSigned = await this.signVaultTx(sender, txPayFees);
+			if (txPayFeesSigned) {
 				signed.push(txPayFeesSigned.blob);
 			}
 
@@ -1308,7 +1315,7 @@ class VaultManager {
 			let txWithdrawSigned = await this.signVaultTx(sender, txWithdraw);
 
 			if (!signCallback) {
-				return [ txApp, txWithdrawSigned ];
+				return [ txApp, txWithdrawSigned.blob ];
 			}
 
 			let signed = [];
