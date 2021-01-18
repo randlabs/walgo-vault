@@ -13,13 +13,10 @@ npm test
 
 Get the command line options:
 ```bash
-node vault-cli.js to 
+node deploy/deploy-vault
 ```
 
-Command Line usage example:
-```bash
-./test-cli.sh
-```
+More details in [deploy/README.md](deploy/README.md)
 
 ## Vault
 
