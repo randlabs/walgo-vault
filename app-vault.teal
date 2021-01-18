@@ -67,6 +67,12 @@ bz no_admin
 // ====================
 //
 
+// all Admin operations GroupSize == 1
+global GroupSize
+int 1
+==
+bz failed
+
 // Handle each possible OnCompletion type for admin
 
 txn OnCompletion
@@ -93,34 +99,18 @@ err
 // Admin -> deleteApp: args []
 admin_handle_delete:
 
-global GroupSize
-int 1
-==
-bnz success
-
-err
+b success
 
 // Handle Admin Update
 // -------------------
 // Admin -> updateApp: args []
 admin_handle_update:
 
-global GroupSize
-int 1
-==
-bnz success
-
-err
+b success
 
 // Handle Admin NoOp
 // -----------------
 admin_handle_noop:
-
-// all the rest admin operations require only 1 tx
-global GroupSize
-int 1
-==
-bz failed
 
 txna ApplicationArgs 0
 byte "iA" // initializeApp
