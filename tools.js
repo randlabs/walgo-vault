@@ -77,7 +77,7 @@ function printAppCallDeltaArray(deltaArray) {
 function printAppCallDelta(state) {
 	let text = Buffer.from(state.key, 'base64').toString() + ': ';
 	if (state.value.bytes !== undefined) {
-		let addr = this.addressFromByteBuffer(state.value.bytes);
+		let addr = addressFromByteBuffer(state.value.bytes);
 		if (addr.length == ALGORAND_ADDRESS_SIZE) {
 			text += addr;
 		}
@@ -104,7 +104,7 @@ function appValueState(stateValue) {
 	let text = '';
 
 	if (stateValue.type == 1) {
-		let addr = this.addressFromByteBuffer(stateValue.bytes);
+		let addr = addressFromByteBuffer(stateValue.bytes);
 		if (addr.length == ALGORAND_ADDRESS_SIZE) {
 			text += addr;
 		}
@@ -126,7 +126,7 @@ function appValueStateString(stateValue) {
 	let text = '';
 
 	if (stateValue.type == 1) {
-		let addr = this.addressFromByteBuffer(stateValue.bytes);
+		let addr = addressFromByteBuffer(stateValue.bytes);
 		if (addr.length == ALGORAND_ADDRESS_SIZE) {
 			text += addr;
 		}

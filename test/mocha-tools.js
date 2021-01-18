@@ -8,7 +8,7 @@ function errorText(err) {
 		errObj = err.response;
 	}
 	else {
-		errObj = err.error;
+		errObj = err;
 	}
 
 	if (errObj.text) {
