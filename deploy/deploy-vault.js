@@ -38,11 +38,13 @@ function usage() {
 		'User Commands:\n\n' +
 		'\t\toptin app-id creator-addr\n' +
 		'\t\toptin-asa asa-id\n' +
+		'\t\tcloseout-asa asa-id close-addr. close-addr must be opted in to asa-id\n' +
+		'\t\ttransfer-asa asa-id target-addr. target-addr must be opted in to asa-id\n' +
 		'\t\tcloseout app-id creator-addr\n' +
 		'\t\tdeposit app-id creator-addr amount-microALGOs\n' +
 		'\t\twithdraw app-id creator-addr amount-microALGOs\n' +
-		'\t\tmint app-id creator-addr walgo-id amount-wALGOs delegation-filepath\n' +
-		'\t\tburn app-id creator-addr walgo-id amount-wALGOs\n' +
+		'\t\tmint app-id creator-addr amount-wALGOs delegation-filepath\n' +
+		'\t\tburn app-id creator-addr amount-wALGOs\n' +
 		'\t\tget-minted app-id. --from must be the User Account and has to be opted in.\n' +
 		'\t\tget-vault-addr app-id. --from must be the User Account and has to be opted in.\n' +
 		'\t\tget-vault-balance app-id. --from must be the User Account and has to be opted in.\n' +
@@ -351,6 +353,7 @@ async function deployVaultApp() {
 	let getVaultAddr;
 	let getVaultBalance;
 	let closeoutAsa;
+	let transferAsa;
 	let targetAddr;
 	let creatorAddr;
 	let wALGOs;
@@ -528,7 +531,7 @@ async function deployVaultApp() {
 				optinAsa = true;
 			}
 			else if (process.argv[idx] == 'closeout-asa') {
-				if (idx + 1 >= process.argv.length) {
+				if (idx + 2 >= process.argv.length) {
 					usage();
 				}
 
@@ -539,6 +542,22 @@ async function deployVaultApp() {
 				// get target address
 				targetAddr = getAddress(process.argv[idx]);
 				closeoutAsa = true;
+			}
+			else if (process.argv[idx] == 'transfer-asa') {
+				if (idx + 3 >= process.argv.length) {
+					usage();
+				}
+
+				idx += 1;
+				// get asa-id
+				assetId = getInteger(process.argv[idx]);
+				idx += 1;
+				// get target address
+				targetAddr = getAddress(process.argv[idx]);
+				idx += 1;
+				// get amount
+				wALGOs = getInteger(process.argv[idx]);
+				transferAsa = true;
 			}
 			else if (process.argv[idx] == 'mint') {
 				if (idx + 3 >= process.argv.length) {
@@ -618,7 +637,7 @@ async function deployVaultApp() {
 				withdraw = true;
 			}
 			else if (process.argv[idx] == 'delegate-minter') {
-				if (idx + 2 >= process.argv.length) {
+				if (idx + 3 >= process.argv.length) {
 					usage();
 				}
 
@@ -910,6 +929,10 @@ async function deployVaultApp() {
 			console.log('Required threshold is less than one or greater than the number of addresses.');
 			process.exit(0);
 		}
+		if (filein && fileout && !sendTxs && !signTxs) {
+			console.log('You need to specify the action with --send or --sign.');
+			process.exit(0);
+		}
 
 		if (multisig) {
 			mparams = {
@@ -927,7 +950,7 @@ async function deployVaultApp() {
 
 		if (createApp || initApp || setMinter || createwALGO || deleteApp || deleteAsset ||
 			setGlobalStatus || setAccountStatus || setMintFee || setBurnFee || setCreationFee ||
-			optinAsa || closeoutAsa || optin || closeout || mint || burn || withdraw || deposit) {
+			optinAsa || closeoutAsa || optin || closeout || mint || burn || withdraw || deposit || transferAsa) {
 			createTxs = true;
 			if (!from) {
 				console.error('You need to set --from address');
@@ -966,7 +989,7 @@ async function deployVaultApp() {
 			}
 			else {
 				name = 'Wrapped Algo Betanet';
-				unitName = 'wALGO Ts';
+				unitName = 'wALGO Bt';
 			}
 			let txCreatewALGO = await asaTools.createASA(algodClient, from, supply, decimals, unitName, name, url);
 			txs.push(txCreatewALGO);
@@ -987,7 +1010,8 @@ async function deployVaultApp() {
 			vaultManager.setAssetId(assetId);
 
 			txs = await vaultManager.initializeApp(from);
-			txs.concat(await vaultManager.setGlobalStatus(from, 1));
+			let txSGS = await vaultManager.setGlobalStatus(from, 1);
+			txs.push(txSGS[0]);
 		}
 		else if (setGlobalStatus) {
 			vaultManager.setAppId(appId);
@@ -1028,6 +1052,11 @@ async function deployVaultApp() {
 			vaultManager.setAssetId(assetId);
 
 			txs = await vaultManager.transferAsset(from, targetAddr, 0, targetAddr);
+		}
+		else if (transferAsa) {
+			vaultManager.setAssetId(assetId);
+
+			txs = await vaultManager.transferAsset(from, targetAddr, wALGOs);
 		}
 		else if (optin) {
 			vaultManager.setAppId(appId);
@@ -1092,10 +1121,12 @@ async function deployVaultApp() {
 				lsigMinter = await vaultManager.createDelegatedMintAccount(from);
 			}
 
-			await lsigCallback(from, lsigMinter, mparams);
+			if (signTxs) {
+				await lsigCallback(from, lsigMinter, mparams);
+			}
 
 			vaultManager.lsigToFile(lsigMinter, fileout);
-			console.log('Minter delegation TEAL signed in file %s', fileout);
+			console.log('Minter delegation TEAL stored in file %s', fileout);
 			return;
 		}
 		else if (getGlobalStatus) {
