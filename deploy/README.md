@@ -8,8 +8,8 @@ In this section I explain how to create each type of transaction and store it in
 
 ### Modifiers
 
-* --first-round: Especify when the transaction starts to be valid. By default, current round
-* --net: mainnet/testnet/betanet. Default: testnet
+* --first-round: Especify when the transaction starts to be valid. It is not supported on user operations. By default, current round.
+* --net: mainnet/testnet/betanet. Default: testnet.
 
 ### Create wALGO
 
@@ -92,13 +92,52 @@ node deploy/deploy-vault.js delegate-minter wALGO-id app-id --from minterAccount
 
 #### Parameters
 
-* app-id: wALGO Vault application id returned on create-app
+* app-id: application id returned on create-app
 * minter-address: new minter account
 
 #### Command Line
 
 ```bash
 node deploy/deploy-vault.js set-minter app-id minter-address --from account1 ... --from accountN --threshold X -out set-minter.tx
+```
+
+### Set Mint Fee
+
+#### Parameters
+
+* app-id: application id returned on create-app
+* new-fee: new mint fee 0-5000 (0%-50%)
+
+#### Command Line
+
+```bash
+node deploy/deploy-vault.js set-mint-fee app-id new-fee --from account1 ... --from accountN --threshold X -out set-mint-fee.tx
+```
+
+### Set Burn Fee
+
+#### Parameters
+
+* app-id: application id returned on create-app
+* new-fee: new burn fee 0-5000 (0%-50%)
+
+#### Command Line
+
+```bash
+node deploy/deploy-vault.js set-burn-fee app-id new-fee --from account1 ... --from accountN --threshold X -out set-burn-fee.tx
+```
+
+### Set Creation Fee
+
+#### Parameters
+
+* app-id: application id returned on create-app
+* new-fee: new creation fee in microALGOs
+
+#### Command Line
+
+```bash
+node deploy/deploy-vault.js set-creation-fee app-id new-fee --from account1 ... --from accountN --threshold X -out set-creation-fee.tx
 ```
 
 ## Signing Process
@@ -130,7 +169,7 @@ node deploy/deploy-vault.js --from account1 ... --from accountN --threshold X -i
 
 * Send the tx:
 ```bash
-node deploy/deploy-vault.js --send -in tx-signed.tx -out
+node deploy/deploy-vault.js --send -in tx-signed.tx
 ```
 
 ## Deployment Example With Multisig on Testnet
@@ -230,7 +269,7 @@ Sent tx: L35XHMXO3VRAXF5FFW22DCWDGPJEKNHR2WYDDK2HHGELLXBFLQUA
 
 ```
 
-### Delegate Minter Account
+### Delegate Minter Account With Multisig
 
 Use wALGO-id and app-id returned on the above calls: 13350236 13350299.
 
