@@ -597,8 +597,6 @@ store 9
 
 // Amount to mint Position 8
 gtxn 1 AssetAmount
-//txna ApplicationArgs 1
-//btoi
 store 8
 
 // Admin fees
@@ -606,7 +604,7 @@ int 0
 store 7
 
 // is the same Vault that corresponds to the account
-// tx0.Accounts[1] == VaultAddr && tx1.Rekey == ZeroAddress &&
+// tx1.Rekey == ZeroAddress &&
 // No fee so no 3rd tx
 // (GroupSize == 2 && MintFee == 0 || 
 // 3rd tx paying the fees. It can be paid from the Vault or from another account
@@ -615,14 +613,9 @@ store 7
 // tx1.TypeEnum == AssetTransfer &&
 // tx1.AssetAmount > 0 && tx1.Sender == MintAccount && tx1.Fee == MinTxnFee && 
 // tx1.AssetCloseTo == ZeroAddress && tx1.XferAsset == ASA ID
-load 3
-txn Accounts 1
-==
-
 gtxn 1 RekeyTo
 global ZeroAddress
 ==
-&&
 
 // (
 global GroupSize
@@ -757,17 +750,12 @@ no_admin_withdraw_algos:
 // tx1: App withdrawALGOs
 // tx2: Payment
 
-// tx0.Accounts[1] == VaultAddr && GroupSize == 2 && tx1.Sender == VaultAddr && tx1.Rekey == ZeroAddress
+// GroupSize == 2 && tx1.Sender == VaultAddr && tx1.Rekey == ZeroAddress
 // tx1.TypeEnum == pay && tx1.Amount >= 1000 && tx1.Fee == MinTxnFee && 
 // tx1.CloseRemainderTo == ZeroAddress
-load 3 // Vault address
-txna Accounts 1
-==
-
 global GroupSize
 int 2
 ==
-&&
 
 // is the same Vault that corresponds to the account sending the ALGOs
 load 3
@@ -847,7 +835,6 @@ app_global_get
 store 9
 
 // is the same Vault that corresponds to the account
-// tx0.Accounts[1] == VaultAddr && 
 // tx1.TypeEnum == AssetTransfer && 
 // (GroupSize == 2 && BurnFee == 0 ||
 // 3rd tx paying the fees. It can be paid from the Vault or from another account
@@ -860,11 +847,6 @@ store 9
 gtxn 1 TypeEnum
 int axfer
 ==
-
-load 3
-txn Accounts 1
-==
-&&
 
 // (
 global GroupSize
