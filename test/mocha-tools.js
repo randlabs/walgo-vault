@@ -34,7 +34,7 @@ function expectTxId(txId) {
 function expectTEALReject(err) {
 	let text = errorText(err);
 	// eslint-disable-next-line require-unicode-regexp
-	expect(text).to.match(/(?:TEAL runtime encountered err opcode|would result negative|transaction rejected by ApprovalProgram|rejected by logic|below min 100000)/);
+	expect(text).to.match(/(?:TEAL runtime encountered err opcode|invalid Accounts index 1|would result negative|transaction rejected by ApprovalProgram|rejected by logic|below min 100000)/);
 }
 
 function expectTEALRejectNonAdminError(err) {
