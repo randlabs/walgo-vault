@@ -830,6 +830,9 @@ app_global_get
 
 store 9
 
+int 0
+store 7
+
 // is the same Vault that corresponds to the account
 // tx1.TypeEnum == AssetTransfer && 
 // (GroupSize == 2 && BurnFee == 0 ||
