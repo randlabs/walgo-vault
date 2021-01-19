@@ -513,15 +513,10 @@ b success
 // account -> CloseOut: args [] accounts: [vaultAddr]
 no_admin_close_out:
 
-// Tx0.Accounts[0] is the user account
-int 0
-store 7
 
 // Position 3: Vault address
 // Position 4: Admin address
 // Position 7: Index on the Accounts array of the account to close
-
-close_out_account:
 
 // tx0: App CloseOut
 
@@ -563,7 +558,8 @@ global ZeroAddress
 &&
 
 // user should burn the algos before CloseOut
-load 7
+// Tx0.Accounts[0] is the user account
+int 0
 byte "m" // minted
 app_local_get
 
