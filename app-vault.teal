@@ -78,12 +78,12 @@ bz failed
 txn OnCompletion
 int DeleteApplication
 ==
-bnz admin_handle_delete
+bnz success
 
 txn OnCompletion
 int UpdateApplication
 ==
-bnz admin_handle_update
+bnz success
 
 txn OnCompletion
 int NoOp
@@ -93,20 +93,6 @@ bnz admin_handle_noop
 // OnCompletion value is either OptIn, CloseOut, or ClearState
 // This is forbidden as admin, as admin is the creator
 err
-
-// Handle Admin Delete
-// -------------------
-// Admin -> deleteApp: args []
-admin_handle_delete:
-
-b success
-
-// Handle Admin Update
-// -------------------
-// Admin -> updateApp: args []
-admin_handle_update:
-
-b success
 
 // Handle Admin NoOp
 // -----------------
@@ -392,6 +378,11 @@ bnz no_admin_close_out
 // avoid users to call any other operations that are not NoOp, especially admin operations such as Update and Delete
 txn OnCompletion
 int NoOp
+==
+bz failed
+
+load 3
+txn Accounts 1
 ==
 bz failed
 
