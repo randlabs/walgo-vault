@@ -223,14 +223,13 @@ Closes the Vault, recover the ALGOs and pay pending fees. After this operation, 
 * Tx0:
   * Sender: Vault owner account
   * OnCompletion: CloseOut
-  * acc0: Vault address
   * Application Call tx
 
 * Tx1: 
   * Sender: Vault account
   * Receiver: any
   * Amount: any
-  * CloseRemainderTo: any
+  * CloseRemainderTo: any account different to ZeroAddress
   * Fee: MinTxnFee
   * Payment tx
 
