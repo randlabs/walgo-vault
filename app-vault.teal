@@ -523,7 +523,6 @@ no_admin_close_out:
 // tx1.TypeEnum == pay && GroupSize == 2 && tx1.Sender == VaultAddr && tx1.RekeyTo == ZeroAddress && 
 // tx1.Fee == MinTxnFee && 
 // tx1.CloseRemainderTo != ZeroAddress && Minted == 0 
-// tx1.Receiver == Admin && 
 // 
 // Payment
 gtxn 1 TypeEnum
