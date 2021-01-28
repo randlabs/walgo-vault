@@ -115,7 +115,7 @@ The admin can update the teal code of the application.
 
 * Tx0: 
   * Sender: Admin
-  * OnCompletion: UpdateApplication
+  * OnCompletion: NoOp
   * arg0: str:iA
   * arg1: integer:ID of ASA wALGO
   * arg2: str:Vault code Prefix
