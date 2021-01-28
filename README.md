@@ -130,7 +130,7 @@ The admin can enable or disable any vault at any time.
   * Sender: Admin
   * OnCompletion: NoOp
   * arg0: str:sGS
-  * arg0: integer: new status (0 or 1)
+  * arg1: integer: new status (0 or 1)
   * Application Call tx
 
 ### Admin setAccountStatus
