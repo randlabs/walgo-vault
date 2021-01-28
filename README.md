@@ -291,7 +291,7 @@ If MintFee > 0, a third tx is needed
 * Tx1: 
   * Sender: any account
   * AssetReceiver: Mint account
-  * AssetAmount: burn amount. The total burned amount must be less or equal to total minted. It should be equal to arg1 Tx0
+  * AssetAmount: burn amount. The total burned amount must be less or equal to total minted
   * XferAsset: wALGO asset Id
   * AssetTransfer tx
 
