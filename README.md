@@ -218,7 +218,7 @@ User opts in to the Vault App. The App creates the local data for the account. V
 
 ### User closeOut
 
-Closes the Vault, recover the ALGOs and pay pending fees. After this operation, the user must open the Vault again.
+Closes the Vault, recover the ALGOs and pay pending fees. After this operation, the user must open the Vault again. It is required to burn all minted wALGOs before calling this operation. 
 
 * Tx0:
   * Sender: Vault owner account
