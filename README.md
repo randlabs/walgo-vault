@@ -44,6 +44,7 @@ Mint and Burn operations can require to pay a percent of the amount minting and 
 * v (vault): Vault account corresponding to Vault owner account. This address is calculated from vault.teal specialized with the Vault owner account
 
 Remarks:
+* Do not submit a payment transaction to the user vault until after the vault application optIn has been confirmed
 * Only 1 Vault per account is allowed
 * Minimum Withdrawal: 1000 micro Algos
 * Mint & Burn Fee: if it is changed, only future mint operations are impacted
