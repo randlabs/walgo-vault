@@ -280,7 +280,7 @@ function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmount, bur
 		it("optIn: Try optIn paying less fees", async function() {
 			if (creationFee !== 0) {
 				try {
-					txId = await vaultManager.optIn(accountAddr, signCallback, creationFee - 1);
+					txId = await vaultManager.optIn(accountAddr, signCallback, undefined, creationFee - 1);
 					error = 0;
 				}
 				catch (err) {
@@ -296,7 +296,7 @@ function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmount, bur
 		it("optIn: Try optIn paying fees to an incorrect account", async function() {
 			if (creationFee !== 0) {
 				try {
-					txId = await vaultManager.optIn(accountAddr, signCallback, undefined, addresses[1]);
+					txId = await vaultManager.optIn(accountAddr, signCallback, undefined, undefined, addresses[1]);
 					error = 0;
 				}
 				catch (err) {
@@ -674,7 +674,7 @@ function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmount, bur
 	if (settings.admin) {
 		it("burnwALGOs send incorrect ASA", async function() {
 			try {
-				txId = await vaultManager.burnwALGOs(accountAddr, Math.floor(mintAmount / 4), signCallback, fakeAssetId);
+				txId = await vaultManager.burnwALGOs(accountAddr, Math.floor(mintAmount / 4), signCallback, undefined, fakeAssetId);
 				error = 0;
 			}
 			catch (err) {
@@ -685,7 +685,7 @@ function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmount, bur
 		it("mintwALGOs try to mint a different app id ", async function() {
 			maxMintAmount = await vaultManager.maxMintAmount(accountAddr);
 			try {
-				txId = await vaultManager.mintwALGOs(accountAddr, maxMintAmount, signCallback, fakeAppId);
+				txId = await vaultManager.mintwALGOs(accountAddr, maxMintAmount, signCallback, undefined, fakeAppId);
 				error = 0;
 			}
 			catch (err) {
