@@ -593,7 +593,7 @@ class VaultManager {
 		 * @return {String}      transaction id of the last created transaction or an array of transaction objects
 		 * if signCallback is not specified
 		 */
-		this.optIn = async function (sender, signCallback, forceCreationFee, forceFeeTo) {
+		this.optIn = async function (sender, signCallback, note, forceCreationFee, forceFeeTo) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do();
 
@@ -615,11 +615,11 @@ class VaultManager {
 			appAccounts.push(vaultAddr);
 
 			// create unsigned transaction
-			const txApp = await algosdk.makeApplicationOptInTxn(sender, params, this.appId, undefined, appAccounts);
+			const txApp = await algosdk.makeApplicationOptInTxn(sender, params, this.appId, undefined, appAccounts, undefined, undefined, note);
 
 			if (fee !== 0) {
 				// pay the fees
-				let txPayment = algosdk.makePaymentTxnWithSuggestedParams(sender, toAddr, fee, undefined, new Uint8Array(0), params);
+				let txPayment = algosdk.makePaymentTxnWithSuggestedParams(sender, toAddr, fee, undefined, note, params);
 				let txns = [ txApp, txPayment ];
 
 				// Group both transactions
@@ -1145,7 +1145,7 @@ class VaultManager {
 		 * @return {String}      transaction id of the last created transaction or an array of transaction objects
 		 * if signCallback is not specified
 		 */
-		this.depositALGOs = async function (sender, amount, signCallback) {
+		this.depositALGOs = async function (sender, amount, signCallback, note) {
 			const params = await this.algodClient.getTransactionParams().do();
 
 			params.fee = this.minFee;
@@ -1157,7 +1157,7 @@ class VaultManager {
 			}
 
 			// create unsigned transaction
-			let txPayment = algosdk.makePaymentTxnWithSuggestedParams(sender, vaultAddr, amount, undefined, new Uint8Array(0), params);
+			let txPayment = algosdk.makePaymentTxnWithSuggestedParams(sender, vaultAddr, amount, undefined, note, params);
 
 			if (!signCallback) {
 				return [ txPayment ];
@@ -1183,7 +1183,7 @@ class VaultManager {
 		 * @return {String}      transaction id of the last created transaction or an array of transaction objects
 		 * if signCallback is not specified
 		 */
-		this.mintwALGOs = async function (sender, amount, signCallback, forceAppId, forceAssetId, forceFeeMintOperation) {
+		this.mintwALGOs = async function (sender, amount, signCallback, note, forceAppId, forceAssetId, forceFeeMintOperation) {
 			if (!this.assetId) {
 				this.assetId = await this.wALGOId();
 			}
@@ -1222,14 +1222,14 @@ class VaultManager {
 			let txPayFees;
 
 			// create unsigned transaction
-			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, appplicationId, appArgs, appAccounts);
+			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, appplicationId, appArgs, appAccounts, undefined, undefined, note);
 
 			if (forceFeeMintOperation) {
 				params.fee = forceFeeMintOperation;
 			}
 
 			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(
-				minterAddr, sender, undefined, undefined, amount, new Uint8Array(0),
+				minterAddr, sender, undefined, undefined, amount, note,
 				asaId, params
 			);
 			let txns = [ txApp, txwALGOTransfer ];
@@ -1240,10 +1240,7 @@ class VaultManager {
 
 			if (mintFee > 0) {
 				let fees = Math.floor(mintFee * amount / 10000);
-				txPayFees = algosdk.makePaymentTxnWithSuggestedParams(
-					vaultAddr,
-					this.adminAddr, fees, undefined, new Uint8Array(0), params
-				);
+				txPayFees = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, this.adminAddr, fees, undefined, note, params);
 				txns.push(txPayFees);
 			}
 
@@ -1286,7 +1283,7 @@ class VaultManager {
 		 * @return {String}      transaction id of the last created transaction or an array of transaction objects
 		 * if signCallback is not specified
 		 */
-		this.withdrawALGOs = async function (sender, amount, signCallback) {
+		this.withdrawALGOs = async function (sender, amount, signCallback, note) {
 			const params = await this.algodClient.getTransactionParams().do();
 
 			params.fee = this.minFee;
@@ -1304,8 +1301,8 @@ class VaultManager {
 			appAccounts.push(vaultAddr);
 
 			// create unsigned transaction
-			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts);
-			let txWithdraw = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, sender, amount, undefined, new Uint8Array(0), params);
+			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts, undefined, undefined, note);
+			let txWithdraw = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, sender, amount, undefined, note, params);
 
 			let txns = [ txApp, txWithdraw ];
 
@@ -1338,7 +1335,7 @@ class VaultManager {
 		 * @return {String}      transaction id of the last created transaction or an array of transaction objects
 		 * if signCallback is not specified
 		 */
-		this.burnwALGOs = async function (sender, amount, signCallback, forceAssetId) {
+		this.burnwALGOs = async function (sender, amount, signCallback, note, forceAssetId) {
 			if (!this.assetId) {
 				this.assetId = await this.wALGOId();
 			}
@@ -1372,19 +1369,13 @@ class VaultManager {
 			let txPayFees;
 
 			// create unsigned transaction
-			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts);
-			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(
-				sender, minterAddr, undefined, undefined, amount, new Uint8Array(0),
-				asaId, params
-			);
+			let txApp = algosdk.makeApplicationNoOpTxn(sender, params, this.appId, appArgs, appAccounts, undefined, undefined, note);
+			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, minterAddr, undefined, undefined, amount, note, asaId, params);
 			let txns = [ txApp, txwALGOTransfer ];
 
 			if (burnFee > 0) {
 				let fees = Math.floor(burnFee * amount / 10000);
-				txPayFees = algosdk.makePaymentTxnWithSuggestedParams(
-					vaultAddr,
-					this.adminAddr, fees, undefined, new Uint8Array(0), params
-				);
+				txPayFees = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, this.adminAddr, fees, undefined, note, params);
 				txns.push(txPayFees);
 			}
 
@@ -1504,7 +1495,7 @@ class VaultManager {
 		 * @return {String}      transaction id of the created application or an array of transaction objects
 		 * if signCallback is not specified
 		 */
-		this.closeOut = async function (sender, signCallback, forceTo, forceToAmount, forceClose) {
+		this.closeOut = async function (sender, signCallback, note, forceTo, forceToAmount, forceClose) {
 			const params = await this.algodClient.getTransactionParams().do();
 
 			params.fee = this.minFee;
@@ -1541,11 +1532,8 @@ class VaultManager {
 			appAccounts.push(vaultAddr);
 
 			// create unsigned transaction
-			const txApp = algosdk.makeApplicationCloseOutTxn(sender, params, this.appId, undefined, appAccounts);
-			let txWithdraw = algosdk.makePaymentTxnWithSuggestedParams(
-				vaultAddr, toAddr, toAmount, closeAddr,
-				new Uint8Array(0), params
-			);
+			const txApp = algosdk.makeApplicationCloseOutTxn(sender, params, this.appId, undefined, appAccounts, undefined, undefined, note);
+			let txWithdraw = algosdk.makePaymentTxnWithSuggestedParams(vaultAddr, toAddr, toAmount, closeAddr, note, params);
 
 			let txns = [ txApp, txWithdraw ];
 

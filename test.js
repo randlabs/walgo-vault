@@ -170,7 +170,7 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 	try {
 		console.log('optIn: try optIn paying less fees');
 		// try to send 2 txs in a group to withdraw algos from a user vault from the Admin
-		txId = await vaultManager.optIn(accountAddr, signCallback, creationFee - 1);
+		txId = await vaultManager.optIn(accountAddr, signCallback, undefined, creationFee - 1);
 		console.error('ERROR: optIn should have failed fees less than creationFee: %s', txId);
 	}
 	catch (err) {
@@ -180,7 +180,7 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 	try {
 		console.log('optIn: try optIn paying fees to an incorrect account');
 		// try to send 2 txs in a group to withdraw algos from a user vault from the Admin
-		txId = await vaultManager.optIn(accountAddr, signCallback, undefined, addresses[1]);
+		txId = await vaultManager.optIn(accountAddr, signCallback, undefined, undefined, addresses[1]);
 		console.error('ERROR: optIn should have failed fees paid to incorrect account: %s', txId);
 	}
 	catch (err) {
@@ -346,7 +346,7 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 
 	try {
 		console.log('mintwALGOs: try to mint another asset');
-		txId = await vaultManager.mintwALGOs(accountAddr, mintAmount, signCallback, undefined, fakeAssetId);
+		txId = await vaultManager.mintwALGOs(accountAddr, mintAmount, signCallback, undefined, undefined, fakeAssetId);
 		console.error('ERROR: mintwALGOs should have failed incorrect asset: %s', txId);
 	}
 	catch (err) {
@@ -421,7 +421,7 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 
 	try {
 		console.log('burnwALGOs: incorrect asset');
-		txId = await vaultManager.burnwALGOs(accountAddr, Math.floor(mintAmount / 4), signCallback, fakeAssetId);
+		txId = await vaultManager.burnwALGOs(accountAddr, Math.floor(mintAmount / 4), signCallback, undefined, fakeAssetId);
 		console.error('ERROR: burnwALGOs should have failed incorrect asset: %s', txId);
 	}
 	catch (err) {
