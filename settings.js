@@ -31,8 +31,8 @@ module.exports = {
 	},
 
 	account1: {
-		privateKey: 'south quick valid slab defy conduct absorb captain borrow bulb drive box wall again orchard express ensure mail venue deputy negative radar violin about cousin',
-		publicKey: 'M7VGND73KDBHIKB3KB7GT3PHVORFPGVOEOY6TZFA25DDVJ5WRLV7S5KQ7E'
+		privateKey: 'boss multiply crazy truck box drastic join defense stay toss jealous yellow such bleak version super annual spoon fault slam clown mass trial absorb engage',
+		publicKey: 'DG7HJMQVDO2FZM6YP27BMBYJE2IWDZB3JVVD54HPALNT7PPNCO45N6DJPQ'
 	},
 	account2: {
 		privateKey: 'immune gloom foil disorder furnace bleak attack huge risk resemble phone choose minute priority shop grow jewel armor air exact real hurry arrange ability picnic',
@@ -47,8 +47,8 @@ module.exports = {
 		publicKey: 'XTZVAH6FPQDX2VOVHBOCTWP3YSNFK5PFFN76YLBI7HMJS7TSWLQKU6DKOA'
 	},
 	account5: {
-		privateKey: 'track panic hollow hub clap sniff bracket animal whale mother mirror object coral same canoe pitch lyrics oven issue deputy north soft story above very',
-		publicKey: 'HEBIUTQ4WVRQSK7GBNUOZSWC4XP6HLIGF2YGV4ASTPHGW7CDJ5OMMJLOIU'
+		privateKey: 'extra modify thought crazy ring diagram dish alpha father laundry baby puzzle people tribe tonight enact gun ozone army exile find verify exact above mystery',
+		publicKey: 'PCHXFQKVIS7EU2PT77MRQ5BSM47BCJRYWGMCGW33JNOUKAYNUYQMJIZP4A'
 	},
 	account6: {
 		privateKey: 'worry sphere situate rib update trumpet glove mechanic perfect glare cost cart agree drastic spin blanket what flash orient utility grow focus zebra abandon leave',
