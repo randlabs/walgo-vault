@@ -40,7 +40,7 @@ function expectTEALReject(err) {
 function expectTEALRejectNonAdminError(err) {
 	let text = errorText(err);
 	// eslint-disable-next-line require-unicode-regexp
-	expect(text).to.match(/(?:cannot fetch state)/);
+	expect(text).to.match(/(?:cannot fetch state|cannot fetch key)/);
 }
 
 module.exports = {
