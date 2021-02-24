@@ -769,7 +769,7 @@ class VaultManager {
 		 * @return {String}      transaction id of the last created transaction or an array of transaction objects
 		 * if signCallback is not specified
 		 */
-		this.optInASA = async function (sender, signCallback, forceAssetId) {
+		this.optInASA = async function (sender, signCallback, note, forceAssetId) {
 			const params = await this.algodClient.getTransactionParams().do();
 
 			params.fee = this.minFee;
@@ -784,8 +784,9 @@ class VaultManager {
 			// create unsigned transaction
 			let txwALGOTransfer = algosdk.makeAssetTransferTxnWithSuggestedParams(
 				sender, sender, undefined,
-				undefined, 0, new Uint8Array(0), asaId, params
+				undefined, 0, note, asaId, params
 			);
+
 			if (!signCallback) {
 				return [ txwALGOTransfer ];
 			}

@@ -319,7 +319,7 @@ function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmount, bur
 	});
 	if (settings.admin) {
 		it("optInASA Fake", async function() {
-			txId = await vaultManager.optInASA(accountAddr, signCallback, fakeAssetId);
+			txId = await vaultManager.optInASA(accountAddr, signCallback, new Uint8Array(0), fakeAssetId);
 			mochaTools.expectTxId(txId);
 		});
 		it("Transfer Fake asset to try to cheat", async function() {

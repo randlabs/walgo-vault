@@ -196,7 +196,7 @@ async function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmoun
 	console.log('optInASA: %s', txId);
 
 	console.log('optInASA Fake');
-	txId = await vaultManager.optInASA(accountAddr, signCallback, fakeAssetId);
+	txId = await vaultManager.optInASA(accountAddr, signCallback, new Uint8Array(0), fakeAssetId);
 	console.log('optInASA Fake: %s', txId);
 
 	console.log('transfer Fake asset to try to cheat');
