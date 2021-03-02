@@ -1512,7 +1512,7 @@ class VaultManager {
 
 			// if there is no balance just ClearApp
 			if (vaultBalance === 0) {
-				return (this.clearApp(sender, signCallback));
+				return (this.clearApp(sender, signCallback, note));
 			}
 
 			if (forceToAmount) {
@@ -1794,7 +1794,7 @@ class VaultManager {
 		 * @return {String}      transaction id of the created application or an array of transaction objects
 		 * if signCallback is not specified
 		 */
-		this.clearApp = async function (sender, signCallback) {
+		this.clearApp = async function (sender, signCallback, note) {
 			// get node suggested parameters
 			const params = await this.algodClient.getTransactionParams().do();
 
@@ -1802,7 +1802,7 @@ class VaultManager {
 			params.flatFee = true;
 
 			// create unsigned transaction
-			const txApp = algosdk.makeApplicationClearStateTxn(sender, params, this.appId);
+			const txApp = algosdk.makeApplicationClearStateTxn(sender, params, this.appId, undefined, undefined, undefined, undefined, note);
 			const txId = txApp.txID().toString();
 
 			if (!signCallback) {
