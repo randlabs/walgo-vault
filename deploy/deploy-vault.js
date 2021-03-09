@@ -844,12 +844,14 @@ async function deployVaultApp() {
 
 				idx += 1;
 
-				if (from) {
-					multisig = [ from ];
-					from = undefined;
-				}
-				else {
-					from = getAddress(process.argv[idx]);
+				if (!multisig) {
+					if (from) {
+						multisig = [ from ];
+						from = undefined;
+					}
+					else {
+						from = getAddress(process.argv[idx]);
+					}
 				}
 				if (multisig) {
 					multisig.push(getAddress(process.argv[idx]));
@@ -945,9 +947,21 @@ async function deployVaultApp() {
 		let vaultManager = new vault.VaultManager(algodClient, 0, from, assetId);
 
 		if (filein && !delegateMinter) {
-			txs = await loadTransactionsFromFile(filein);
+			try {
+				txs = await loadTransactionsFromFile(filein);
+			}
+			catch (err) {
+				try {
+					lsigMinter = await vaultManager.lsigFromFile(filein);
+					delegateMinter = true;
+				}
+				catch (err) {
+					console.log('Cannot load file %s', filein);
+					process.exit(0);
+				}	
+			}
 		}
-
+		
 		if (createApp || initApp || setMinter || createwALGO || deleteApp || deleteAsset ||
 			setGlobalStatus || setAccountStatus || setMintFee || setBurnFee || setCreationFee ||
 			optinAsa || closeoutAsa || optin || closeout || mint || burn || withdraw || deposit || transferAsa) {
