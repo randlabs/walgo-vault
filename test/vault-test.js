@@ -255,7 +255,7 @@ function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmount, bur
 		});
 		it("setCreationFee(0): Admin", async function() {
 			txId = await vaultManager.setCreationFee(addresses[0], 0, signCallback);
-			await vaultManager.waitForTransactionResponse(txId);
+			await vaultManager.waitForConfirmation(txId);
 			let fee = await vaultManager.creationFee();
 			expect(fee).to.equal(0);
 		});
@@ -627,7 +627,7 @@ function testAccount(accountAddr, depositAmount, mintAmount, withdrawAmount, bur
 	if (settings.admin) {
 		it("setMintFee(0)", async function() {
 			txId = await vaultManager.setMintFee(adminAddr, 0, signCallback);
-			await vaultManager.waitForTransactionResponse(txId);
+			await vaultManager.waitForConfirmation(txId);
 			let curMintFee = await vaultManager.mintFee();
 			expect(curMintFee).to.equal(0);
 		});
