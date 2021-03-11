@@ -922,6 +922,9 @@ async function deployVaultApp() {
 				firstRound = getInteger(firstRound);
 				firstRound = params.firstRound + firstRound;
 			}
+			else {
+				firstRound = getInteger(firstRound);
+			}
 		}
 		if (!from && !filein && createTxs) {
 			console.log('You need to set at least one --from address');
