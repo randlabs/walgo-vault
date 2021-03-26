@@ -2,7 +2,7 @@
   "name": "staker-dao-vault",
   "version": "1.0.0",
   "description": "## Vault",
-  "main": "main.js",
+  "main": "vault.js",
   "dependencies": {
     "algosdk": "git+https://github.com/algorand/js-algorand-sdk.git#develop",
     "chai": "^4.2.0",

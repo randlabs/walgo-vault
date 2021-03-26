@@ -1890,6 +1890,4 @@ class VaultManager {
 	}
 }
 
-module.exports = {
-	VaultManager
-};
+exports.VaultManager = VaultManager;
