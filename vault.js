@@ -326,8 +326,21 @@ class VaultManager {
 			let buffer = Buffer.from(compiledVaultProgram.result, 'base64');
 			let compiledVaultProgramHex = buffer.toString('hex');
 
-			let prefix = compiledVaultProgramHex.substring(0, 24);
-			let suffix = compiledVaultProgramHex.substring(88);
+			//console.log('compiledHex: ') ;
+			//console.log(compiledVaultProgramHex);
+
+			// Find the hex-formatted address to split between prefix and suffix
+			const addr = algosdk.decodeAddress(this.adminAddr);
+			const addrHex = Buffer.from(addr.publicKey, 'base64').toString('hex')
+			console.log(addrHex)
+			const indexOfAddr = compiledVaultProgramHex.indexOf(addrHex);
+
+			let prefix = compiledVaultProgramHex.substring(0, indexOfAddr);
+			let suffix = compiledVaultProgramHex.substring(indexOfAddr + 64);
+			
+			if (prefix + addrHex + suffix !== compiledVaultProgramHex) {
+				throw("Cannot continue: compiled program prefix, suffix or address differs.")
+			}
 
 			let ret = {};
 
@@ -447,7 +460,7 @@ class VaultManager {
 			appArgs.push(new Uint8Array(tools.getInt64Bytes(this.assetId)));
 			appArgs.push(new Uint8Array(Buffer.from(vaultProgram.prefixBase64, "base64")));
 			appArgs.push(new Uint8Array(Buffer.from(vaultProgram.suffixBase64, "base64")));
-
+			
 			return this.callApp(sender, appArgs, undefined, signCallback);
 		};
 
@@ -601,6 +614,7 @@ class VaultManager {
 			params.flatFee = true;
 
 			let vaultAddr = await this.vaultAddressByTEAL(sender);
+			//console.log('vault Address: ' + vaultAddr);
 			let fee = await this.creationFee();
 			let toAddr = this.adminAddr;
 
@@ -1114,6 +1128,8 @@ class VaultManager {
 			program = program.replace(/TMPL_APP_ID/g, this.appId);
 			// eslint-disable-next-line require-unicode-regexp
 			program = program.replace(/TMPL_USER_ADDRESS/g, accountAddr);
+
+			//console.log('appid: ' + this.appId, 'addr: ' + accountAddr);
 
 			let encoder = new TextEncoder();
 			let programBytes = encoder.encode(program);
