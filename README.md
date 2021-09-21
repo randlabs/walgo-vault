@@ -34,8 +34,8 @@ Mint and Burn operations can require to pay a percent of the amount minting and 
 * BF Int (BurnFee): fee paid in ALGOs on each burnwALGO operation
 * CF Int (CreationFee): fee paid in ALGOs on each burnwALGO operation
 * ASA Int (ASA ID): id of wALGO token
-* VP Byte[] (Vault Prefix): first part of the vault.teal program. In the middle is placed the user account address.
-* VS Byte[] (Vault Suffix): last part of the vault.teal program. In the middle is placed the user account address.
+* Pr Byte[] (Vault Prefix): first part of the vault.teal program. In the middle is placed the user account address.
+* Su Byte[] (Vault Suffix): last part of the vault.teal program. In the middle is placed the user account address.
 
 ### Local Account Variables
 
