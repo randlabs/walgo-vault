@@ -39,7 +39,7 @@ function usage() {
 		'\t\toptin app-id creator-addr\n' +
 		'\t\toptin-asa asa-id\n' +
 		'\t\tcloseout-asa asa-id close-addr. close-addr must be opted in to asa-id\n' +
-		'\t\ttransfer-asa asa-id target-addr. target-addr must be opted in to asa-id\n' +
+		'\t\ttransfer-asa asa-id target-addr amount-microASA. target-addr must be opted in to asa-id\n' +
 		'\t\tcloseout app-id creator-addr\n' +
 		'\t\tdeposit app-id creator-addr amount-microALGOs\n' +
 		'\t\twithdraw app-id creator-addr amount-microALGOs\n' +
